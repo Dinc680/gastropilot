@@ -1,29 +1,230 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>GastroPilot</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 0;
+      color: #222;
+    }
+
+    header {
+      background: #17324d;
+      color: white;
+      padding: 25px;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 30px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #17324d;
+    }
+
+    label {
+      display: block;
+      margin-top: 18px;
+      font-weight: bold;
+    }
+
+    select,
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      margin-top: 7px;
+      border: 1px solid #ccc;
+      border-radius: 7px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      background: #1f8f5f;
+      color: white;
+      border: none;
+      border-radius: 7px;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #18744d;
+    }
+
+    #ergebnis {
+      margin-top: 25px;
+      padding: 20px;
+      background: #eef7f2;
+      border-radius: 8px;
+      display: none;
+    }
+
+    #ergebnis h3 {
+      margin-top: 0;
+    }
+
+    .zutat {
+      padding: 7px 0;
+      border-bottom: 1px solid #d5e5dc;
+    }
+
+    .hinweis {
+      color: #666;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 
 <body>
 
+<header>
   <h1>GastroPilot</h1>
+  <p>Dein digitaler Küchenassistent</p>
+</header>
 
-  <h2>Dein digitaler Küchenassistent</h2>
+<div class="container">
 
-  <p>
-    Rezepte kalkulieren, Portionen berechnen und
-    professionelle Küchenabläufe einfacher organisieren.
-  </p>
-
-  <h3>Rezeptkalkulation</h3>
+  <h2>Rezept- & Portionsrechner</h2>
 
   <p>
-    GastroPilot unterstützt Gastronomen, Küchenleiter und
-    professionelle Küchen bei der täglichen Arbeit.
+    Gericht auswählen, gewünschte Portionszahl eingeben
+    und GastroPilot berechnet automatisch die benötigten Mengen.
   </p>
+
+  <label for="gericht">Gericht</label>
+
+  <select id="gericht">
+    <option value="zuericher">Züricher Geschnetzeltes</option>
+    <option value="masala">Kichererbsen Masala</option>
+    <option value="cordon">Cordon Bleu mit Pommes</option>
+  </select>
+
+  <label for="portionen">Gewünschte Portionen</label>
+
+  <input
+    type="number"
+    id="portionen"
+    value="10"
+    min="1"
+  >
+
+  <button onclick="berechnen()">
+    Mengen berechnen
+  </button>
+
+  <div id="ergebnis"></div>
+
+  <p class="hinweis">
+    Die hinterlegten Rezeptmengen dienen zunächst als Basiswerte
+    und können später individuell angepasst werden.
+  </p>
+
+</div>
+
+<script>
+
+const rezepte = {
+
+  zuericher: {
+    name: "Züricher Geschnetzeltes",
+    basis: 10,
+    zutaten: [
+      ["Schweinegeschnetzeltes", 1500, "g"],
+      ["Champignons", 700, "g"],
+      ["Zwiebeln", 300, "g"],
+      ["Sahne", 800, "ml"],
+      ["Brühe", 500, "ml"],
+      ["Öl", 100, "ml"],
+      ["Rösti-Ecken", 30, "Stück"]
+    ]
+  },
+
+  masala: {
+    name: "Kichererbsen Masala",
+    basis: 10,
+    zutaten: [
+      ["Kichererbsen", 1800, "g"],
+      ["Tomaten", 1200, "g"],
+      ["Zwiebeln", 400, "g"],
+      ["Kokosmilch", 800, "ml"],
+      ["Paprika", 600, "g"],
+      ["Reis", 700, "g"],
+      ["Masala-Gewürz", 50, "g"]
+    ]
+  },
+
+  cordon: {
+    name: "Cordon Bleu mit Pommes",
+    basis: 10,
+    zutaten: [
+      ["Cordon Bleu", 10, "Stück"],
+      ["Pommes frites", 2000, "g"],
+      ["Kopfsalat", 500, "g"],
+      ["Joghurt-Dressing", 300, "ml"]
+    ]
+  }
+
+};
+
+function berechnen() {
+
+  const gerichtKey = document.getElementById("gericht").value;
+  const portionen = Number(document.getElementById("portionen").value);
+  const ergebnis = document.getElementById("ergebnis");
+
+  if (portionen < 1) {
+    alert("Bitte mindestens 1 Portion eingeben.");
+    return;
+  }
+
+  const rezept = rezepte[gerichtKey];
+  const faktor = portionen / rezept.basis;
+
+  let html = "<h3>" + rezept.name + "</h3>";
+  html += "<p><strong>" + portionen + " Portionen</strong></p>";
+
+  rezept.zutaten.forEach(function(zutat) {
+
+    let menge = zutat[1] * faktor;
+
+    if (zutat[2] === "Stück") {
+      menge = Math.ceil(menge);
+    } else {
+      menge = Math.round(menge);
+    }
+
+    html +=
+      '<div class="zutat">' +
+      '<strong>' + zutat[0] + ':</strong> ' +
+      menge + ' ' + zutat[2] +
+      '</div>';
+
+  });
+
+  ergebnis.innerHTML = html;
+  ergebnis.style.display = "block";
+}
+
+</script>
 
 </body>
 </html>
