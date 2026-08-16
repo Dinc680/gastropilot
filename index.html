@@ -9,164 +9,262 @@
   <style>
     * {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
     }
 
     body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f4f6f5;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: #f2f4f3;
       color: #222;
-      line-height: 1.5;
     }
 
-    header {
-      background: #153f35;
+    .header {
+      background: #164c40;
       color: white;
       padding: 24px 20px;
-      text-align: center;
     }
 
-    header h1 {
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .logo {
       font-size: 32px;
-      margin-bottom: 5px;
+      font-weight: 800;
+      margin: 0;
     }
 
-    header p {
-      color: #d6e4df;
+    .subtitle {
+      margin-top: 5px;
+      font-size: 17px;
+      opacity: 0.9;
     }
 
     .container {
-      width: 100%;
-      max-width: 950px;
-      margin: 30px auto;
-      padding: 0 20px;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 50px;
     }
 
     .card {
       background: white;
-      border-radius: 14px;
-      padding: 25px;
-      margin-bottom: 25px;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      border-radius: 24px;
+      padding: 28px;
+      margin-bottom: 28px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.04);
+    }
+
+    h1 {
+      color: #164c40;
+      margin-top: 0;
+      font-size: 38px;
     }
 
     h2 {
-      color: #153f35;
-      margin-bottom: 20px;
+      margin-top: 0;
     }
 
     label {
       display: block;
-      font-weight: bold;
-      margin-top: 15px;
-      margin-bottom: 6px;
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 26px;
+      margin-bottom: 10px;
     }
 
-    select,
-    input {
+    input,
+    select {
       width: 100%;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
+      min-height: 58px;
+      padding: 13px 16px;
+      border: 2px solid #d0d0d0;
+      border-radius: 14px;
       background: white;
+      font-size: 20px;
+      color: #111;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #64b5f6;
+      box-shadow: 0 0 0 3px rgba(100,181,246,0.25);
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .suggestions {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 6px);
+      background: white;
+      border: 1px solid #d5d5d5;
+      border-radius: 14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.16);
+      overflow: hidden;
+      z-index: 1000;
+      max-height: 330px;
+      overflow-y: auto;
+    }
+
+    .suggestion-item {
+      padding: 15px 16px;
+      border-bottom: 1px solid #eeeeee;
+      cursor: pointer;
+      background: white;
+    }
+
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .suggestion-item:active {
+      background: #edf5f2;
+    }
+
+    .suggestion-name {
+      display: block;
+      font-size: 18px;
+      font-weight: 700;
+      color: #164c40;
+    }
+
+    .suggestion-category {
+      display: block;
+      margin-top: 3px;
+      font-size: 14px;
+      color: #777;
+    }
+
+    .no-result {
+      padding: 16px;
+      color: #777;
+      font-size: 16px;
+    }
+
+    .count {
+      margin-top: 9px;
+      color: #777;
+      font-size: 16px;
     }
 
     button {
       width: 100%;
-      margin-top: 20px;
-      padding: 14px;
-      border: none;
-      border-radius: 8px;
-      background: #1f705d;
+      margin-top: 28px;
+      border: 0;
+      border-radius: 14px;
+      padding: 17px 20px;
+      background: #217b65;
       color: white;
-      font-size: 17px;
-      font-weight: bold;
+      font-size: 20px;
+      font-weight: 800;
       cursor: pointer;
     }
 
-    button:hover {
-      background: #175747;
+    button:active {
+      transform: scale(0.99);
     }
 
-    .status {
-      margin-top: 12px;
-      color: #666;
-      font-size: 14px;
-    }
-
-    #ergebnis {
+    .result-card {
       display: none;
     }
 
-    .gericht-titel {
-      font-size: 24px;
-      color: #153f35;
-      margin-bottom: 5px;
-    }
-
-    .portionen {
-      color: #666;
-      margin-bottom: 20px;
-    }
-
-    .kategorie-anzeige {
+    .badge {
       display: inline-block;
-      margin-bottom: 15px;
-      padding: 5px 10px;
-      border-radius: 20px;
-      background: #eef4f1;
-      color: #153f35;
-      font-size: 14px;
-      font-weight: bold;
+      background: #edf5f2;
+      color: #164c40;
+      font-weight: 700;
+      padding: 9px 15px;
+      border-radius: 30px;
+      margin-bottom: 18px;
     }
 
-    table {
+    .result-title {
+      font-size: 34px;
+      line-height: 1.15;
+      color: #164c40;
+      margin: 0 0 10px;
+    }
+
+    .result-portions {
+      font-size: 20px;
+      color: #666;
+      margin-bottom: 26px;
+    }
+
+    .ingredients {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      overflow: hidden;
     }
 
-    th,
-    td {
+    .ingredients th {
       text-align: left;
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
+      background: #e8f1ee;
+      color: #164c40;
+      padding: 14px 12px;
+      font-size: 17px;
     }
 
-    th {
-      background: #eef4f1;
-      color: #153f35;
+    .ingredients td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #e7e7e7;
+      font-size: 17px;
     }
 
-    .hinweis {
-      background: #eef4f1;
-      border-left: 4px solid #1f705d;
-      padding: 12px;
-      margin-top: 20px;
-      border-radius: 6px;
+    .ingredients td:last-child {
+      text-align: right;
+      font-weight: 700;
     }
 
-    footer {
-      text-align: center;
-      color: #777;
-      padding: 25px;
+    .message {
+      display: none;
+      margin-top: 18px;
+      background: #fff2f2;
+      border: 1px solid #efb4b4;
+      color: #9b2525;
+      padding: 13px 15px;
+      border-radius: 12px;
     }
 
     @media (max-width: 600px) {
-      header h1 {
-        font-size: 26px;
+      .header {
+        padding: 20px 18px;
+      }
+
+      .logo {
+        font-size: 28px;
+      }
+
+      .container {
+        padding: 20px 12px 40px;
       }
 
       .card {
-        padding: 18px;
+        padding: 22px 18px;
+        border-radius: 20px;
       }
 
-      th,
-      td {
-        padding: 9px;
-        font-size: 14px;
+      h1 {
+        font-size: 32px;
+      }
+
+      .result-title {
+        font-size: 29px;
+      }
+
+      input,
+      select {
+        font-size: 18px;
+      }
+
+      label {
+        font-size: 18px;
       }
     }
   </style>
@@ -174,66 +272,81 @@
 
 <body>
 
-  <header>
-    <h1>GastroPilot</h1>
-    <p>Dein digitaler Küchenassistent</p>
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">GastroPilot</div>
+      <div class="subtitle">Dein digitaler Küchenassistent</div>
+    </div>
   </header>
 
   <main class="container">
 
     <section class="card">
 
-      <h2>Mengenrechner</h2>
+      <h1>Mengenrechner</h1>
 
-      <label for="suche">Gericht suchen</label>
-      <input
-        type="text"
-        id="suche"
-        placeholder="z. B. Schnitzel, Curry, Pasta..."
-      >
+      <!-- SUCHE -->
+      <label for="searchInput">Gericht suchen</label>
 
-      <label for="kategorie">Kategorie auswählen</label>
-      <select id="kategorie">
-        <option value="alle">Alle Kategorien</option>
+      <div class="search-wrapper">
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="z. B. Curry, Schnitzel, Gulasch..."
+          autocomplete="off"
+        >
+
+        <div id="suggestions" class="suggestions"></div>
+      </div>
+
+      <!-- KATEGORIE -->
+      <label for="categorySelect">Kategorie auswählen</label>
+
+      <select id="categorySelect">
+        <option value="alle">Alle Gerichte</option>
         <option value="Fleisch">Fleisch</option>
-        <option value="Fisch">Fisch</option>
         <option value="Vegetarisch">Vegetarisch</option>
-        <option value="Vegan">Vegan</option>
-        <option value="Pasta & Aufläufe">Pasta & Aufläufe</option>
       </select>
 
-      <label for="gericht">Gericht auswählen</label>
-      <select id="gericht">
+      <!-- GERICHT -->
+      <label for="dishSelect">Gericht auswählen</label>
+
+      <select id="dishSelect">
         <option value="">Bitte Gericht auswählen</option>
       </select>
 
-      <div class="status" id="statusText"></div>
+      <div id="dishCount" class="count"></div>
 
-      <label for="personen">Anzahl Portionen</label>
+      <!-- PORTIONEN -->
+      <label for="portionInput">Anzahl Portionen</label>
+
       <input
+        id="portionInput"
         type="number"
-        id="personen"
-        min="1"
-        max="2000"
         value="10"
+        min="1"
+        step="1"
+        inputmode="numeric"
       >
 
-      <button id="berechnenButton">
+      <button id="calculateButton">
         Mengen berechnen
       </button>
 
+      <div id="message" class="message"></div>
+
     </section>
 
+    <!-- ERGEBNIS -->
+    <section id="resultCard" class="card result-card">
 
-    <section class="card" id="ergebnis">
+      <div id="resultCategory" class="badge"></div>
 
-      <div class="kategorie-anzeige" id="kategorieAnzeige"></div>
+      <div id="resultTitle" class="result-title"></div>
 
-      <div class="gericht-titel" id="gerichtTitel"></div>
+      <div id="resultPortions" class="result-portions"></div>
 
-      <div class="portionen" id="portionText"></div>
-
-      <table>
+      <table class="ingredients">
         <thead>
           <tr>
             <th>Zutat</th>
@@ -241,834 +354,630 @@
           </tr>
         </thead>
 
-        <tbody id="zutatenListe"></tbody>
+        <tbody id="ingredientBody"></tbody>
       </table>
-
-      <div class="hinweis">
-        Die Mengen werden automatisch auf die gewünschte Portionszahl hochgerechnet.
-      </div>
 
     </section>
 
   </main>
 
-  <footer>
-    GastroPilot © 2026
-  </footer>
-
-
   <script>
 
-    const rezepte = {
+    /* =========================================================
+       GERICHTE
+       Alle Mengen beziehen sich auf 10 Portionen.
+       ========================================================= */
 
-      // =========================
-      // FLEISCH
-      // =========================
+    const dishes = [
 
-      zuericher: {
+      {
+        id: "zuericher",
         name: "Züricher Geschnetzeltes",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Schweinegeschnetzeltes", 1.5, "kg"],
-          ["Champignons", 0.6, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Sahne", 0.5, "l"],
-          ["Brühe", 0.5, "l"],
-          ["Rösti", 1.8, "kg"]
+        category: "Fleisch",
+        basePortions: 10,
+        ingredients: [
+          { name: "Schweinegeschnetzeltes", amount: 1500, unit: "g" },
+          { name: "Champignons", amount: 700, unit: "g" },
+          { name: "Zwiebeln", amount: 300, unit: "g" },
+          { name: "Sahne", amount: 800, unit: "ml" },
+          { name: "Brühe", amount: 500, unit: "ml" },
+          { name: "Öl", amount: 100, unit: "ml" },
+          { name: "Rösti-Ecken", amount: 30, unit: "Stück" }
         ]
       },
 
-      cordonbleu: {
-        name: "Cordon Bleu mit Pommes",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Cordon Bleu", 10, "Stück"],
-          ["Pommes frites", 2.0, "kg"],
-          ["Kopfsalat", 0.5, "kg"],
-          ["Joghurt-Dressing", 0.3, "l"]
-        ]
-      },
-
-      gulasch: {
-        name: "Rindergulasch mit Spätzle",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Rindergulasch", 1.6, "kg"],
-          ["Zwiebeln", 0.5, "kg"],
-          ["Paprika", 0.4, "kg"],
-          ["Brühe", 0.8, "l"],
-          ["Tomatenmark", 0.15, "kg"],
-          ["Spätzle", 1.5, "kg"]
-        ]
-      },
-
-      haehnchencurry: {
-        name: "Hähnchen-Curry mit Reis",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Hähnchenbrust", 1.5, "kg"],
-          ["Gemüse", 0.8, "kg"],
-          ["Kokosmilch", 0.8, "l"],
-          ["Currysauce", 0.5, "l"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      frikadellen: {
-        name: "Frikadellen mit Kartoffelpüree",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Hackfleisch", 1.4, "kg"],
-          ["Zwiebeln", 0.25, "kg"],
-          ["Ei", 3, "Stück"],
-          ["Paniermehl", 0.15, "kg"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Milch", 0.5, "l"]
-        ]
-      },
-
-      putengeschnetzeltes: {
-        name: "Putengeschnetzeltes mit Reis",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Putenbrust", 1.5, "kg"],
-          ["Paprika", 0.5, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Sahne", 0.5, "l"],
-          ["Brühe", 0.5, "l"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      bolognese: {
-        name: "Spaghetti Bolognese",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Rinderhackfleisch", 1.2, "kg"],
-          ["Spaghetti", 1.0, "kg"],
-          ["Tomaten", 1.2, "kg"],
-          ["Zwiebeln", 0.25, "kg"],
-          ["Karotten", 0.25, "kg"],
-          ["Tomatenmark", 0.15, "kg"]
-        ]
-      },
-
-      schnitzel: {
-        name: "Schnitzel mit Kartoffeln",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Schweineschnitzel", 10, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Paniermehl", 0.4, "kg"],
-          ["Ei", 4, "Stück"],
-          ["Salat", 0.5, "kg"]
-        ]
-      },
-
-      schweinebraten: {
-        name: "Schweinebraten mit Kartoffelknödeln",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Schweinebraten", 1.8, "kg"],
-          ["Zwiebeln", 0.4, "kg"],
-          ["Brühe", 1.0, "l"],
-          ["Kartoffelknödel", 20, "Stück"],
-          ["Rotkohl", 1.2, "kg"]
-        ]
-      },
-
-      haehnchenschenkel: {
-        name: "Hähnchenschenkel mit Rosmarinkartoffeln",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Hähnchenschenkel", 10, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Paprika", 0.5, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Öl", 0.15, "l"]
-        ]
-      },
-
-      cevapcici: {
-        name: "Cevapcici mit Djuvec-Reis",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Cevapcici", 1.5, "kg"],
-          ["Reis", 0.8, "kg"],
-          ["Paprika", 0.5, "kg"],
-          ["Tomaten", 0.6, "kg"],
-          ["Ajvar", 0.25, "kg"]
-        ]
-      },
-
-      koenigsberger: {
-        name: "Königsberger Klopse",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Hackfleisch", 1.4, "kg"],
-          ["Zwiebeln", 0.2, "kg"],
-          ["Kapern", 0.08, "kg"],
-          ["Sahne", 0.4, "l"],
-          ["Brühe", 0.7, "l"],
-          ["Kartoffeln", 2.0, "kg"]
-        ]
-      },
-
-      gyros: {
-        name: "Gyros mit Reis und Tzatziki",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Gyrosfleisch", 1.6, "kg"],
-          ["Reis", 0.8, "kg"],
-          ["Tzatziki", 0.6, "kg"],
-          ["Krautsalat", 0.8, "kg"],
-          ["Zwiebeln", 0.3, "kg"]
-        ]
-      },
-
-      hackbraten: {
-        name: "Hackbraten mit Kartoffelpüree",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Hackfleisch", 1.6, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Ei", 4, "Stück"],
-          ["Paniermehl", 0.2, "kg"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Milch", 0.5, "l"]
-        ]
-      },
-
-      kassler: {
-        name: "Kassler mit Sauerkraut",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Kassler", 1.6, "kg"],
-          ["Sauerkraut", 1.5, "kg"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Zwiebeln", 0.25, "kg"]
-        ]
-      },
-
-
-      // =========================
-      // FISCH
-      // =========================
-
-      seelachs: {
-        name: "Seelachsfilet mit Kartoffeln",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Seelachsfilet", 1.6, "kg"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Gemüse", 1.0, "kg"],
-          ["Zitronensauce", 0.7, "l"]
-        ]
-      },
-
-      lachs: {
-        name: "Lachsfilet mit Reis",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Lachsfilet", 1.5, "kg"],
-          ["Reis", 0.8, "kg"],
-          ["Brokkoli", 1.0, "kg"],
-          ["Sahnesauce", 0.6, "l"]
-        ]
-      },
-
-      fischcurry: {
-        name: "Fischcurry mit Kokosmilch",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Fischfilet", 1.5, "kg"],
-          ["Kokosmilch", 0.8, "l"],
-          ["Gemüse", 1.0, "kg"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      fischstaebchen: {
-        name: "Fischstäbchen mit Kartoffelpüree",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Fischstäbchen", 30, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Milch", 0.5, "l"],
-          ["Spinat", 1.2, "kg"]
-        ]
-      },
-
-      kabeljau: {
-        name: "Kabeljau mit Senfsauce",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Kabeljau", 1.6, "kg"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Senfsauce", 0.7, "l"],
-          ["Gemüse", 1.0, "kg"]
-        ]
-      },
-
-      pasta_lachs: {
-        name: "Pasta mit Lachs und Spinat",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Pasta", 1.0, "kg"],
-          ["Lachs", 1.0, "kg"],
-          ["Spinat", 0.8, "kg"],
-          ["Sahne", 0.7, "l"]
-        ]
-      },
-
-      fischfrikadelle: {
-        name: "Fischfrikadelle mit Kartoffelsalat",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Fischfrikadellen", 10, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Gurken", 0.4, "kg"],
-          ["Mayonnaise", 0.3, "kg"]
-        ]
-      },
-
-      backfisch: {
-        name: "Backfisch mit Remoulade",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Backfisch", 10, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Remoulade", 0.4, "kg"],
-          ["Salat", 0.6, "kg"]
-        ]
-      },
-
-
-      // =========================
-      // VEGETARISCH
-      // =========================
-
-      masala: {
+      {
+        id: "masala",
         name: "Kichererbsen Masala",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Kichererbsen", 1.2, "kg"],
-          ["Tomaten", 0.8, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Kokosmilch", 0.8, "l"],
-          ["Reis", 0.8, "kg"]
+        category: "Vegetarisch",
+        basePortions: 10,
+        ingredients: [
+          { name: "Kichererbsen", amount: 1800, unit: "g" },
+          { name: "Tomaten", amount: 1000, unit: "g" },
+          { name: "Zwiebeln", amount: 400, unit: "g" },
+          { name: "Kokosmilch", amount: 1000, unit: "ml" },
+          { name: "Paprika", amount: 600, unit: "g" },
+          { name: "Öl", amount: 100, unit: "ml" },
+          { name: "Basmatireis", amount: 800, unit: "g" }
         ]
       },
 
-      gemuesecurry: {
+      {
+        id: "cordon",
+        name: "Cordon Bleu mit Pommes",
+        category: "Fleisch",
+        basePortions: 10,
+        ingredients: [
+          { name: "Cordon Bleu", amount: 10, unit: "Stück" },
+          { name: "Pommes frites", amount: 2000, unit: "g" },
+          { name: "Öl / Frittierfett", amount: 200, unit: "ml" }
+        ]
+      },
+
+      {
+        id: "schnitzel",
+        name: "Schnitzel mit Pommes",
+        category: "Fleisch",
+        basePortions: 10,
+        ingredients: [
+          { name: "Schweineschnitzel", amount: 1800, unit: "g" },
+          { name: "Mehl", amount: 200, unit: "g" },
+          { name: "Eier", amount: 5, unit: "Stück" },
+          { name: "Paniermehl", amount: 400, unit: "g" },
+          { name: "Pommes frites", amount: 2000, unit: "g" },
+          { name: "Öl / Frittierfett", amount: 250, unit: "ml" }
+        ]
+      },
+
+      {
+        id: "curry",
         name: "Gemüsecurry mit Reis",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Gemüse", 1.5, "kg"],
-          ["Kokosmilch", 0.8, "l"],
-          ["Currysauce", 0.5, "l"],
-          ["Reis", 0.8, "kg"]
+        category: "Vegetarisch",
+        basePortions: 10,
+        ingredients: [
+          { name: "Basmatireis", amount: 800, unit: "g" },
+          { name: "Paprika", amount: 600, unit: "g" },
+          { name: "Zucchini", amount: 600, unit: "g" },
+          { name: "Möhren", amount: 500, unit: "g" },
+          { name: "Brokkoli", amount: 600, unit: "g" },
+          { name: "Kokosmilch", amount: 1200, unit: "ml" },
+          { name: "Currypaste", amount: 120, unit: "g" },
+          { name: "Öl", amount: 100, unit: "ml" }
         ]
       },
 
-      kaesespaetzle: {
-        name: "Käsespätzle",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Spätzle", 1.5, "kg"],
-          ["Käse", 0.7, "kg"],
-          ["Zwiebeln", 0.4, "kg"],
-          ["Sahne", 0.4, "l"]
+      {
+        id: "haehnchen",
+        name: "Hähnchengeschnetzeltes mit Reis",
+        category: "Fleisch",
+        basePortions: 10,
+        ingredients: [
+          { name: "Hähnchenbrust", amount: 1600, unit: "g" },
+          { name: "Basmatireis", amount: 800, unit: "g" },
+          { name: "Paprika", amount: 600, unit: "g" },
+          { name: "Zwiebeln", amount: 300, unit: "g" },
+          { name: "Sahne", amount: 800, unit: "ml" },
+          { name: "Brühe", amount: 500, unit: "ml" },
+          { name: "Öl", amount: 100, unit: "ml" }
         ]
       },
 
-      gemueselasagne: {
-        name: "Gemüselasagne",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Lasagneplatten", 0.7, "kg"],
-          ["Gemüse", 1.3, "kg"],
-          ["Tomatensauce", 1.0, "l"],
-          ["Béchamelsauce", 0.8, "l"],
-          ["Käse", 0.5, "kg"]
+      {
+        id: "spaghetti",
+        name: "Spaghetti Bolognese",
+        category: "Fleisch",
+        basePortions: 10,
+        ingredients: [
+          { name: "Spaghetti", amount: 1000, unit: "g" },
+          { name: "Rinderhackfleisch", amount: 1200, unit: "g" },
+          { name: "Tomaten", amount: 1500, unit: "g" },
+          { name: "Zwiebeln", amount: 300, unit: "g" },
+          { name: "Möhren", amount: 300, unit: "g" },
+          { name: "Tomatenmark", amount: 200, unit: "g" },
+          { name: "Öl", amount: 100, unit: "ml" }
         ]
       },
 
-      kartoffelgratin: {
-        name: "Kartoffelgratin mit Gemüse",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Kartoffeln", 2.0, "kg"],
-          ["Gemüse", 1.0, "kg"],
-          ["Sahne", 0.8, "l"],
-          ["Käse", 0.5, "kg"]
+      {
+        id: "gulasch",
+        name: "Rindergulasch mit Kartoffeln",
+        category: "Fleisch",
+        basePortions: 10,
+        ingredients: [
+          { name: "Rindergulasch", amount: 1800, unit: "g" },
+          { name: "Kartoffeln", amount: 2500, unit: "g" },
+          { name: "Zwiebeln", amount: 600, unit: "g" },
+          { name: "Paprika", amount: 500, unit: "g" },
+          { name: "Tomatenmark", amount: 200, unit: "g" },
+          { name: "Brühe", amount: 1200, unit: "ml" },
+          { name: "Öl", amount: 100, unit: "ml" }
         ]
       },
 
-      spinatknödel: {
-        name: "Spinatknödel mit Käsesauce",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Spinatknödel", 20, "Stück"],
-          ["Käsesauce", 0.8, "l"],
-          ["Gemüse", 1.0, "kg"]
-        ]
-      },
-
-      gemueseschnitzel: {
-        name: "Gemüseschnitzel mit Kartoffeln",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Gemüseschnitzel", 10, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Salat", 0.6, "kg"],
-          ["Dressing", 0.3, "l"]
-        ]
-      },
-
-      tortellini: {
-        name: "Tortellini in Käsesauce",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Tortellini", 1.5, "kg"],
-          ["Sahne", 0.7, "l"],
-          ["Käse", 0.5, "kg"],
-          ["Brokkoli", 0.8, "kg"]
-        ]
-      },
-
-      gemuese_reis: {
-        name: "Gemüse-Reis-Pfanne",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Reis", 0.9, "kg"],
-          ["Gemüse", 1.5, "kg"],
-          ["Brühe", 0.8, "l"],
-          ["Käse", 0.3, "kg"]
-        ]
-      },
-
-      pellkartoffeln: {
-        name: "Pellkartoffeln mit Kräuterquark",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Kartoffeln", 2.5, "kg"],
-          ["Quark", 1.0, "kg"],
-          ["Kräuter", 0.1, "kg"],
-          ["Salat", 0.7, "kg"]
-        ]
-      },
-
-      shakshuka: {
-        name: "Shakshuka mit Brot",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Tomaten", 1.5, "kg"],
-          ["Paprika", 0.8, "kg"],
-          ["Zwiebeln", 0.4, "kg"],
-          ["Eier", 10, "Stück"],
-          ["Brot", 1.0, "kg"]
-        ]
-      },
-
-      gnocchi: {
-        name: "Gnocchi mit Tomaten und Mozzarella",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Gnocchi", 1.5, "kg"],
-          ["Tomaten", 1.0, "kg"],
-          ["Mozzarella", 0.7, "kg"],
-          ["Tomatensauce", 0.7, "l"]
-        ]
-      },
-
-      käseschnitzel: {
-        name: "Käseschnitzel mit Gemüse",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Käseschnitzel", 10, "Stück"],
-          ["Kartoffeln", 1.8, "kg"],
-          ["Gemüse", 1.0, "kg"]
-        ]
-      },
-
-      brokkoliauflauf: {
-        name: "Brokkoli-Kartoffel-Auflauf",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Kartoffeln", 1.8, "kg"],
-          ["Brokkoli", 1.2, "kg"],
-          ["Sahne", 0.7, "l"],
-          ["Käse", 0.5, "kg"]
-        ]
-      },
-
-      eier_senf: {
-        name: "Eier in Senfsauce",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Eier", 20, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Senfsauce", 0.8, "l"],
-          ["Spinat", 1.0, "kg"]
-        ]
-      },
-
-
-      // =========================
-      // VEGAN
-      // =========================
-
-      chili: {
-        name: "Veganes Chili",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Kidneybohnen", 0.8, "kg"],
-          ["Mais", 0.5, "kg"],
-          ["Paprika", 0.6, "kg"],
-          ["Tomaten", 1.0, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      linsencurry: {
-        name: "Rotes Linsencurry",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Rote Linsen", 0.8, "kg"],
-          ["Kokosmilch", 0.8, "l"],
-          ["Tomaten", 0.8, "kg"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      couscous: {
-        name: "Couscous-Gemüse-Pfanne",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Couscous", 0.9, "kg"],
-          ["Gemüse", 1.4, "kg"],
-          ["Kichererbsen", 0.6, "kg"],
-          ["Brühe", 0.8, "l"]
-        ]
-      },
-
-      tofu: {
-        name: "Tofu-Gemüse-Wok",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Tofu", 1.2, "kg"],
-          ["Wokgemüse", 1.5, "kg"],
-          ["Reis", 0.8, "kg"],
-          ["Sojasauce", 0.25, "l"]
-        ]
-      },
-
-      dal: {
-        name: "Indisches Dal",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Linsen", 0.9, "kg"],
-          ["Tomaten", 0.8, "kg"],
-          ["Kokosmilch", 0.7, "l"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      veganebolognese: {
-        name: "Vegane Linsenbolognese",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Linsen", 0.7, "kg"],
-          ["Spaghetti", 1.0, "kg"],
-          ["Tomaten", 1.2, "kg"],
-          ["Karotten", 0.3, "kg"],
-          ["Zwiebeln", 0.25, "kg"]
-        ]
-      },
-
-      kartoffelgemuese: {
-        name: "Kartoffel-Gemüse-Eintopf",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Kartoffeln", 1.8, "kg"],
-          ["Karotten", 0.6, "kg"],
-          ["Lauch", 0.4, "kg"],
-          ["Sellerie", 0.3, "kg"],
-          ["Brühe", 2.0, "l"]
-        ]
-      },
-
-
-      // =========================
-      // PASTA & AUFLÄUFE
-      // =========================
-
-      nudelgemuese: {
-        name: "Nudel-Gemüse-Pfanne",
-        kategorie: "Pasta & Aufläufe",
-        basis: 10,
-        zutaten: [
-          ["Nudeln", 1.0, "kg"],
-          ["Gemüse", 1.2, "kg"],
-          ["Sahne", 0.5, "l"],
-          ["Käse", 0.3, "kg"]
-        ]
-      },
-
-      macandcheese: {
-        name: "Mac and Cheese",
-        kategorie: "Pasta & Aufläufe",
-        basis: 10,
-        zutaten: [
-          ["Makkaroni", 1.0, "kg"],
-          ["Cheddar", 0.7, "kg"],
-          ["Milch", 0.8, "l"],
-          ["Sahne", 0.4, "l"]
-        ]
-      },
-
-      penne: {
-        name: "Penne Arrabbiata",
-        kategorie: "Pasta & Aufläufe",
-        basis: 10,
-        zutaten: [
-          ["Penne", 1.0, "kg"],
-          ["Tomaten", 1.2, "kg"],
-          ["Tomatensauce", 0.8, "l"],
-          ["Zwiebeln", 0.25, "kg"]
-        ]
-      },
-
-      cannelloni: {
-        name: "Cannelloni mit Spinat und Ricotta",
-        kategorie: "Pasta & Aufläufe",
-        basis: 10,
-        zutaten: [
-          ["Cannelloni", 1.0, "kg"],
-          ["Spinat", 1.0, "kg"],
-          ["Ricotta", 0.8, "kg"],
-          ["Tomatensauce", 1.0, "l"],
-          ["Käse", 0.4, "kg"]
-        ]
-      },
-
-      nudelauflauf: {
-        name: "Nudelauflauf mit Gemüse",
-        kategorie: "Pasta & Aufläufe",
-        basis: 10,
-        zutaten: [
-          ["Nudeln", 1.0, "kg"],
-          ["Gemüse", 1.2, "kg"],
-          ["Sahne", 0.7, "l"],
-          ["Käse", 0.5, "kg"]
+      {
+        id: "linsenbolognese",
+        name: "Linsen-Bolognese mit Pasta",
+        category: "Vegetarisch",
+        basePortions: 10,
+        ingredients: [
+          { name: "Pasta", amount: 1000, unit: "g" },
+          { name: "Rote Linsen", amount: 800, unit: "g" },
+          { name: "Tomaten", amount: 1500, unit: "g" },
+          { name: "Zwiebeln", amount: 300, unit: "g" },
+          { name: "Möhren", amount: 400, unit: "g" },
+          { name: "Tomatenmark", amount: 200, unit: "g" },
+          { name: "Gemüsebrühe", amount: 1000, unit: "ml" },
+          { name: "Öl", amount: 100, unit: "ml" }
         ]
       }
 
-    };
+    ];
 
 
-    const suche = document.getElementById("suche");
-    const kategorie = document.getElementById("kategorie");
-    const gerichtAuswahl = document.getElementById("gericht");
-    const personenEingabe = document.getElementById("personen");
-    const berechnenButton = document.getElementById("berechnenButton");
+    /* =========================================================
+       ELEMENTE
+       ========================================================= */
 
-    const statusText = document.getElementById("statusText");
+    const searchInput =
+      document.getElementById("searchInput");
 
-    const ergebnis = document.getElementById("ergebnis");
-    const gerichtTitel = document.getElementById("gerichtTitel");
-    const portionText = document.getElementById("portionText");
-    const zutatenListe = document.getElementById("zutatenListe");
-    const kategorieAnzeige = document.getElementById("kategorieAnzeige");
+    const suggestions =
+      document.getElementById("suggestions");
+
+    const categorySelect =
+      document.getElementById("categorySelect");
+
+    const dishSelect =
+      document.getElementById("dishSelect");
+
+    const dishCount =
+      document.getElementById("dishCount");
+
+    const portionInput =
+      document.getElementById("portionInput");
+
+    const calculateButton =
+      document.getElementById("calculateButton");
+
+    const message =
+      document.getElementById("message");
+
+    const resultCard =
+      document.getElementById("resultCard");
+
+    const resultCategory =
+      document.getElementById("resultCategory");
+
+    const resultTitle =
+      document.getElementById("resultTitle");
+
+    const resultPortions =
+      document.getElementById("resultPortions");
+
+    const ingredientBody =
+      document.getElementById("ingredientBody");
 
 
-    suche.addEventListener("input", gerichteFiltern);
-    kategorie.addEventListener("change", gerichteFiltern);
-    berechnenButton.addEventListener("click", berechnen);
+    /* =========================================================
+       TEXT NORMALISIEREN
+       Damit Suche auch ohne ä / ö / ü funktioniert.
+       ========================================================= */
+
+    function normalizeText(text) {
+
+      return text
+        .toLowerCase()
+        .replace(/ä/g, "a")
+        .replace(/ö/g, "o")
+        .replace(/ü/g, "u")
+        .replace(/ß/g, "ss");
+
+    }
 
 
-    function gerichteFiltern() {
+    /* =========================================================
+       DROPDOWN AKTUALISIEREN
+       ========================================================= */
 
-      const suchText = suche.value.toLowerCase().trim();
-      const gewaehlteKategorie = kategorie.value;
+    function updateDishSelect() {
 
-      gerichtAuswahl.innerHTML =
+      const category = categorySelect.value;
+
+      let filteredDishes = dishes;
+
+      if (category !== "alle") {
+
+        filteredDishes = dishes.filter(
+          dish => dish.category === category
+        );
+
+      }
+
+      dishSelect.innerHTML =
         '<option value="">Bitte Gericht auswählen</option>';
 
-      let anzahl = 0;
+      filteredDishes.forEach(dish => {
 
-      Object.keys(rezepte)
-        .sort(function(a, b) {
-          return rezepte[a].name.localeCompare(rezepte[b].name);
-        })
-        .forEach(function(key) {
+        const option = document.createElement("option");
 
-          const rezept = rezepte[key];
+        option.value = dish.id;
+        option.textContent = dish.name;
 
-          const passtZurSuche =
-            rezept.name.toLowerCase().includes(suchText);
+        dishSelect.appendChild(option);
 
-          const passtZurKategorie =
-            gewaehlteKategorie === "alle" ||
-            rezept.kategorie === gewaehlteKategorie;
+      });
 
-          if (passtZurSuche && passtZurKategorie) {
+      if (filteredDishes.length === 1) {
 
-            const option = document.createElement("option");
+        dishCount.textContent = "1 Gericht";
 
-            option.value = key;
-            option.textContent =
-              rezept.name + " – " + rezept.kategorie;
+      } else {
 
-            gerichtAuswahl.appendChild(option);
+        dishCount.textContent =
+          filteredDishes.length + " Gerichte";
 
-            anzahl++;
-          }
+      }
+
+    }
+
+
+    /* =========================================================
+       LIVE-SUCHE
+       ========================================================= */
+
+    function showSuggestions() {
+
+      const searchText =
+        normalizeText(searchInput.value.trim());
+
+      suggestions.innerHTML = "";
+
+      if (searchText.length === 0) {
+
+        suggestions.style.display = "none";
+        return;
+
+      }
+
+      const matches = dishes.filter(dish => {
+
+        return normalizeText(dish.name)
+          .includes(searchText);
+
+      });
+
+      if (matches.length === 0) {
+
+        const noResult =
+          document.createElement("div");
+
+        noResult.className = "no-result";
+        noResult.textContent =
+          "Kein Gericht gefunden";
+
+        suggestions.appendChild(noResult);
+
+        suggestions.style.display = "block";
+
+        return;
+
+      }
+
+      matches.forEach(dish => {
+
+        const item =
+          document.createElement("div");
+
+        item.className = "suggestion-item";
+
+        const name =
+          document.createElement("span");
+
+        name.className = "suggestion-name";
+        name.textContent = dish.name;
+
+        const category =
+          document.createElement("span");
+
+        category.className =
+          "suggestion-category";
+
+        category.textContent =
+          dish.category;
+
+        item.appendChild(name);
+        item.appendChild(category);
+
+        item.addEventListener("click", function() {
+
+          selectDishFromSearch(dish);
 
         });
 
-
-      if (anzahl === 1) {
-        statusText.textContent = "1 Gericht gefunden.";
-      } else {
-        statusText.textContent =
-          anzahl + " Gerichte gefunden.";
-      }
-
-    }
-
-
-    function berechnen() {
-
-      const gerichtKey = gerichtAuswahl.value;
-      const personen = Number(personenEingabe.value);
-
-      if (!gerichtKey) {
-        alert("Bitte zuerst ein Gericht auswählen.");
-        return;
-      }
-
-      if (!personen || personen < 1) {
-        alert("Bitte eine gültige Portionszahl eingeben.");
-        return;
-      }
-
-      const rezept = rezepte[gerichtKey];
-
-      if (!rezept) {
-        alert("Das ausgewählte Rezept wurde nicht gefunden.");
-        return;
-      }
-
-      const faktor = personen / rezept.basis;
-
-      kategorieAnzeige.textContent = rezept.kategorie;
-      gerichtTitel.textContent = rezept.name;
-
-      portionText.textContent =
-        "Berechnung für " + personen + " Portionen";
-
-      zutatenListe.innerHTML = "";
-
-
-      rezept.zutaten.forEach(function(zutat) {
-
-        const name = zutat[0];
-        const basisMenge = zutat[1];
-        const einheit = zutat[2];
-
-        const neueMenge = basisMenge * faktor;
-
-        const zeile = document.createElement("tr");
-
-        const nameFeld = document.createElement("td");
-        nameFeld.textContent = name;
-
-        const mengenFeld = document.createElement("td");
-        mengenFeld.textContent =
-          formatMenge(neueMenge) + " " + einheit;
-
-        zeile.appendChild(nameFeld);
-        zeile.appendChild(mengenFeld);
-
-        zutatenListe.appendChild(zeile);
+        suggestions.appendChild(item);
 
       });
 
-
-      ergebnis.style.display = "block";
-
-      ergebnis.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
+      suggestions.style.display = "block";
 
     }
 
 
-    function formatMenge(menge) {
+    /* =========================================================
+       TREFFER AUS SUCHE AUSWÄHLEN
+       ========================================================= */
 
-      if (Number.isInteger(menge)) {
-        return menge.toString();
+    function selectDishFromSearch(dish) {
+
+      searchInput.value = dish.name;
+
+      categorySelect.value = dish.category;
+
+      updateDishSelect();
+
+      dishSelect.value = dish.id;
+
+      suggestions.style.display = "none";
+
+      dishCount.textContent =
+        "Gericht ausgewählt";
+
+    }
+
+
+    /* =========================================================
+       MENGE FORMATIEREN
+       ========================================================= */
+
+    function formatAmount(amount) {
+
+      if (Number.isInteger(amount)) {
+
+        return amount.toString();
+
       }
 
-      return menge
-        .toFixed(2)
-        .replace(".", ",")
-        .replace(/,00$/, "")
-        .replace(/0$/, "");
+      if (amount >= 100) {
+
+        return amount.toFixed(0);
+
+      }
+
+      return amount
+        .toFixed(1)
+        .replace(".", ",");
 
     }
 
 
-    gerichteFiltern();
+    /* =========================================================
+       MENGEN BERECHNEN
+       ========================================================= */
+
+    function calculate() {
+
+      hideMessage();
+
+      const dishId =
+        dishSelect.value;
+
+      const portions =
+        Number(portionInput.value);
+
+      if (!dishId) {
+
+        showMessage(
+          "Bitte zuerst ein Gericht auswählen."
+        );
+
+        return;
+
+      }
+
+      if (!portions || portions < 1) {
+
+        showMessage(
+          "Bitte eine gültige Portionszahl eingeben."
+        );
+
+        return;
+
+      }
+
+      const dish =
+        dishes.find(
+          item => item.id === dishId
+        );
+
+      if (!dish) {
+
+        showMessage(
+          "Das Gericht konnte nicht gefunden werden."
+        );
+
+        return;
+
+      }
+
+      const factor =
+        portions / dish.basePortions;
+
+      resultCategory.textContent =
+        dish.category;
+
+      resultTitle.textContent =
+        dish.name;
+
+      resultPortions.textContent =
+        "Berechnung für " +
+        portions +
+        (portions === 1
+          ? " Portion"
+          : " Portionen");
+
+      ingredientBody.innerHTML = "";
+
+      dish.ingredients.forEach(ingredient => {
+
+        const row =
+          document.createElement("tr");
+
+        const nameCell =
+          document.createElement("td");
+
+        const amountCell =
+          document.createElement("td");
+
+        nameCell.textContent =
+          ingredient.name;
+
+        const calculatedAmount =
+          ingredient.amount * factor;
+
+        amountCell.textContent =
+          formatAmount(calculatedAmount) +
+          " " +
+          ingredient.unit;
+
+        row.appendChild(nameCell);
+        row.appendChild(amountCell);
+
+        ingredientBody.appendChild(row);
+
+      });
+
+      resultCard.style.display = "block";
+
+      setTimeout(() => {
+
+        resultCard.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+
+      }, 100);
+
+    }
+
+
+    /* =========================================================
+       FEHLERMELDUNG
+       ========================================================= */
+
+    function showMessage(text) {
+
+      message.textContent = text;
+      message.style.display = "block";
+
+    }
+
+    function hideMessage() {
+
+      message.style.display = "none";
+      message.textContent = "";
+
+    }
+
+
+    /* =========================================================
+       EVENTS
+       ========================================================= */
+
+    searchInput.addEventListener(
+      "input",
+      showSuggestions
+    );
+
+
+    searchInput.addEventListener(
+      "focus",
+      function() {
+
+        if (searchInput.value.trim() !== "") {
+
+          showSuggestions();
+
+        }
+
+      }
+    );
+
+
+    categorySelect.addEventListener(
+      "change",
+      function() {
+
+        updateDishSelect();
+
+        searchInput.value = "";
+
+        suggestions.style.display = "none";
+
+      }
+    );
+
+
+    dishSelect.addEventListener(
+      "change",
+      function() {
+
+        const dish =
+          dishes.find(
+            item => item.id === dishSelect.value
+          );
+
+        if (dish) {
+
+          searchInput.value = dish.name;
+
+        }
+
+      }
+    );
+
+
+    calculateButton.addEventListener(
+      "click",
+      calculate
+    );
+
+
+    portionInput.addEventListener(
+      "keydown",
+      function(event) {
+
+        if (event.key === "Enter") {
+
+          calculate();
+
+        }
+
+      }
+    );
+
+
+    document.addEventListener(
+      "click",
+      function(event) {
+
+        if (
+          !searchInput.contains(event.target) &&
+          !suggestions.contains(event.target)
+        ) {
+
+          suggestions.style.display = "none";
+
+        }
+
+      }
+    );
+
+
+    /* =========================================================
+       START
+       ========================================================= */
+
+    updateDishSelect();
 
   </script>
 
