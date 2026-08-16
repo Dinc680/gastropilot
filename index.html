@@ -38,7 +38,7 @@
 
     .container {
       width: 100%;
-      max-width: 900px;
+      max-width: 950px;
       margin: 30px auto;
       padding: 0 20px;
     }
@@ -90,6 +90,12 @@
       background: #175747;
     }
 
+    .status {
+      margin-top: 12px;
+      color: #666;
+      font-size: 14px;
+    }
+
     #ergebnis {
       display: none;
     }
@@ -103,6 +109,17 @@
     .portionen {
       color: #666;
       margin-bottom: 20px;
+    }
+
+    .kategorie-anzeige {
+      display: inline-block;
+      margin-bottom: 15px;
+      padding: 5px 10px;
+      border-radius: 20px;
+      background: #eef4f1;
+      color: #153f35;
+      font-size: 14px;
+      font-weight: bold;
     }
 
     table {
@@ -168,42 +185,36 @@
 
       <h2>Mengenrechner</h2>
 
-      <label for="gericht">Gericht auswählen</label>
+      <label for="suche">Gericht suchen</label>
+      <input
+        type="text"
+        id="suche"
+        placeholder="z. B. Schnitzel, Curry, Pasta..."
+      >
 
-      <select id="gericht">
-        <option value="">Bitte Gericht auswählen</option>
-
-        <optgroup label="Fleischgerichte">
-          <option value="zuericher">Züricher Geschnetzeltes</option>
-          <option value="cordonbleu">Cordon Bleu mit Pommes</option>
-          <option value="gulasch">Rindergulasch mit Spätzle</option>
-          <option value="haehnchencurry">Hähnchen-Curry mit Reis</option>
-          <option value="frikadellen">Frikadellen mit Kartoffelpüree</option>
-          <option value="putengeschnetzeltes">Putengeschnetzeltes mit Reis</option>
-          <option value="bolognese">Spaghetti Bolognese</option>
-          <option value="schnitzel">Schnitzel mit Kartoffeln</option>
-        </optgroup>
-
-        <optgroup label="Vegetarische Gerichte">
-          <option value="masala">Kichererbsen Masala</option>
-          <option value="gemuesecurry">Gemüsecurry mit Reis</option>
-          <option value="linsenbolognese">Spaghetti mit Linsenbolognese</option>
-          <option value="kaesespaetzle">Käsespätzle</option>
-          <option value="gemueselasagne">Gemüselasagne</option>
-          <option value="chili">Vegetarisches Chili</option>
-          <option value="nudelgemuese">Nudel-Gemüse-Pfanne</option>
-          <option value="kartoffelgratin">Kartoffelgratin mit Gemüse</option>
-        </optgroup>
-
+      <label for="kategorie">Kategorie auswählen</label>
+      <select id="kategorie">
+        <option value="alle">Alle Kategorien</option>
+        <option value="Fleisch">Fleisch</option>
+        <option value="Fisch">Fisch</option>
+        <option value="Vegetarisch">Vegetarisch</option>
+        <option value="Vegan">Vegan</option>
+        <option value="Pasta & Aufläufe">Pasta & Aufläufe</option>
       </select>
 
-      <label for="personen">Anzahl Portionen</label>
+      <label for="gericht">Gericht auswählen</label>
+      <select id="gericht">
+        <option value="">Bitte Gericht auswählen</option>
+      </select>
 
+      <div class="status" id="statusText"></div>
+
+      <label for="personen">Anzahl Portionen</label>
       <input
         type="number"
         id="personen"
         min="1"
-        max="1000"
+        max="2000"
         value="10"
       >
 
@@ -215,6 +226,8 @@
 
 
     <section class="card" id="ergebnis">
+
+      <div class="kategorie-anzeige" id="kategorieAnzeige"></div>
 
       <div class="gericht-titel" id="gerichtTitel"></div>
 
@@ -239,7 +252,6 @@
 
   </main>
 
-
   <footer>
     GastroPilot © 2026
   </footer>
@@ -249,8 +261,13 @@
 
     const rezepte = {
 
+      // =========================
+      // FLEISCH
+      // =========================
+
       zuericher: {
         name: "Züricher Geschnetzeltes",
+        kategorie: "Fleisch",
         basis: 10,
         zutaten: [
           ["Schweinegeschnetzeltes", 1.5, "kg"],
@@ -264,6 +281,7 @@
 
       cordonbleu: {
         name: "Cordon Bleu mit Pommes",
+        kategorie: "Fleisch",
         basis: 10,
         zutaten: [
           ["Cordon Bleu", 10, "Stück"],
@@ -275,6 +293,7 @@
 
       gulasch: {
         name: "Rindergulasch mit Spätzle",
+        kategorie: "Fleisch",
         basis: 10,
         zutaten: [
           ["Rindergulasch", 1.6, "kg"],
@@ -288,6 +307,7 @@
 
       haehnchencurry: {
         name: "Hähnchen-Curry mit Reis",
+        kategorie: "Fleisch",
         basis: 10,
         zutaten: [
           ["Hähnchenbrust", 1.5, "kg"],
@@ -300,6 +320,7 @@
 
       frikadellen: {
         name: "Frikadellen mit Kartoffelpüree",
+        kategorie: "Fleisch",
         basis: 10,
         zutaten: [
           ["Hackfleisch", 1.4, "kg"],
@@ -313,6 +334,7 @@
 
       putengeschnetzeltes: {
         name: "Putengeschnetzeltes mit Reis",
+        kategorie: "Fleisch",
         basis: 10,
         zutaten: [
           ["Putenbrust", 1.5, "kg"],
@@ -326,6 +348,7 @@
 
       bolognese: {
         name: "Spaghetti Bolognese",
+        kategorie: "Fleisch",
         basis: 10,
         zutaten: [
           ["Rinderhackfleisch", 1.2, "kg"],
@@ -339,6 +362,7 @@
 
       schnitzel: {
         name: "Schnitzel mit Kartoffeln",
+        kategorie: "Fleisch",
         basis: 10,
         zutaten: [
           ["Schweineschnitzel", 10, "Stück"],
@@ -349,44 +373,232 @@
         ]
       },
 
+      schweinebraten: {
+        name: "Schweinebraten mit Kartoffelknödeln",
+        kategorie: "Fleisch",
+        basis: 10,
+        zutaten: [
+          ["Schweinebraten", 1.8, "kg"],
+          ["Zwiebeln", 0.4, "kg"],
+          ["Brühe", 1.0, "l"],
+          ["Kartoffelknödel", 20, "Stück"],
+          ["Rotkohl", 1.2, "kg"]
+        ]
+      },
+
+      haehnchenschenkel: {
+        name: "Hähnchenschenkel mit Rosmarinkartoffeln",
+        kategorie: "Fleisch",
+        basis: 10,
+        zutaten: [
+          ["Hähnchenschenkel", 10, "Stück"],
+          ["Kartoffeln", 2.0, "kg"],
+          ["Paprika", 0.5, "kg"],
+          ["Zwiebeln", 0.3, "kg"],
+          ["Öl", 0.15, "l"]
+        ]
+      },
+
+      cevapcici: {
+        name: "Cevapcici mit Djuvec-Reis",
+        kategorie: "Fleisch",
+        basis: 10,
+        zutaten: [
+          ["Cevapcici", 1.5, "kg"],
+          ["Reis", 0.8, "kg"],
+          ["Paprika", 0.5, "kg"],
+          ["Tomaten", 0.6, "kg"],
+          ["Ajvar", 0.25, "kg"]
+        ]
+      },
+
+      koenigsberger: {
+        name: "Königsberger Klopse",
+        kategorie: "Fleisch",
+        basis: 10,
+        zutaten: [
+          ["Hackfleisch", 1.4, "kg"],
+          ["Zwiebeln", 0.2, "kg"],
+          ["Kapern", 0.08, "kg"],
+          ["Sahne", 0.4, "l"],
+          ["Brühe", 0.7, "l"],
+          ["Kartoffeln", 2.0, "kg"]
+        ]
+      },
+
+      gyros: {
+        name: "Gyros mit Reis und Tzatziki",
+        kategorie: "Fleisch",
+        basis: 10,
+        zutaten: [
+          ["Gyrosfleisch", 1.6, "kg"],
+          ["Reis", 0.8, "kg"],
+          ["Tzatziki", 0.6, "kg"],
+          ["Krautsalat", 0.8, "kg"],
+          ["Zwiebeln", 0.3, "kg"]
+        ]
+      },
+
+      hackbraten: {
+        name: "Hackbraten mit Kartoffelpüree",
+        kategorie: "Fleisch",
+        basis: 10,
+        zutaten: [
+          ["Hackfleisch", 1.6, "kg"],
+          ["Zwiebeln", 0.3, "kg"],
+          ["Ei", 4, "Stück"],
+          ["Paniermehl", 0.2, "kg"],
+          ["Kartoffeln", 2.0, "kg"],
+          ["Milch", 0.5, "l"]
+        ]
+      },
+
+      kassler: {
+        name: "Kassler mit Sauerkraut",
+        kategorie: "Fleisch",
+        basis: 10,
+        zutaten: [
+          ["Kassler", 1.6, "kg"],
+          ["Sauerkraut", 1.5, "kg"],
+          ["Kartoffeln", 2.0, "kg"],
+          ["Zwiebeln", 0.25, "kg"]
+        ]
+      },
+
+
+      // =========================
+      // FISCH
+      // =========================
+
+      seelachs: {
+        name: "Seelachsfilet mit Kartoffeln",
+        kategorie: "Fisch",
+        basis: 10,
+        zutaten: [
+          ["Seelachsfilet", 1.6, "kg"],
+          ["Kartoffeln", 2.0, "kg"],
+          ["Gemüse", 1.0, "kg"],
+          ["Zitronensauce", 0.7, "l"]
+        ]
+      },
+
+      lachs: {
+        name: "Lachsfilet mit Reis",
+        kategorie: "Fisch",
+        basis: 10,
+        zutaten: [
+          ["Lachsfilet", 1.5, "kg"],
+          ["Reis", 0.8, "kg"],
+          ["Brokkoli", 1.0, "kg"],
+          ["Sahnesauce", 0.6, "l"]
+        ]
+      },
+
+      fischcurry: {
+        name: "Fischcurry mit Kokosmilch",
+        kategorie: "Fisch",
+        basis: 10,
+        zutaten: [
+          ["Fischfilet", 1.5, "kg"],
+          ["Kokosmilch", 0.8, "l"],
+          ["Gemüse", 1.0, "kg"],
+          ["Reis", 0.8, "kg"]
+        ]
+      },
+
+      fischstaebchen: {
+        name: "Fischstäbchen mit Kartoffelpüree",
+        kategorie: "Fisch",
+        basis: 10,
+        zutaten: [
+          ["Fischstäbchen", 30, "Stück"],
+          ["Kartoffeln", 2.0, "kg"],
+          ["Milch", 0.5, "l"],
+          ["Spinat", 1.2, "kg"]
+        ]
+      },
+
+      kabeljau: {
+        name: "Kabeljau mit Senfsauce",
+        kategorie: "Fisch",
+        basis: 10,
+        zutaten: [
+          ["Kabeljau", 1.6, "kg"],
+          ["Kartoffeln", 2.0, "kg"],
+          ["Senfsauce", 0.7, "l"],
+          ["Gemüse", 1.0, "kg"]
+        ]
+      },
+
+      pasta_lachs: {
+        name: "Pasta mit Lachs und Spinat",
+        kategorie: "Fisch",
+        basis: 10,
+        zutaten: [
+          ["Pasta", 1.0, "kg"],
+          ["Lachs", 1.0, "kg"],
+          ["Spinat", 0.8, "kg"],
+          ["Sahne", 0.7, "l"]
+        ]
+      },
+
+      fischfrikadelle: {
+        name: "Fischfrikadelle mit Kartoffelsalat",
+        kategorie: "Fisch",
+        basis: 10,
+        zutaten: [
+          ["Fischfrikadellen", 10, "Stück"],
+          ["Kartoffeln", 2.0, "kg"],
+          ["Gurken", 0.4, "kg"],
+          ["Mayonnaise", 0.3, "kg"]
+        ]
+      },
+
+      backfisch: {
+        name: "Backfisch mit Remoulade",
+        kategorie: "Fisch",
+        basis: 10,
+        zutaten: [
+          ["Backfisch", 10, "Stück"],
+          ["Kartoffeln", 2.0, "kg"],
+          ["Remoulade", 0.4, "kg"],
+          ["Salat", 0.6, "kg"]
+        ]
+      },
+
+
+      // =========================
+      // VEGETARISCH
+      // =========================
+
       masala: {
         name: "Kichererbsen Masala",
+        kategorie: "Vegetarisch",
         basis: 10,
         zutaten: [
           ["Kichererbsen", 1.2, "kg"],
           ["Tomaten", 0.8, "kg"],
           ["Zwiebeln", 0.3, "kg"],
           ["Kokosmilch", 0.8, "l"],
-          ["Reis", 0.8, "kg"],
-          ["Currypaste", 0.1, "kg"]
+          ["Reis", 0.8, "kg"]
         ]
       },
 
       gemuesecurry: {
         name: "Gemüsecurry mit Reis",
+        kategorie: "Vegetarisch",
         basis: 10,
         zutaten: [
-          ["Gemüsemischung", 1.5, "kg"],
+          ["Gemüse", 1.5, "kg"],
           ["Kokosmilch", 0.8, "l"],
           ["Currysauce", 0.5, "l"],
           ["Reis", 0.8, "kg"]
         ]
       },
 
-      linsenbolognese: {
-        name: "Spaghetti mit Linsenbolognese",
-        basis: 10,
-        zutaten: [
-          ["Linsen", 0.7, "kg"],
-          ["Spaghetti", 1.0, "kg"],
-          ["Tomaten", 1.2, "kg"],
-          ["Karotten", 0.3, "kg"],
-          ["Zwiebeln", 0.25, "kg"]
-        ]
-      },
-
       kaesespaetzle: {
         name: "Käsespätzle",
+        kategorie: "Vegetarisch",
         basis: 10,
         zutaten: [
           ["Spätzle", 1.5, "kg"],
@@ -398,6 +610,7 @@
 
       gemueselasagne: {
         name: "Gemüselasagne",
+        kategorie: "Vegetarisch",
         basis: 10,
         zutaten: [
           ["Lasagneplatten", 0.7, "kg"],
@@ -408,8 +621,145 @@
         ]
       },
 
+      kartoffelgratin: {
+        name: "Kartoffelgratin mit Gemüse",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Kartoffeln", 2.0, "kg"],
+          ["Gemüse", 1.0, "kg"],
+          ["Sahne", 0.8, "l"],
+          ["Käse", 0.5, "kg"]
+        ]
+      },
+
+      spinatknödel: {
+        name: "Spinatknödel mit Käsesauce",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Spinatknödel", 20, "Stück"],
+          ["Käsesauce", 0.8, "l"],
+          ["Gemüse", 1.0, "kg"]
+        ]
+      },
+
+      gemueseschnitzel: {
+        name: "Gemüseschnitzel mit Kartoffeln",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Gemüseschnitzel", 10, "Stück"],
+          ["Kartoffeln", 2.0, "kg"],
+          ["Salat", 0.6, "kg"],
+          ["Dressing", 0.3, "l"]
+        ]
+      },
+
+      tortellini: {
+        name: "Tortellini in Käsesauce",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Tortellini", 1.5, "kg"],
+          ["Sahne", 0.7, "l"],
+          ["Käse", 0.5, "kg"],
+          ["Brokkoli", 0.8, "kg"]
+        ]
+      },
+
+      gemuese_reis: {
+        name: "Gemüse-Reis-Pfanne",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Reis", 0.9, "kg"],
+          ["Gemüse", 1.5, "kg"],
+          ["Brühe", 0.8, "l"],
+          ["Käse", 0.3, "kg"]
+        ]
+      },
+
+      pellkartoffeln: {
+        name: "Pellkartoffeln mit Kräuterquark",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Kartoffeln", 2.5, "kg"],
+          ["Quark", 1.0, "kg"],
+          ["Kräuter", 0.1, "kg"],
+          ["Salat", 0.7, "kg"]
+        ]
+      },
+
+      shakshuka: {
+        name: "Shakshuka mit Brot",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Tomaten", 1.5, "kg"],
+          ["Paprika", 0.8, "kg"],
+          ["Zwiebeln", 0.4, "kg"],
+          ["Eier", 10, "Stück"],
+          ["Brot", 1.0, "kg"]
+        ]
+      },
+
+      gnocchi: {
+        name: "Gnocchi mit Tomaten und Mozzarella",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Gnocchi", 1.5, "kg"],
+          ["Tomaten", 1.0, "kg"],
+          ["Mozzarella", 0.7, "kg"],
+          ["Tomatensauce", 0.7, "l"]
+        ]
+      },
+
+      käseschnitzel: {
+        name: "Käseschnitzel mit Gemüse",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Käseschnitzel", 10, "Stück"],
+          ["Kartoffeln", 1.8, "kg"],
+          ["Gemüse", 1.0, "kg"]
+        ]
+      },
+
+      brokkoliauflauf: {
+        name: "Brokkoli-Kartoffel-Auflauf",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Kartoffeln", 1.8, "kg"],
+          ["Brokkoli", 1.2, "kg"],
+          ["Sahne", 0.7, "l"],
+          ["Käse", 0.5, "kg"]
+        ]
+      },
+
+      eier_senf: {
+        name: "Eier in Senfsauce",
+        kategorie: "Vegetarisch",
+        basis: 10,
+        zutaten: [
+          ["Eier", 20, "Stück"],
+          ["Kartoffeln", 2.0, "kg"],
+          ["Senfsauce", 0.8, "l"],
+          ["Spinat", 1.0, "kg"]
+        ]
+      },
+
+
+      // =========================
+      // VEGAN
+      // =========================
+
       chili: {
-        name: "Vegetarisches Chili",
+        name: "Veganes Chili",
+        kategorie: "Vegan",
         basis: 10,
         zutaten: [
           ["Kidneybohnen", 0.8, "kg"],
@@ -421,8 +771,88 @@
         ]
       },
 
+      linsencurry: {
+        name: "Rotes Linsencurry",
+        kategorie: "Vegan",
+        basis: 10,
+        zutaten: [
+          ["Rote Linsen", 0.8, "kg"],
+          ["Kokosmilch", 0.8, "l"],
+          ["Tomaten", 0.8, "kg"],
+          ["Reis", 0.8, "kg"]
+        ]
+      },
+
+      couscous: {
+        name: "Couscous-Gemüse-Pfanne",
+        kategorie: "Vegan",
+        basis: 10,
+        zutaten: [
+          ["Couscous", 0.9, "kg"],
+          ["Gemüse", 1.4, "kg"],
+          ["Kichererbsen", 0.6, "kg"],
+          ["Brühe", 0.8, "l"]
+        ]
+      },
+
+      tofu: {
+        name: "Tofu-Gemüse-Wok",
+        kategorie: "Vegan",
+        basis: 10,
+        zutaten: [
+          ["Tofu", 1.2, "kg"],
+          ["Wokgemüse", 1.5, "kg"],
+          ["Reis", 0.8, "kg"],
+          ["Sojasauce", 0.25, "l"]
+        ]
+      },
+
+      dal: {
+        name: "Indisches Dal",
+        kategorie: "Vegan",
+        basis: 10,
+        zutaten: [
+          ["Linsen", 0.9, "kg"],
+          ["Tomaten", 0.8, "kg"],
+          ["Kokosmilch", 0.7, "l"],
+          ["Reis", 0.8, "kg"]
+        ]
+      },
+
+      veganebolognese: {
+        name: "Vegane Linsenbolognese",
+        kategorie: "Vegan",
+        basis: 10,
+        zutaten: [
+          ["Linsen", 0.7, "kg"],
+          ["Spaghetti", 1.0, "kg"],
+          ["Tomaten", 1.2, "kg"],
+          ["Karotten", 0.3, "kg"],
+          ["Zwiebeln", 0.25, "kg"]
+        ]
+      },
+
+      kartoffelgemuese: {
+        name: "Kartoffel-Gemüse-Eintopf",
+        kategorie: "Vegan",
+        basis: 10,
+        zutaten: [
+          ["Kartoffeln", 1.8, "kg"],
+          ["Karotten", 0.6, "kg"],
+          ["Lauch", 0.4, "kg"],
+          ["Sellerie", 0.3, "kg"],
+          ["Brühe", 2.0, "l"]
+        ]
+      },
+
+
+      // =========================
+      // PASTA & AUFLÄUFE
+      // =========================
+
       nudelgemuese: {
         name: "Nudel-Gemüse-Pfanne",
+        kategorie: "Pasta & Aufläufe",
         basis: 10,
         zutaten: [
           ["Nudeln", 1.0, "kg"],
@@ -432,13 +862,51 @@
         ]
       },
 
-      kartoffelgratin: {
-        name: "Kartoffelgratin mit Gemüse",
+      macandcheese: {
+        name: "Mac and Cheese",
+        kategorie: "Pasta & Aufläufe",
         basis: 10,
         zutaten: [
-          ["Kartoffeln", 2.0, "kg"],
-          ["Gemüse", 1.0, "kg"],
-          ["Sahne", 0.8, "l"],
+          ["Makkaroni", 1.0, "kg"],
+          ["Cheddar", 0.7, "kg"],
+          ["Milch", 0.8, "l"],
+          ["Sahne", 0.4, "l"]
+        ]
+      },
+
+      penne: {
+        name: "Penne Arrabbiata",
+        kategorie: "Pasta & Aufläufe",
+        basis: 10,
+        zutaten: [
+          ["Penne", 1.0, "kg"],
+          ["Tomaten", 1.2, "kg"],
+          ["Tomatensauce", 0.8, "l"],
+          ["Zwiebeln", 0.25, "kg"]
+        ]
+      },
+
+      cannelloni: {
+        name: "Cannelloni mit Spinat und Ricotta",
+        kategorie: "Pasta & Aufläufe",
+        basis: 10,
+        zutaten: [
+          ["Cannelloni", 1.0, "kg"],
+          ["Spinat", 1.0, "kg"],
+          ["Ricotta", 0.8, "kg"],
+          ["Tomatensauce", 1.0, "l"],
+          ["Käse", 0.4, "kg"]
+        ]
+      },
+
+      nudelauflauf: {
+        name: "Nudelauflauf mit Gemüse",
+        kategorie: "Pasta & Aufläufe",
+        basis: 10,
+        zutaten: [
+          ["Nudeln", 1.0, "kg"],
+          ["Gemüse", 1.2, "kg"],
+          ["Sahne", 0.7, "l"],
           ["Käse", 0.5, "kg"]
         ]
       }
@@ -446,17 +914,75 @@
     };
 
 
+    const suche = document.getElementById("suche");
+    const kategorie = document.getElementById("kategorie");
     const gerichtAuswahl = document.getElementById("gericht");
     const personenEingabe = document.getElementById("personen");
     const berechnenButton = document.getElementById("berechnenButton");
+
+    const statusText = document.getElementById("statusText");
 
     const ergebnis = document.getElementById("ergebnis");
     const gerichtTitel = document.getElementById("gerichtTitel");
     const portionText = document.getElementById("portionText");
     const zutatenListe = document.getElementById("zutatenListe");
+    const kategorieAnzeige = document.getElementById("kategorieAnzeige");
 
 
+    suche.addEventListener("input", gerichteFiltern);
+    kategorie.addEventListener("change", gerichteFiltern);
     berechnenButton.addEventListener("click", berechnen);
+
+
+    function gerichteFiltern() {
+
+      const suchText = suche.value.toLowerCase().trim();
+      const gewaehlteKategorie = kategorie.value;
+
+      gerichtAuswahl.innerHTML =
+        '<option value="">Bitte Gericht auswählen</option>';
+
+      let anzahl = 0;
+
+      Object.keys(rezepte)
+        .sort(function(a, b) {
+          return rezepte[a].name.localeCompare(rezepte[b].name);
+        })
+        .forEach(function(key) {
+
+          const rezept = rezepte[key];
+
+          const passtZurSuche =
+            rezept.name.toLowerCase().includes(suchText);
+
+          const passtZurKategorie =
+            gewaehlteKategorie === "alle" ||
+            rezept.kategorie === gewaehlteKategorie;
+
+          if (passtZurSuche && passtZurKategorie) {
+
+            const option = document.createElement("option");
+
+            option.value = key;
+            option.textContent =
+              rezept.name + " – " + rezept.kategorie;
+
+            gerichtAuswahl.appendChild(option);
+
+            anzahl++;
+          }
+
+        });
+
+
+      if (anzahl === 1) {
+        statusText.textContent = "1 Gericht gefunden.";
+      } else {
+        statusText.textContent =
+          anzahl + " Gerichte gefunden.";
+      }
+
+    }
 
 
     function berechnen() {
@@ -483,6 +1009,7 @@
 
       const faktor = personen / rezept.basis;
 
+      kategorieAnzeige.textContent = rezept.kategorie;
       gerichtTitel.textContent = rezept.name;
 
       portionText.textContent =
@@ -539,6 +1066,9 @@
         .replace(/0$/, "");
 
     }
+
+
+    gerichteFiltern();
 
   </script>
 
