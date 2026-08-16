@@ -1747,7 +1747,11 @@ function renderResult(){
    EIGENES GERICHT – ZUTATENZEILE
 ===================================================== */
 
+let ingredientRowCounter = 0;
+
 function createIngredientRow(){
+
+  ingredientRowCounter++;
 
   const row =
   document.createElement("div");
@@ -1756,27 +1760,48 @@ function createIngredientRow(){
   "ingredientRow";
 
 
+  const uniqueId =
+  ingredientRowCounter;
+
+
   row.innerHTML = `
 
     <input
+      id="ingredientName_${uniqueId}"
+      name="ingredientName_${uniqueId}"
       class="ingredientName"
       type="text"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="sentences"
+      spellcheck="false"
       placeholder="Zutat"
+      value=""
     >
 
     <input
+      id="ingredientAmount_${uniqueId}"
+      name="ingredientAmount_${uniqueId}"
       class="ingredientAmount"
       type="number"
       min="0"
       step="0.01"
+      inputmode="decimal"
+      autocomplete="off"
       placeholder="Menge"
+      value=""
     >
 
-    <select class="ingredientUnit">
+    <select
+      id="ingredientUnit_${uniqueId}"
+      name="ingredientUnit_${uniqueId}"
+      class="ingredientUnit"
+      autocomplete="off"
+    >
+      <option value="g" selected>g</option>
       <option value="kg">kg</option>
-      <option value="g">g</option>
-      <option value="l">l</option>
       <option value="ml">ml</option>
+      <option value="l">l</option>
       <option value="Stk">Stk</option>
     </select>
 
@@ -1789,6 +1814,34 @@ function createIngredientRow(){
     </button>
 
   `;
+
+
+  const nameInput =
+  row.querySelector(
+    ".ingredientName"
+  );
+
+  const amountInput =
+  row.querySelector(
+    ".ingredientAmount"
+  );
+
+  const unitSelect =
+  row.querySelector(
+    ".ingredientUnit"
+  );
+
+
+  /* Neue Zeile immer wirklich leer starten */
+
+  nameInput.value =
+  "";
+
+  amountInput.value =
+  "";
+
+  unitSelect.value =
+  "g";
 
 
   row.querySelector(
@@ -1806,13 +1859,14 @@ function createIngredientRow(){
 
       }else{
 
-        row.querySelector(
-          ".ingredientName"
-        ).value = "";
+        nameInput.value =
+        "";
 
-        row.querySelector(
-          ".ingredientAmount"
-        ).value = "";
+        amountInput.value =
+        "";
+
+        unitSelect.value =
+        "g";
 
       }
 
@@ -1824,8 +1878,29 @@ function createIngredientRow(){
     row
   );
 
-}
 
+  /*
+    Safari/iPhone kann bei dynamisch erzeugten
+    Eingabefeldern vorherige Werte übernehmen.
+    Deshalb nach dem Einfügen nochmals leeren.
+  */
+
+  requestAnimationFrame(
+    () => {
+
+      nameInput.value =
+      "";
+
+      amountInput.value =
+      "";
+
+      unitSelect.value =
+      "g";
+
+    }
+  );
+
+}
 
 /* =====================================================
    FORMULAR ÖFFNEN
