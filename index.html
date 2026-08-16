@@ -1,1076 +1,3063 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GastroPilot – Mengenrechner</title>
 
-  <title>GastroPilot – Mengenrechner</title>
+<style>
+*{box-sizing:border-box}
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+:root{
+  --green:#135847;
+  --green2:#22866f;
+  --bg:#f1f3f2;
+  --text:#202020;
+  --muted:#777;
+  --border:#cfcfcf;
+  --blue:#59aef0;
+  --danger:#b53a3a;
+}
 
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f4f6f5;
-      color: #222;
-      line-height: 1.5;
-    }
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
 
-    header {
-      background: #153f35;
-      color: white;
-      padding: 24px 20px;
-      text-align: center;
-    }
+header{
+  background:var(--green);
+  color:white;
+  padding:28px 36px 36px;
+}
 
-    header h1 {
-      font-size: 32px;
-      margin-bottom: 5px;
-    }
+header h1{
+  margin:0;
+  font-size:42px;
+  font-weight:800;
+}
 
-    header p {
-      color: #d6e4df;
-    }
+header p{
+  margin:14px 0 0;
+  font-size:25px;
+  font-weight:500;
+}
 
-    .container {
-      width: 100%;
-      max-width: 950px;
-      margin: 30px auto;
-      padding: 0 20px;
-    }
+main{
+  max-width:900px;
+  margin:40px auto;
+  padding:0 24px 60px;
+}
 
-    .card {
-      background: white;
-      border-radius: 14px;
-      padding: 25px;
-      margin-bottom: 25px;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-    }
+.card{
+  background:white;
+  border-radius:38px;
+  padding:50px 36px;
+  margin-bottom:28px;
+}
 
-    h2 {
-      color: #153f35;
-      margin-bottom: 20px;
-    }
+h2{
+  margin:0 0 45px;
+  color:var(--green);
+  font-size:46px;
+}
 
-    label {
-      display: block;
-      font-weight: bold;
-      margin-top: 15px;
-      margin-bottom: 6px;
-    }
+h3{color:var(--green)}
 
-    select,
-    input {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
-      background: white;
-    }
+.field{
+  margin-bottom:32px;
+  position:relative;
+}
 
-    button {
-      width: 100%;
-      margin-top: 20px;
-      padding: 14px;
-      border: none;
-      border-radius: 8px;
-      background: #1f705d;
-      color: white;
-      font-size: 17px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+label{
+  display:block;
+  font-size:26px;
+  font-weight:800;
+  margin-bottom:17px;
+}
 
-    button:hover {
-      background: #175747;
-    }
+input,
+select{
+  width:100%;
+  font-size:22px;
+  padding:18px 24px;
+  border:3px solid var(--border);
+  border-radius:25px;
+  background:white;
+  color:#111;
+  outline:none;
+  min-height:70px;
+}
 
-    .status {
-      margin-top: 12px;
-      color: #666;
-      font-size: 14px;
-    }
+input:focus,
+select:focus{
+  border-color:var(--blue);
+}
 
-    #ergebnis {
-      display: none;
-    }
+input::placeholder{color:#aaa}
 
-    .gericht-titel {
-      font-size: 24px;
-      color: #153f35;
-      margin-bottom: 5px;
-    }
+.small{
+  font-size:18px;
+  color:var(--muted);
+  font-weight:600;
+  margin-top:12px;
+}
 
-    .portionen {
-      color: #666;
-      margin-bottom: 20px;
-    }
+.suggestions{
+  display:none;
+  position:absolute;
+  z-index:20;
+  left:0;
+  right:0;
+  top:calc(100% - 2px);
+  background:#fff;
+  border:2px solid #ddd;
+  border-radius:0 0 24px 24px;
+  box-shadow:0 14px 30px rgba(0,0,0,.13);
+  max-height:330px;
+  overflow-y:auto;
+}
 
-    .kategorie-anzeige {
-      display: inline-block;
-      margin-bottom: 15px;
-      padding: 5px 10px;
-      border-radius: 20px;
-      background: #eef4f1;
-      color: #153f35;
-      font-size: 14px;
-      font-weight: bold;
-    }
+.suggestion{
+  padding:17px 22px;
+  border-bottom:1px solid #eee;
+  font-size:20px;
+  cursor:pointer;
+}
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
+.suggestion:last-child{border-bottom:none}
 
-    th,
-    td {
-      text-align: left;
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-    }
+.suggestion:hover,
+.suggestion:active{
+  background:#f1f7f5;
+}
 
-    th {
-      background: #eef4f1;
-      color: #153f35;
-    }
+.suggestion .cat{
+  display:block;
+  color:#777;
+  font-size:14px;
+  margin-top:3px;
+}
 
-    .hinweis {
-      background: #eef4f1;
-      border-left: 4px solid #1f705d;
-      padding: 12px;
-      margin-top: 20px;
-      border-radius: 6px;
-    }
+.empty{
+  padding:18px 22px;
+  color:#777;
+}
 
-    footer {
-      text-align: center;
-      color: #777;
-      padding: 25px;
-    }
+button{
+  width:100%;
+  border:none;
+  border-radius:26px;
+  padding:20px 24px;
+  background:var(--green2);
+  color:white;
+  font-size:24px;
+  font-weight:800;
+  cursor:pointer;
+}
 
-    @media (max-width: 600px) {
-      header h1 {
-        font-size: 26px;
-      }
+button:active{transform:scale(.995)}
 
-      .card {
-        padding: 18px;
-      }
+.secondary{
+  background:white;
+  color:var(--green);
+  border:3px solid var(--green);
+}
 
-      th,
-      td {
-        padding: 9px;
-        font-size: 14px;
-      }
-    }
-  </style>
+.danger{
+  background:white;
+  color:var(--danger);
+  border:3px solid var(--danger);
+  margin-top:18px;
+}
+
+.result{
+  display:none;
+  margin-top:32px;
+  border-top:2px solid #e7e7e7;
+  padding-top:28px;
+}
+
+.result h3{
+  font-size:28px;
+  margin:0 0 8px;
+}
+
+.result-meta{
+  color:#777;
+  font-size:18px;
+  margin-bottom:20px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:19px;
+}
+
+th,
+td{
+  text-align:left;
+  padding:14px 8px;
+  border-bottom:1px solid #e6e6e6;
+}
+
+th:last-child,
+td:last-child{
+  text-align:right;
+}
+
+#customForm{
+  display:none;
+  margin-top:30px;
+}
+
+.sectionText{
+  color:#666;
+  font-size:19px;
+  line-height:1.5;
+  margin:-25px 0 35px;
+}
+
+.ingredientRow{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr 52px;
+  gap:10px;
+  margin-bottom:12px;
+  align-items:center;
+}
+
+.ingredientRow input,
+.ingredientRow select{
+  min-height:58px;
+  padding:12px 15px;
+  font-size:17px;
+  border-radius:18px;
+  border-width:2px;
+}
+
+.removeIngredient{
+  width:52px;
+  height:52px;
+  min-height:0;
+  padding:0;
+  border-radius:50%;
+  background:#eee;
+  color:#555;
+  font-size:28px;
+}
+
+.addIngredient{
+  margin-top:8px;
+  background:white;
+  color:var(--green);
+  border:3px solid var(--green);
+}
+
+.saveRecipe{margin-top:28px}
+
+.success{
+  display:none;
+  background:#e8f5f0;
+  color:var(--green);
+  padding:18px 20px;
+  border-radius:18px;
+  margin-top:22px;
+  font-size:18px;
+  font-weight:700;
+}
+
+/* Weitere Zutaten bei vorhandenen Gerichten */
+
+.extraIngredientBox{
+  margin-top:28px;
+  padding-top:24px;
+  border-top:2px solid #e7e7e7;
+}
+
+.extraIngredientForm{
+  display:none;
+  margin-top:20px;
+}
+
+.extraIngredientFields{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.extraIngredientFields input,
+.extraIngredientFields select{
+  min-height:58px;
+  padding:12px 15px;
+  font-size:17px;
+  border-radius:18px;
+  border-width:2px;
+}
+
+.extraBadge{
+  display:inline-block;
+  margin-left:7px;
+  padding:3px 7px;
+  border-radius:8px;
+  background:#e8f5f0;
+  color:var(--green);
+  font-size:12px;
+  font-weight:700;
+}
+
+.amountCell{
+  white-space:nowrap;
+}
+
+.removeExtra{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:30px;
+  height:30px;
+  min-height:0;
+  padding:0;
+  margin-left:10px;
+  border-radius:50%;
+  background:#eee;
+  color:#666;
+  font-size:19px;
+  vertical-align:middle;
+}
+
+@media(max-width:600px){
+
+  header{
+    padding:24px 30px 30px;
+  }
+
+  header h1{font-size:34px}
+  header p{font-size:20px}
+
+  main{
+    margin:28px auto;
+    padding:0 20px 40px;
+  }
+
+  .card{
+    border-radius:32px;
+    padding:38px 28px;
+  }
+
+  h2{
+    font-size:38px;
+    margin-bottom:40px;
+  }
+
+  label{font-size:22px}
+
+  input,
+  select{
+    font-size:19px;
+    min-height:65px;
+    padding:15px 19px;
+  }
+
+  button{
+    font-size:21px;
+    padding:18px;
+  }
+
+  .ingredientRow{
+    grid-template-columns:1fr 85px 78px 44px;
+    gap:6px;
+  }
+
+  .ingredientRow input,
+  .ingredientRow select{
+    font-size:15px;
+    padding:8px;
+    min-height:52px;
+  }
+
+  .removeIngredient{
+    width:44px;
+    height:44px;
+    font-size:23px;
+  }
+
+  .extraIngredientFields{
+    grid-template-columns:1fr 82px 72px;
+    gap:6px;
+  }
+
+  .extraIngredientFields input,
+  .extraIngredientFields select{
+    font-size:15px;
+    padding:8px;
+    min-height:52px;
+  }
+}
+</style>
 </head>
 
 <body>
 
-  <header>
-    <h1>GastroPilot</h1>
-    <p>Dein digitaler Küchenassistent</p>
-  </header>
+<header>
+  <h1>GastroPilot</h1>
+  <p>Dein digitaler Küchenassistent</p>
+</header>
 
-  <main class="container">
+<main>
 
-    <section class="card">
+<section class="card">
 
-      <h2>Mengenrechner</h2>
+<h2>Mengenrechner</h2>
 
-      <label for="suche">Gericht suchen</label>
-      <input
-        type="text"
-        id="suche"
-        placeholder="z. B. Schnitzel, Curry, Pasta..."
-      >
+<div class="field" id="searchField">
+  <label for="search">Gericht suchen</label>
 
-      <label for="kategorie">Kategorie auswählen</label>
-      <select id="kategorie">
-        <option value="alle">Alle Kategorien</option>
-        <option value="Fleisch">Fleisch</option>
-        <option value="Fisch">Fisch</option>
-        <option value="Vegetarisch">Vegetarisch</option>
-        <option value="Vegan">Vegan</option>
-        <option value="Pasta & Aufläufe">Pasta & Aufläufe</option>
-      </select>
+  <input
+    id="search"
+    type="text"
+    autocomplete="off"
+    placeholder="z. B. Lachs, Curry, Pasta …"
+  >
 
-      <label for="gericht">Gericht auswählen</label>
-      <select id="gericht">
-        <option value="">Bitte Gericht auswählen</option>
-      </select>
+  <div id="suggestions" class="suggestions"></div>
+</div>
 
-      <div class="status" id="statusText"></div>
+<div class="field">
+  <label for="category">Kategorie</label>
 
-      <label for="personen">Anzahl Portionen</label>
-      <input
-        type="number"
-        id="personen"
-        min="1"
-        max="2000"
-        value="10"
-      >
+  <select id="category">
+    <option value="Alle Gerichte">Alle Gerichte</option>
+    <option value="Fleisch">Fleisch</option>
+    <option value="Fisch">Fisch</option>
+    <option value="Vegetarisch">Vegetarisch</option>
+    <option value="Vegan">Vegan</option>
+    <option value="Pasta">Pasta</option>
+  </select>
+</div>
 
-      <button id="berechnenButton">
-        Mengen berechnen
-      </button>
+<div class="field">
+  <label for="dish">Gericht auswählen</label>
+  <select id="dish"></select>
+  <div class="small" id="count"></div>
+</div>
 
-    </section>
+<div class="field">
+  <label for="portions">Anzahl Portionen</label>
 
+  <input
+    id="portions"
+    type="number"
+    inputmode="numeric"
+    min="1"
+    max="10000"
+    value="10"
+  >
+</div>
 
-    <section class="card" id="ergebnis">
+<button id="calculate">
+  Mengen berechnen
+</button>
 
-      <div class="kategorie-anzeige" id="kategorieAnzeige"></div>
+<button
+  id="deleteRecipe"
+  class="danger"
+  style="display:none;"
+>
+  Eigenes Gericht löschen
+</button>
 
-      <div class="gericht-titel" id="gerichtTitel"></div>
+<div id="result" class="result">
 
-      <div class="portionen" id="portionText"></div>
+  <h3 id="resultTitle"></h3>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Zutat</th>
-            <th>Menge</th>
-          </tr>
-        </thead>
+  <div
+    id="resultMeta"
+    class="result-meta"
+  ></div>
 
-        <tbody id="zutatenListe"></tbody>
-      </table>
+  <table>
+    <thead>
+      <tr>
+        <th>Zutat</th>
+        <th>Menge</th>
+      </tr>
+    </thead>
 
-      <div class="hinweis">
-        Die Mengen werden automatisch auf die gewünschte Portionszahl hochgerechnet.
+    <tbody id="ingredientRows"></tbody>
+  </table>
+
+  <div class="extraIngredientBox">
+
+    <button
+      id="toggleExtraIngredient"
+      type="button"
+      class="secondary"
+    >
+      + Weitere Zutat hinzufügen
+    </button>
+
+    <div
+      id="extraIngredientForm"
+      class="extraIngredientForm"
+    >
+
+      <div
+        id="extraIngredientHint"
+        class="small"
+        style="margin-bottom:14px;"
+      ></div>
+
+      <div class="extraIngredientFields">
+
+        <input
+          id="extraIngredientName"
+          type="text"
+          autocomplete="off"
+          placeholder="Zutat"
+        >
+
+        <input
+          id="extraIngredientAmount"
+          type="number"
+          min="0"
+          step="0.01"
+          inputmode="decimal"
+          placeholder="Menge"
+        >
+
+        <select id="extraIngredientUnit">
+          <option value="g">g</option>
+          <option value="kg">kg</option>
+          <option value="ml">ml</option>
+          <option value="l">l</option>
+          <option value="Stk">Stk</option>
+        </select>
+
       </div>
 
-    </section>
-
-  </main>
-
-  <footer>
-    GastroPilot © 2026
-  </footer>
-
-
-  <script>
-
-    const rezepte = {
-
-      // =========================
-      // FLEISCH
-      // =========================
-
-      zuericher: {
-        name: "Züricher Geschnetzeltes",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Schweinegeschnetzeltes", 1.5, "kg"],
-          ["Champignons", 0.6, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Sahne", 0.5, "l"],
-          ["Brühe", 0.5, "l"],
-          ["Rösti", 1.8, "kg"]
-        ]
-      },
-
-      cordonbleu: {
-        name: "Cordon Bleu mit Pommes",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Cordon Bleu", 10, "Stück"],
-          ["Pommes frites", 2.0, "kg"],
-          ["Kopfsalat", 0.5, "kg"],
-          ["Joghurt-Dressing", 0.3, "l"]
-        ]
-      },
-
-      gulasch: {
-        name: "Rindergulasch mit Spätzle",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Rindergulasch", 1.6, "kg"],
-          ["Zwiebeln", 0.5, "kg"],
-          ["Paprika", 0.4, "kg"],
-          ["Brühe", 0.8, "l"],
-          ["Tomatenmark", 0.15, "kg"],
-          ["Spätzle", 1.5, "kg"]
-        ]
-      },
-
-      haehnchencurry: {
-        name: "Hähnchen-Curry mit Reis",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Hähnchenbrust", 1.5, "kg"],
-          ["Gemüse", 0.8, "kg"],
-          ["Kokosmilch", 0.8, "l"],
-          ["Currysauce", 0.5, "l"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      frikadellen: {
-        name: "Frikadellen mit Kartoffelpüree",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Hackfleisch", 1.4, "kg"],
-          ["Zwiebeln", 0.25, "kg"],
-          ["Ei", 3, "Stück"],
-          ["Paniermehl", 0.15, "kg"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Milch", 0.5, "l"]
-        ]
-      },
-
-      putengeschnetzeltes: {
-        name: "Putengeschnetzeltes mit Reis",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Putenbrust", 1.5, "kg"],
-          ["Paprika", 0.5, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Sahne", 0.5, "l"],
-          ["Brühe", 0.5, "l"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      bolognese: {
-        name: "Spaghetti Bolognese",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Rinderhackfleisch", 1.2, "kg"],
-          ["Spaghetti", 1.0, "kg"],
-          ["Tomaten", 1.2, "kg"],
-          ["Zwiebeln", 0.25, "kg"],
-          ["Karotten", 0.25, "kg"],
-          ["Tomatenmark", 0.15, "kg"]
-        ]
-      },
-
-      schnitzel: {
-        name: "Schnitzel mit Kartoffeln",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Schweineschnitzel", 10, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Paniermehl", 0.4, "kg"],
-          ["Ei", 4, "Stück"],
-          ["Salat", 0.5, "kg"]
-        ]
-      },
-
-      schweinebraten: {
-        name: "Schweinebraten mit Kartoffelknödeln",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Schweinebraten", 1.8, "kg"],
-          ["Zwiebeln", 0.4, "kg"],
-          ["Brühe", 1.0, "l"],
-          ["Kartoffelknödel", 20, "Stück"],
-          ["Rotkohl", 1.2, "kg"]
-        ]
-      },
-
-      haehnchenschenkel: {
-        name: "Hähnchenschenkel mit Rosmarinkartoffeln",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Hähnchenschenkel", 10, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Paprika", 0.5, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Öl", 0.15, "l"]
-        ]
-      },
-
-      cevapcici: {
-        name: "Cevapcici mit Djuvec-Reis",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Cevapcici", 1.5, "kg"],
-          ["Reis", 0.8, "kg"],
-          ["Paprika", 0.5, "kg"],
-          ["Tomaten", 0.6, "kg"],
-          ["Ajvar", 0.25, "kg"]
-        ]
-      },
-
-      koenigsberger: {
-        name: "Königsberger Klopse",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Hackfleisch", 1.4, "kg"],
-          ["Zwiebeln", 0.2, "kg"],
-          ["Kapern", 0.08, "kg"],
-          ["Sahne", 0.4, "l"],
-          ["Brühe", 0.7, "l"],
-          ["Kartoffeln", 2.0, "kg"]
-        ]
-      },
-
-      gyros: {
-        name: "Gyros mit Reis und Tzatziki",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Gyrosfleisch", 1.6, "kg"],
-          ["Reis", 0.8, "kg"],
-          ["Tzatziki", 0.6, "kg"],
-          ["Krautsalat", 0.8, "kg"],
-          ["Zwiebeln", 0.3, "kg"]
-        ]
-      },
-
-      hackbraten: {
-        name: "Hackbraten mit Kartoffelpüree",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Hackfleisch", 1.6, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Ei", 4, "Stück"],
-          ["Paniermehl", 0.2, "kg"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Milch", 0.5, "l"]
-        ]
-      },
-
-      kassler: {
-        name: "Kassler mit Sauerkraut",
-        kategorie: "Fleisch",
-        basis: 10,
-        zutaten: [
-          ["Kassler", 1.6, "kg"],
-          ["Sauerkraut", 1.5, "kg"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Zwiebeln", 0.25, "kg"]
-        ]
-      },
-
-
-      // =========================
-      // FISCH
-      // =========================
-
-      seelachs: {
-        name: "Seelachsfilet mit Kartoffeln",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Seelachsfilet", 1.6, "kg"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Gemüse", 1.0, "kg"],
-          ["Zitronensauce", 0.7, "l"]
-        ]
-      },
-
-      lachs: {
-        name: "Lachsfilet mit Reis",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Lachsfilet", 1.5, "kg"],
-          ["Reis", 0.8, "kg"],
-          ["Brokkoli", 1.0, "kg"],
-          ["Sahnesauce", 0.6, "l"]
-        ]
-      },
-
-      fischcurry: {
-        name: "Fischcurry mit Kokosmilch",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Fischfilet", 1.5, "kg"],
-          ["Kokosmilch", 0.8, "l"],
-          ["Gemüse", 1.0, "kg"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      fischstaebchen: {
-        name: "Fischstäbchen mit Kartoffelpüree",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Fischstäbchen", 30, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Milch", 0.5, "l"],
-          ["Spinat", 1.2, "kg"]
-        ]
-      },
-
-      kabeljau: {
-        name: "Kabeljau mit Senfsauce",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Kabeljau", 1.6, "kg"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Senfsauce", 0.7, "l"],
-          ["Gemüse", 1.0, "kg"]
-        ]
-      },
-
-      pasta_lachs: {
-        name: "Pasta mit Lachs und Spinat",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Pasta", 1.0, "kg"],
-          ["Lachs", 1.0, "kg"],
-          ["Spinat", 0.8, "kg"],
-          ["Sahne", 0.7, "l"]
-        ]
-      },
-
-      fischfrikadelle: {
-        name: "Fischfrikadelle mit Kartoffelsalat",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Fischfrikadellen", 10, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Gurken", 0.4, "kg"],
-          ["Mayonnaise", 0.3, "kg"]
-        ]
-      },
-
-      backfisch: {
-        name: "Backfisch mit Remoulade",
-        kategorie: "Fisch",
-        basis: 10,
-        zutaten: [
-          ["Backfisch", 10, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Remoulade", 0.4, "kg"],
-          ["Salat", 0.6, "kg"]
-        ]
-      },
-
-
-      // =========================
-      // VEGETARISCH
-      // =========================
-
-      masala: {
-        name: "Kichererbsen Masala",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Kichererbsen", 1.2, "kg"],
-          ["Tomaten", 0.8, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Kokosmilch", 0.8, "l"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      gemuesecurry: {
-        name: "Gemüsecurry mit Reis",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Gemüse", 1.5, "kg"],
-          ["Kokosmilch", 0.8, "l"],
-          ["Currysauce", 0.5, "l"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      kaesespaetzle: {
-        name: "Käsespätzle",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Spätzle", 1.5, "kg"],
-          ["Käse", 0.7, "kg"],
-          ["Zwiebeln", 0.4, "kg"],
-          ["Sahne", 0.4, "l"]
-        ]
-      },
-
-      gemueselasagne: {
-        name: "Gemüselasagne",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Lasagneplatten", 0.7, "kg"],
-          ["Gemüse", 1.3, "kg"],
-          ["Tomatensauce", 1.0, "l"],
-          ["Béchamelsauce", 0.8, "l"],
-          ["Käse", 0.5, "kg"]
-        ]
-      },
-
-      kartoffelgratin: {
-        name: "Kartoffelgratin mit Gemüse",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Kartoffeln", 2.0, "kg"],
-          ["Gemüse", 1.0, "kg"],
-          ["Sahne", 0.8, "l"],
-          ["Käse", 0.5, "kg"]
-        ]
-      },
-
-      spinatknödel: {
-        name: "Spinatknödel mit Käsesauce",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Spinatknödel", 20, "Stück"],
-          ["Käsesauce", 0.8, "l"],
-          ["Gemüse", 1.0, "kg"]
-        ]
-      },
-
-      gemueseschnitzel: {
-        name: "Gemüseschnitzel mit Kartoffeln",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Gemüseschnitzel", 10, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Salat", 0.6, "kg"],
-          ["Dressing", 0.3, "l"]
-        ]
-      },
-
-      tortellini: {
-        name: "Tortellini in Käsesauce",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Tortellini", 1.5, "kg"],
-          ["Sahne", 0.7, "l"],
-          ["Käse", 0.5, "kg"],
-          ["Brokkoli", 0.8, "kg"]
-        ]
-      },
-
-      gemuese_reis: {
-        name: "Gemüse-Reis-Pfanne",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Reis", 0.9, "kg"],
-          ["Gemüse", 1.5, "kg"],
-          ["Brühe", 0.8, "l"],
-          ["Käse", 0.3, "kg"]
-        ]
-      },
-
-      pellkartoffeln: {
-        name: "Pellkartoffeln mit Kräuterquark",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Kartoffeln", 2.5, "kg"],
-          ["Quark", 1.0, "kg"],
-          ["Kräuter", 0.1, "kg"],
-          ["Salat", 0.7, "kg"]
-        ]
-      },
-
-      shakshuka: {
-        name: "Shakshuka mit Brot",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Tomaten", 1.5, "kg"],
-          ["Paprika", 0.8, "kg"],
-          ["Zwiebeln", 0.4, "kg"],
-          ["Eier", 10, "Stück"],
-          ["Brot", 1.0, "kg"]
-        ]
-      },
-
-      gnocchi: {
-        name: "Gnocchi mit Tomaten und Mozzarella",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Gnocchi", 1.5, "kg"],
-          ["Tomaten", 1.0, "kg"],
-          ["Mozzarella", 0.7, "kg"],
-          ["Tomatensauce", 0.7, "l"]
-        ]
-      },
-
-      käseschnitzel: {
-        name: "Käseschnitzel mit Gemüse",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Käseschnitzel", 10, "Stück"],
-          ["Kartoffeln", 1.8, "kg"],
-          ["Gemüse", 1.0, "kg"]
-        ]
-      },
-
-      brokkoliauflauf: {
-        name: "Brokkoli-Kartoffel-Auflauf",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Kartoffeln", 1.8, "kg"],
-          ["Brokkoli", 1.2, "kg"],
-          ["Sahne", 0.7, "l"],
-          ["Käse", 0.5, "kg"]
-        ]
-      },
-
-      eier_senf: {
-        name: "Eier in Senfsauce",
-        kategorie: "Vegetarisch",
-        basis: 10,
-        zutaten: [
-          ["Eier", 20, "Stück"],
-          ["Kartoffeln", 2.0, "kg"],
-          ["Senfsauce", 0.8, "l"],
-          ["Spinat", 1.0, "kg"]
-        ]
-      },
-
-
-      // =========================
-      // VEGAN
-      // =========================
-
-      chili: {
-        name: "Veganes Chili",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Kidneybohnen", 0.8, "kg"],
-          ["Mais", 0.5, "kg"],
-          ["Paprika", 0.6, "kg"],
-          ["Tomaten", 1.0, "kg"],
-          ["Zwiebeln", 0.3, "kg"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      linsencurry: {
-        name: "Rotes Linsencurry",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Rote Linsen", 0.8, "kg"],
-          ["Kokosmilch", 0.8, "l"],
-          ["Tomaten", 0.8, "kg"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      couscous: {
-        name: "Couscous-Gemüse-Pfanne",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Couscous", 0.9, "kg"],
-          ["Gemüse", 1.4, "kg"],
-          ["Kichererbsen", 0.6, "kg"],
-          ["Brühe", 0.8, "l"]
-        ]
-      },
-
-      tofu: {
-        name: "Tofu-Gemüse-Wok",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Tofu", 1.2, "kg"],
-          ["Wokgemüse", 1.5, "kg"],
-          ["Reis", 0.8, "kg"],
-          ["Sojasauce", 0.25, "l"]
-        ]
-      },
-
-      dal: {
-        name: "Indisches Dal",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Linsen", 0.9, "kg"],
-          ["Tomaten", 0.8, "kg"],
-          ["Kokosmilch", 0.7, "l"],
-          ["Reis", 0.8, "kg"]
-        ]
-      },
-
-      veganebolognese: {
-        name: "Vegane Linsenbolognese",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Linsen", 0.7, "kg"],
-          ["Spaghetti", 1.0, "kg"],
-          ["Tomaten", 1.2, "kg"],
-          ["Karotten", 0.3, "kg"],
-          ["Zwiebeln", 0.25, "kg"]
-        ]
-      },
-
-      kartoffelgemuese: {
-        name: "Kartoffel-Gemüse-Eintopf",
-        kategorie: "Vegan",
-        basis: 10,
-        zutaten: [
-          ["Kartoffeln", 1.8, "kg"],
-          ["Karotten", 0.6, "kg"],
-          ["Lauch", 0.4, "kg"],
-          ["Sellerie", 0.3, "kg"],
-          ["Brühe", 2.0, "l"]
-        ]
-      },
-
-
-      // =========================
-      // PASTA & AUFLÄUFE
-      // =========================
-
-      nudelgemuese: {
-        name: "Nudel-Gemüse-Pfanne",
-        kategorie: "Pasta & Aufläufe",
-        basis: 10,
-        zutaten: [
-          ["Nudeln", 1.0, "kg"],
-          ["Gemüse", 1.2, "kg"],
-          ["Sahne", 0.5, "l"],
-          ["Käse", 0.3, "kg"]
-        ]
-      },
-
-      macandcheese: {
-        name: "Mac and Cheese",
-        kategorie: "Pasta & Aufläufe",
-        basis: 10,
-        zutaten: [
-          ["Makkaroni", 1.0, "kg"],
-          ["Cheddar", 0.7, "kg"],
-          ["Milch", 0.8, "l"],
-          ["Sahne", 0.4, "l"]
-        ]
-      },
-
-      penne: {
-        name: "Penne Arrabbiata",
-        kategorie: "Pasta & Aufläufe",
-        basis: 10,
-        zutaten: [
-          ["Penne", 1.0, "kg"],
-          ["Tomaten", 1.2, "kg"],
-          ["Tomatensauce", 0.8, "l"],
-          ["Zwiebeln", 0.25, "kg"]
-        ]
-      },
-
-      cannelloni: {
-        name: "Cannelloni mit Spinat und Ricotta",
-        kategorie: "Pasta & Aufläufe",
-        basis: 10,
-        zutaten: [
-          ["Cannelloni", 1.0, "kg"],
-          ["Spinat", 1.0, "kg"],
-          ["Ricotta", 0.8, "kg"],
-          ["Tomatensauce", 1.0, "l"],
-          ["Käse", 0.4, "kg"]
-        ]
-      },
-
-      nudelauflauf: {
-        name: "Nudelauflauf mit Gemüse",
-        kategorie: "Pasta & Aufläufe",
-        basis: 10,
-        zutaten: [
-          ["Nudeln", 1.0, "kg"],
-          ["Gemüse", 1.2, "kg"],
-          ["Sahne", 0.7, "l"],
-          ["Käse", 0.5, "kg"]
-        ]
+      <button
+        id="saveExtraIngredient"
+        type="button"
+      >
+        Zutat übernehmen
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<h2>Eigenes Gericht</h2>
+
+<p class="sectionText">
+Du kannst eigene Gerichte anlegen. Sie werden anschließend
+automatisch in GastroPilot gespeichert und können genauso
+berechnet werden wie die vorhandenen Gerichte.
+</p>
+
+<button
+  id="toggleCustom"
+  class="secondary"
+>
+  + Eigenes Gericht hinzufügen
+</button>
+
+<div id="customForm">
+
+  <div class="field">
+    <label for="customName">
+      Name des Gerichts
+    </label>
+
+    <input
+      id="customName"
+      type="text"
+      placeholder="z. B. Mein Hähnchen-Curry"
+    >
+  </div>
+
+  <div class="field">
+    <label for="customCategory">
+      Kategorie
+    </label>
+
+    <select id="customCategory">
+      <option value="Fleisch">Fleisch</option>
+      <option value="Fisch">Fisch</option>
+      <option value="Vegetarisch">Vegetarisch</option>
+      <option value="Vegan">Vegan</option>
+      <option value="Pasta">Pasta</option>
+    </select>
+  </div>
+
+  <div class="field">
+
+    <label for="customBase">
+      Grundmenge für wie viele Portionen?
+    </label>
+
+    <input
+      id="customBase"
+      type="number"
+      min="1"
+      value="10"
+    >
+
+  </div>
+
+  <div class="field">
+
+    <label>Zutaten</label>
+
+    <div id="customIngredients"></div>
+
+    <button
+      id="addIngredient"
+      type="button"
+      class="addIngredient"
+    >
+      + Weitere Zutat
+    </button>
+
+  </div>
+
+  <button
+    id="saveRecipe"
+    class="saveRecipe"
+  >
+    Gericht speichern
+  </button>
+
+  <div
+    id="saveSuccess"
+    class="success"
+  >
+    Gericht wurde gespeichert ✓
+  </div>
+
+</div>
+
+</section>
+
+</main>
+
+<script>
+
+/* =====================================================
+   FESTE GERICHTE
+===================================================== */
+
+const standardRecipes = [
+
+/* FLEISCH */
+
+{
+name:"Hähnchengeschnetzeltes in Rahmsoße",
+category:"Fleisch",
+base:10,
+ingredients:[
+["Hähnchenbrust",1.8,"kg"],
+["Champignons",0.8,"kg"],
+["Zwiebeln",0.35,"kg"],
+["Sahne",1,"l"],
+["Geflügelfond",0.8,"l"],
+["Öl",0.12,"l"],
+["Salz",20,"g"],
+["Pfeffer",8,"g"]
+]},
+
+{
+name:"Rindergulasch",
+category:"Fleisch",
+base:10,
+ingredients:[
+["Rindergulasch",2,"kg"],
+["Zwiebeln",0.8,"kg"],
+["Paprika rot",0.6,"kg"],
+["Tomatenmark",0.15,"kg"],
+["Rinderfond",1.5,"l"],
+["Öl",0.12,"l"],
+["Paprikapulver",25,"g"],
+["Salz",22,"g"]
+]},
+
+{
+name:"Schweineschnitzel",
+category:"Fleisch",
+base:10,
+ingredients:[
+["Schweineschnitzel",1.8,"kg"],
+["Mehl",0.25,"kg"],
+["Eier",6,"Stk"],
+["Paniermehl",0.55,"kg"],
+["Bratöl",0.35,"l"],
+["Zitrone",2,"Stk"]
+]},
+
+{
+name:"Cordon Bleu",
+category:"Fleisch",
+base:10,
+ingredients:[
+["Schweineschnitzel",2,"kg"],
+["Kochschinken",0.45,"kg"],
+["Käse",0.45,"kg"],
+["Mehl",0.25,"kg"],
+["Eier",6,"Stk"],
+["Paniermehl",0.6,"kg"]
+]},
+
+{
+name:"Hackbraten mit Bratensoße",
+category:"Fleisch",
+base:10,
+ingredients:[
+["Rinderhackfleisch",1.7,"kg"],
+["Zwiebeln",0.35,"kg"],
+["Eier",4,"Stk"],
+["Paniermehl",0.25,"kg"],
+["Milch",0.25,"l"],
+["Bratensoße",1.2,"l"],
+["Senf",60,"g"]
+]},
+
+{
+name:"Königsberger Klopse",
+category:"Fleisch",
+base:10,
+ingredients:[
+["Gemischtes Hackfleisch",1.6,"kg"],
+["Zwiebeln",0.3,"kg"],
+["Eier",4,"Stk"],
+["Paniermehl",0.22,"kg"],
+["Kapern",0.12,"kg"],
+["Sahne",0.8,"l"],
+["Brühe",1.2,"l"]
+]},
+
+{
+name:"Putencurry mit Gemüse",
+category:"Fleisch",
+base:10,
+ingredients:[
+["Putenbrust",1.8,"kg"],
+["Paprika",0.8,"kg"],
+["Zucchini",0.7,"kg"],
+["Zwiebeln",0.35,"kg"],
+["Kokosmilch",1.2,"l"],
+["Currypaste",0.12,"kg"]
+]},
+
+{
+name:"Schweinebraten mit Soße",
+category:"Fleisch",
+base:10,
+ingredients:[
+["Schweinenacken",2.2,"kg"],
+["Zwiebeln",0.5,"kg"],
+["Karotten",0.4,"kg"],
+["Sellerie",0.3,"kg"],
+["Bratenfond",1.5,"l"],
+["Tomatenmark",0.12,"kg"]
+]},
+
+{
+name:"Chili con Carne",
+category:"Fleisch",
+base:10,
+ingredients:[
+["Rinderhackfleisch",1.4,"kg"],
+["Kidneybohnen",1,"kg"],
+["Mais",0.6,"kg"],
+["Tomaten gehackt",1.5,"kg"],
+["Zwiebeln",0.4,"kg"],
+["Paprika",0.6,"kg"]
+]},
+
+{
+name:"Frikadellen",
+category:"Fleisch",
+base:10,
+ingredients:[
+["Gemischtes Hackfleisch",1.8,"kg"],
+["Zwiebeln",0.4,"kg"],
+["Eier",5,"Stk"],
+["Paniermehl",0.3,"kg"],
+["Milch",0.25,"l"],
+["Senf",70,"g"]
+]},
+
+/* FISCH */
+
+{
+name:"Lachsfilet mit Zitronensoße",
+category:"Fisch",
+base:10,
+ingredients:[
+["Lachsfilet",1.8,"kg"],
+["Sahne",0.8,"l"],
+["Fischfond",0.7,"l"],
+["Zitronen",3,"Stk"],
+["Butter",0.15,"kg"],
+["Dill",30,"g"]
+]},
+
+{
+name:"Seelachsfilet paniert",
+category:"Fisch",
+base:10,
+ingredients:[
+["Seelachsfilet",1.8,"kg"],
+["Mehl",0.25,"kg"],
+["Eier",6,"Stk"],
+["Paniermehl",0.55,"kg"],
+["Bratöl",0.3,"l"]
+]},
+
+{
+name:"Fischcurry mit Kokosmilch",
+category:"Fisch",
+base:10,
+ingredients:[
+["Kabeljaufilet",1.7,"kg"],
+["Kokosmilch",1.2,"l"],
+["Paprika",0.7,"kg"],
+["Zucchini",0.6,"kg"],
+["Zwiebeln",0.35,"kg"],
+["Currypaste",0.12,"kg"]
+]},
+
+{
+name:"Kabeljau in Senfsoße",
+category:"Fisch",
+base:10,
+ingredients:[
+["Kabeljaufilet",1.8,"kg"],
+["Sahne",0.8,"l"],
+["Fischfond",0.8,"l"],
+["Senf",0.12,"kg"],
+["Zwiebeln",0.25,"kg"]
+]},
+
+{
+name:"Gebratenes Zanderfilet",
+category:"Fisch",
+base:10,
+ingredients:[
+["Zanderfilet",1.8,"kg"],
+["Butter",0.18,"kg"],
+["Zitronen",2,"Stk"],
+["Petersilie",30,"g"],
+["Mehl",0.15,"kg"]
+]},
+
+{
+name:"Fischfrikadellen",
+category:"Fisch",
+base:10,
+ingredients:[
+["Seelachsfilet",1.6,"kg"],
+["Zwiebeln",0.35,"kg"],
+["Eier",5,"Stk"],
+["Paniermehl",0.3,"kg"],
+["Dill",25,"g"],
+["Senf",60,"g"]
+]},
+
+{
+name:"Lachs-Spinat-Auflauf",
+category:"Fisch",
+base:10,
+ingredients:[
+["Lachsfilet",1.5,"kg"],
+["Blattspinat",1.2,"kg"],
+["Sahne",1,"l"],
+["Käse gerieben",0.5,"kg"],
+["Zwiebeln",0.3,"kg"]
+]},
+
+{
+name:"Matjes Hausfrauenart",
+category:"Fisch",
+base:10,
+ingredients:[
+["Matjesfilet",1.6,"kg"],
+["Äpfel",0.6,"kg"],
+["Zwiebeln",0.35,"kg"],
+["Gewürzgurken",0.45,"kg"],
+["Saure Sahne",1,"kg"],
+["Joghurt",0.5,"kg"]
+]},
+
+{
+name:"Kabeljau mediterran",
+category:"Fisch",
+base:10,
+ingredients:[
+["Kabeljaufilet",1.8,"kg"],
+["Tomaten",0.8,"kg"],
+["Zucchini",0.7,"kg"],
+["Paprika",0.7,"kg"],
+["Oliven",0.2,"kg"],
+["Olivenöl",0.15,"l"]
+]},
+
+{
+name:"Seelachs in Kräuterrahm",
+category:"Fisch",
+base:10,
+ingredients:[
+["Seelachsfilet",1.8,"kg"],
+["Sahne",0.9,"l"],
+["Fischfond",0.8,"l"],
+["Zwiebeln",0.25,"kg"],
+["Kräuter gemischt",40,"g"]
+]},
+
+/* VEGETARISCH */
+
+{
+name:"Kichererbsen Masala",
+category:"Vegetarisch",
+base:10,
+ingredients:[
+["Kichererbsen",1.5,"kg"],
+["Tomaten gehackt",1.2,"kg"],
+["Kokosmilch",0.8,"l"],
+["Zwiebeln",0.45,"kg"],
+["Paprika",0.6,"kg"],
+["Garam Masala",35,"g"]
+]},
+
+{
+name:"Gemüse-Lasagne",
+category:"Vegetarisch",
+base:10,
+ingredients:[
+["Lasagneplatten",0.8,"kg"],
+["Zucchini",0.8,"kg"],
+["Paprika",0.7,"kg"],
+["Aubergine",0.7,"kg"],
+["Tomatensoße",1.5,"l"],
+["Béchamel",1,"l"],
+["Käse gerieben",0.6,"kg"]
+]},
+
+{
+name:"Spinatknödel mit Käsesoße",
+category:"Vegetarisch",
+base:10,
+ingredients:[
+["Semmelwürfel",1,"kg"],
+["Blattspinat",0.8,"kg"],
+["Eier",6,"Stk"],
+["Milch",0.8,"l"],
+["Zwiebeln",0.25,"kg"],
+["Käse",0.5,"kg"]
+]},
+
+{
+name:"Gemüsefrikadellen",
+category:"Vegetarisch",
+base:10,
+ingredients:[
+["Karotten",0.6,"kg"],
+["Zucchini",0.6,"kg"],
+["Kartoffeln",0.7,"kg"],
+["Haferflocken",0.3,"kg"],
+["Eier",5,"Stk"],
+["Käse gerieben",0.3,"kg"]
+]},
+
+{
+name:"Kartoffelgratin mit Brokkoli",
+category:"Vegetarisch",
+base:10,
+ingredients:[
+["Kartoffeln",2.2,"kg"],
+["Brokkoli",1.2,"kg"],
+["Sahne",1,"l"],
+["Milch",0.7,"l"],
+["Käse gerieben",0.6,"kg"]
+]},
+
+{
+name:"Vegetarisches Chili",
+category:"Vegetarisch",
+base:10,
+ingredients:[
+["Kidneybohnen",1.1,"kg"],
+["Mais",0.7,"kg"],
+["Paprika",0.8,"kg"],
+["Tomaten gehackt",1.5,"kg"],
+["Zwiebeln",0.4,"kg"]
+]},
+
+{
+name:"Pilzragout mit Kräutern",
+category:"Vegetarisch",
+base:10,
+ingredients:[
+["Champignons",1.8,"kg"],
+["Zwiebeln",0.4,"kg"],
+["Sahne",1,"l"],
+["Gemüsefond",0.8,"l"],
+["Butter",0.15,"kg"]
+]},
+
+{
+name:"Blumenkohl-Käse-Medaillons",
+category:"Vegetarisch",
+base:10,
+ingredients:[
+["Blumenkohl",1.6,"kg"],
+["Kartoffeln",0.8,"kg"],
+["Käse gerieben",0.5,"kg"],
+["Eier",5,"Stk"],
+["Paniermehl",0.35,"kg"]
+]},
+
+{
+name:"Gemüse-Couscous mit Feta",
+category:"Vegetarisch",
+base:10,
+ingredients:[
+["Couscous",0.9,"kg"],
+["Zucchini",0.7,"kg"],
+["Paprika",0.7,"kg"],
+["Karotten",0.6,"kg"],
+["Feta",0.6,"kg"],
+["Gemüsebrühe",1.3,"l"]
+]},
+
+{
+name:"Kartoffel-Gemüse-Pfanne mit Ei",
+category:"Vegetarisch",
+base:10,
+ingredients:[
+["Kartoffeln",2,"kg"],
+["Paprika",0.7,"kg"],
+["Zucchini",0.6,"kg"],
+["Zwiebeln",0.35,"kg"],
+["Eier",10,"Stk"]
+]},
+
+/* VEGAN */
+
+{
+name:"Linsen-Bolognese",
+category:"Vegan",
+base:10,
+ingredients:[
+["Rote Linsen",0.8,"kg"],
+["Tomaten gehackt",1.6,"kg"],
+["Karotten",0.5,"kg"],
+["Sellerie",0.3,"kg"],
+["Zwiebeln",0.4,"kg"],
+["Tomatenmark",0.12,"kg"]
+]},
+
+{
+name:"Tofu-Gemüse-Curry",
+category:"Vegan",
+base:10,
+ingredients:[
+["Tofu",1.4,"kg"],
+["Paprika",0.8,"kg"],
+["Brokkoli",0.8,"kg"],
+["Karotten",0.6,"kg"],
+["Kokosmilch",1.2,"l"],
+["Currypaste vegan",0.12,"kg"]
+]},
+
+{
+name:"Süßkartoffel-Kichererbsen-Eintopf",
+category:"Vegan",
+base:10,
+ingredients:[
+["Süßkartoffeln",1.5,"kg"],
+["Kichererbsen",1.1,"kg"],
+["Tomaten gehackt",1.2,"kg"],
+["Kokosmilch",0.8,"l"],
+["Zwiebeln",0.4,"kg"],
+["Spinat",0.6,"kg"]
+]},
+
+{
+name:"Veganer Gemüse-Gulasch",
+category:"Vegan",
+base:10,
+ingredients:[
+["Kartoffeln",1.5,"kg"],
+["Paprika",1,"kg"],
+["Champignons",0.8,"kg"],
+["Zwiebeln",0.45,"kg"],
+["Tomaten gehackt",1.2,"kg"]
+]},
+
+{
+name:"Couscous-Gemüse-Pfanne",
+category:"Vegan",
+base:10,
+ingredients:[
+["Couscous",0.9,"kg"],
+["Zucchini",0.8,"kg"],
+["Paprika",0.8,"kg"],
+["Karotten",0.6,"kg"],
+["Kichererbsen",0.8,"kg"]
+]},
+
+{
+name:"Bohnen-Chili vegan",
+category:"Vegan",
+base:10,
+ingredients:[
+["Kidneybohnen",1,"kg"],
+["Schwarze Bohnen",1,"kg"],
+["Mais",0.7,"kg"],
+["Tomaten gehackt",1.5,"kg"],
+["Paprika",0.8,"kg"]
+]},
+
+{
+name:"Auberginen-Kichererbsen-Ragout",
+category:"Vegan",
+base:10,
+ingredients:[
+["Auberginen",1.2,"kg"],
+["Kichererbsen",1.1,"kg"],
+["Tomaten gehackt",1.4,"kg"],
+["Zwiebeln",0.4,"kg"],
+["Paprika",0.7,"kg"]
+]},
+
+{
+name:"Veganer Linseneintopf",
+category:"Vegan",
+base:10,
+ingredients:[
+["Tellerlinsen",0.9,"kg"],
+["Kartoffeln",1.2,"kg"],
+["Karotten",0.7,"kg"],
+["Sellerie",0.4,"kg"],
+["Lauch",0.5,"kg"],
+["Gemüsebrühe",2,"l"]
+]},
+
+{
+name:"Gebratener Tofu mit Asia-Gemüse",
+category:"Vegan",
+base:10,
+ingredients:[
+["Tofu",1.5,"kg"],
+["Brokkoli",0.8,"kg"],
+["Paprika",0.8,"kg"],
+["Karotten",0.6,"kg"],
+["Sojasoße",0.18,"l"],
+["Sesamöl",0.08,"l"]
+]},
+
+{
+name:"Kartoffel-Spinat-Curry",
+category:"Vegan",
+base:10,
+ingredients:[
+["Kartoffeln",1.8,"kg"],
+["Blattspinat",1,"kg"],
+["Tomaten gehackt",1,"kg"],
+["Kokosmilch",1,"l"],
+["Zwiebeln",0.4,"kg"]
+]},
+
+/* PASTA */
+
+{
+name:"Spaghetti Bolognese",
+category:"Pasta",
+base:10,
+ingredients:[
+["Spaghetti",1.1,"kg"],
+["Rinderhackfleisch",1.2,"kg"],
+["Tomaten gehackt",1.5,"kg"],
+["Zwiebeln",0.35,"kg"],
+["Karotten",0.4,"kg"],
+["Parmesan",0.25,"kg"]
+]},
+
+{
+name:"Penne Arrabbiata",
+category:"Pasta",
+base:10,
+ingredients:[
+["Penne",1.1,"kg"],
+["Tomaten gehackt",1.6,"kg"],
+["Zwiebeln",0.3,"kg"],
+["Knoblauch",30,"g"],
+["Chili",15,"g"],
+["Olivenöl",0.12,"l"]
+]},
+
+{
+name:"Tagliatelle mit Pilzrahm",
+category:"Pasta",
+base:10,
+ingredients:[
+["Tagliatelle",1.1,"kg"],
+["Champignons",1.2,"kg"],
+["Sahne",1,"l"],
+["Zwiebeln",0.3,"kg"],
+["Butter",0.12,"kg"],
+["Parmesan",0.25,"kg"]
+]},
+
+{
+name:"Pasta Primavera",
+category:"Pasta",
+base:10,
+ingredients:[
+["Penne",1.1,"kg"],
+["Zucchini",0.7,"kg"],
+["Paprika",0.7,"kg"],
+["Brokkoli",0.7,"kg"],
+["Cherrytomaten",0.6,"kg"],
+["Olivenöl",0.15,"l"]
+]},
+
+{
+name:"Spaghetti Carbonara",
+category:"Pasta",
+base:10,
+ingredients:[
+["Spaghetti",1.1,"kg"],
+["Speck",0.65,"kg"],
+["Eier",8,"Stk"],
+["Sahne",0.5,"l"],
+["Parmesan",0.35,"kg"]
+]},
+
+{
+name:"Penne mit Lachs-Sahne-Soße",
+category:"Pasta",
+base:10,
+ingredients:[
+["Penne",1.1,"kg"],
+["Lachsfilet",1.2,"kg"],
+["Sahne",1,"l"],
+["Zwiebeln",0.25,"kg"],
+["Dill",25,"g"],
+["Zitrone",2,"Stk"]
+]},
+
+{
+name:"Tortellini in Käse-Sahne-Soße",
+category:"Pasta",
+base:10,
+ingredients:[
+["Tortellini",1.6,"kg"],
+["Sahne",1,"l"],
+["Käse gerieben",0.55,"kg"],
+["Zwiebeln",0.25,"kg"],
+["Butter",0.1,"kg"]
+]},
+
+{
+name:"Fusilli mit Spinat und Feta",
+category:"Pasta",
+base:10,
+ingredients:[
+["Fusilli",1.1,"kg"],
+["Blattspinat",1,"kg"],
+["Feta",0.65,"kg"],
+["Sahne",0.7,"l"],
+["Zwiebeln",0.25,"kg"]
+]},
+
+{
+name:"Rigatoni al Forno",
+category:"Pasta",
+base:10,
+ingredients:[
+["Rigatoni",1.1,"kg"],
+["Rinderhackfleisch",0.9,"kg"],
+["Tomatensoße",1.2,"l"],
+["Sahne",0.5,"l"],
+["Käse gerieben",0.6,"kg"]
+]},
+
+{
+name:"Spaghetti Aglio e Olio",
+category:"Pasta",
+base:10,
+ingredients:[
+["Spaghetti",1.1,"kg"],
+["Olivenöl",0.22,"l"],
+["Knoblauch",60,"g"],
+["Chili",10,"g"],
+["Petersilie",40,"g"],
+["Parmesan",0.25,"kg"]
+]}
+
+];
+
+
+/* =====================================================
+   EIGENE GERICHTE
+===================================================== */
+
+function loadCustomRecipes(){
+
+  try{
+
+    const stored =
+    localStorage.getItem(
+      "gastropilot_custom_recipes"
+    );
+
+    return stored
+      ? JSON.parse(stored)
+      : [];
+
+  }catch(error){
+
+    return [];
+
+  }
+
+}
+
+let customRecipes =
+loadCustomRecipes();
+
+
+function saveCustomRecipes(){
+
+  localStorage.setItem(
+    "gastropilot_custom_recipes",
+    JSON.stringify(customRecipes)
+  );
+
+}
+
+
+/* =====================================================
+   ZUSÄTZLICHE ZUTATEN
+===================================================== */
+
+function loadRecipeExtras(){
+
+  try{
+
+    const stored =
+    localStorage.getItem(
+      "gastropilot_recipe_extras"
+    );
+
+    return stored
+      ? JSON.parse(stored)
+      : {};
+
+  }catch(error){
+
+    return {};
+
+  }
+
+}
+
+let recipeExtras =
+loadRecipeExtras();
+
+
+function saveRecipeExtras(){
+
+  localStorage.setItem(
+    "gastropilot_recipe_extras",
+    JSON.stringify(recipeExtras)
+  );
+
+}
+
+
+function allRecipes(){
+
+  return [
+    ...standardRecipes,
+    ...customRecipes
+  ];
+
+}
+
+
+/* =====================================================
+   ELEMENTE
+===================================================== */
+
+const search =
+document.getElementById("search");
+
+const suggestions =
+document.getElementById("suggestions");
+
+const category =
+document.getElementById("category");
+
+const dish =
+document.getElementById("dish");
+
+const count =
+document.getElementById("count");
+
+const portions =
+document.getElementById("portions");
+
+const calculate =
+document.getElementById("calculate");
+
+const result =
+document.getElementById("result");
+
+const resultTitle =
+document.getElementById("resultTitle");
+
+const resultMeta =
+document.getElementById("resultMeta");
+
+const ingredientRows =
+document.getElementById("ingredientRows");
+
+const deleteRecipe =
+document.getElementById("deleteRecipe");
+
+const toggleCustom =
+document.getElementById("toggleCustom");
+
+const customForm =
+document.getElementById("customForm");
+
+const customName =
+document.getElementById("customName");
+
+const customCategory =
+document.getElementById("customCategory");
+
+const customBase =
+document.getElementById("customBase");
+
+const customIngredients =
+document.getElementById("customIngredients");
+
+const addIngredient =
+document.getElementById("addIngredient");
+
+const saveRecipe =
+document.getElementById("saveRecipe");
+
+const saveSuccess =
+document.getElementById("saveSuccess");
+
+const toggleExtraIngredient =
+document.getElementById(
+  "toggleExtraIngredient"
+);
+
+const extraIngredientForm =
+document.getElementById(
+  "extraIngredientForm"
+);
+
+const extraIngredientHint =
+document.getElementById(
+  "extraIngredientHint"
+);
+
+const extraIngredientName =
+document.getElementById(
+  "extraIngredientName"
+);
+
+const extraIngredientAmount =
+document.getElementById(
+  "extraIngredientAmount"
+);
+
+const extraIngredientUnit =
+document.getElementById(
+  "extraIngredientUnit"
+);
+
+const saveExtraIngredient =
+document.getElementById(
+  "saveExtraIngredient"
+);
+
+
+/* =====================================================
+   NORMALISIERUNG
+===================================================== */
+
+function normalize(text){
+
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"");
+
+}
+
+
+/* =====================================================
+   ZUSATZZUTATEN-HILFSFUNKTIONEN
+===================================================== */
+
+function recipeExtraKey(recipe){
+
+  if(recipe.custom){
+
+    return "custom_" +
+    recipe.id;
+
+  }
+
+  return "standard_" +
+  normalize(recipe.name);
+
+}
+
+
+function getRecipeExtras(recipe){
+
+  const key =
+  recipeExtraKey(recipe);
+
+  return recipeExtras[key] || [];
+
+}
+
+
+/* =====================================================
+   KATEGORIEN
+===================================================== */
+
+function categoryRecipes(){
+
+  const recipes =
+  allRecipes();
+
+  if(
+    category.value ===
+    "Alle Gerichte"
+  ){
+
+    return recipes;
+
+  }
+
+  return recipes.filter(
+    recipe =>
+    recipe.category ===
+    category.value
+  );
+
+}
+
+
+/* =====================================================
+   DROPDOWN
+===================================================== */
+
+function fillDishSelect(
+  selectedName=""
+){
+
+  const list =
+  categoryRecipes();
+
+  dish.innerHTML =
+  '<option value="">Bitte Gericht auswählen</option>';
+
+  list.forEach(
+    recipe => {
+
+      const option =
+      document.createElement(
+        "option"
+      );
+
+      option.value =
+      recipe.name;
+
+      option.textContent =
+      recipe.name;
+
+      dish.appendChild(
+        option
+      );
+
+    }
+  );
+
+  count.textContent =
+  list.length +
+  (
+    list.length === 1
+    ? " Gericht"
+    : " Gerichte"
+  );
+
+  if(
+    selectedName &&
+    list.some(
+      recipe =>
+      recipe.name ===
+      selectedName
+    )
+  ){
+
+    dish.value =
+    selectedName;
+
+  }
+
+}
+
+
+/* =====================================================
+   SUCHVORSCHLÄGE
+===================================================== */
+
+function showSuggestions(){
+
+  const query =
+  normalize(
+    search.value.trim()
+  );
+
+  if(!query){
+
+    suggestions.style.display =
+    "none";
+
+    suggestions.innerHTML =
+    "";
+
+    return;
+
+  }
+
+  const matches =
+  categoryRecipes()
+  .filter(
+    recipe =>
+
+    normalize(recipe.name)
+    .includes(query)
+
+    ||
+
+    normalize(recipe.category)
+    .includes(query)
+
+  )
+  .slice(0,15);
+
+  suggestions.innerHTML =
+  "";
+
+  if(
+    matches.length === 0
+  ){
+
+    suggestions.innerHTML =
+    '<div class="empty">Kein passendes Gericht gefunden</div>';
+
+  }else{
+
+    matches.forEach(
+      recipe => {
+
+        const element =
+        document.createElement(
+          "div"
+        );
+
+        element.className =
+        "suggestion";
+
+        const title =
+        document.createElement(
+          "strong"
+        );
+
+        title.textContent =
+        recipe.name;
+
+        const cat =
+        document.createElement(
+          "span"
+        );
+
+        cat.className =
+        "cat";
+
+        cat.textContent =
+        recipe.category +
+        (
+          recipe.custom
+          ? " · Eigenes Gericht"
+          : ""
+        );
+
+        element.appendChild(
+          title
+        );
+
+        element.appendChild(
+          cat
+        );
+
+        element.addEventListener(
+          "click",
+          () =>
+          chooseRecipe(recipe)
+        );
+
+        suggestions.appendChild(
+          element
+        );
+
       }
+    );
+
+  }
+
+  suggestions.style.display =
+  "block";
+
+}
+
+
+/* =====================================================
+   GERICHT AUSWÄHLEN
+===================================================== */
+
+function chooseRecipe(recipe){
+
+  dish.value =
+  recipe.name;
+
+  search.value =
+  recipe.name;
+
+  suggestions.style.display =
+  "none";
+
+  extraIngredientForm.style.display =
+  "none";
+
+  toggleExtraIngredient.textContent =
+  "+ Weitere Zutat hinzufügen";
+
+  renderResult();
+
+}
+
+
+/* =====================================================
+   MENGEN FORMATIEREN
+===================================================== */
+
+function formatAmount(
+  value,
+  unit
+){
+
+  if(unit === "Stk"){
+
+    const rounded =
+    Math.round(
+      value * 10
+    ) / 10;
+
+    return (
+      Number.isInteger(rounded)
+      ? rounded.toFixed(0)
+      : rounded.toFixed(1)
+    ) +
+    " Stk";
+
+  }
+
+
+  if(unit === "kg"){
+
+    if(value < 1){
+
+      return Math.round(
+        value * 1000
+      ) +
+      " g";
+
+    }
+
+    return value.toLocaleString(
+      "de-DE",
+      {
+        minimumFractionDigits:
+        value < 10 ? 2 : 1,
+
+        maximumFractionDigits:
+        2
+      }
+    ) +
+    " kg";
+
+  }
+
+
+  if(unit === "l"){
+
+    if(value < 1){
+
+      return Math.round(
+        value * 1000
+      ) +
+      " ml";
+
+    }
+
+    return value.toLocaleString(
+      "de-DE",
+      {
+        minimumFractionDigits:
+        value < 10 ? 2 : 1,
+
+        maximumFractionDigits:
+        2
+      }
+    ) +
+    " l";
+
+  }
+
+
+  if(unit === "g"){
+
+    if(value >= 1000){
+
+      return (
+        value / 1000
+      ).toLocaleString(
+        "de-DE",
+        {
+          maximumFractionDigits:2
+        }
+      ) +
+      " kg";
+
+    }
+
+    return Math.round(value) +
+    " g";
+
+  }
+
+
+  if(unit === "ml"){
+
+    if(value >= 1000){
+
+      return (
+        value / 1000
+      ).toLocaleString(
+        "de-DE",
+        {
+          maximumFractionDigits:2
+        }
+      ) +
+      " l";
+
+    }
+
+    return Math.round(value) +
+    " ml";
+
+  }
+
+
+  return value.toLocaleString(
+    "de-DE",
+    {
+      maximumFractionDigits:2
+    }
+  ) +
+  " " +
+  unit;
+
+}
+
+
+/* =====================================================
+   ZUTAT IN TABELLE
+===================================================== */
+
+function appendIngredientResult(
+  name,
+  amount,
+  unit,
+  factor,
+  extraId=null,
+  recipe=null
+){
+
+  const row =
+  document.createElement(
+    "tr"
+  );
+
+  const nameCell =
+  document.createElement(
+    "td"
+  );
+
+  nameCell.textContent =
+  name;
+
+
+  if(extraId !== null){
+
+    const badge =
+    document.createElement(
+      "span"
+    );
+
+    badge.className =
+    "extraBadge";
+
+    badge.textContent =
+    "hinzugefügt";
+
+    nameCell.appendChild(
+      badge
+    );
+
+  }
+
+
+  const amountCell =
+  document.createElement(
+    "td"
+  );
+
+  amountCell.className =
+  "amountCell";
+
+
+  const amountText =
+  document.createElement(
+    "span"
+  );
+
+  amountText.textContent =
+  formatAmount(
+    amount * factor,
+    unit
+  );
+
+  amountCell.appendChild(
+    amountText
+  );
+
+
+  if(
+    extraId !== null &&
+    recipe
+  ){
+
+    const removeButton =
+    document.createElement(
+      "button"
+    );
+
+    removeButton.type =
+    "button";
+
+    removeButton.className =
+    "removeExtra";
+
+    removeButton.textContent =
+    "×";
+
+    removeButton.setAttribute(
+      "aria-label",
+      "Zutat entfernen"
+    );
+
+
+    removeButton.addEventListener(
+      "click",
+      () => {
+
+        const key =
+        recipeExtraKey(
+          recipe
+        );
+
+        recipeExtras[key] =
+        getRecipeExtras(
+          recipe
+        ).filter(
+          ingredient =>
+          ingredient.id !==
+          extraId
+        );
+
+        if(
+          recipeExtras[key]
+          .length === 0
+        ){
+
+          delete recipeExtras[
+            key
+          ];
+
+        }
+
+        saveRecipeExtras();
+
+        renderResult();
+
+      }
+    );
+
+    amountCell.appendChild(
+      removeButton
+    );
+
+  }
+
+
+  row.appendChild(
+    nameCell
+  );
+
+  row.appendChild(
+    amountCell
+  );
+
+  ingredientRows.appendChild(
+    row
+  );
+
+}
+
+
+/* =====================================================
+   BERECHNUNG
+===================================================== */
+
+function renderResult(){
+
+  const selected =
+  allRecipes().find(
+    recipe =>
+    recipe.name ===
+    dish.value
+  );
+
+  const p =
+  Number(
+    portions.value
+  );
+
+
+  if(!selected){
+
+    alert(
+      "Bitte zuerst ein Gericht auswählen."
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !Number.isFinite(p)
+    ||
+    p < 1
+  ){
+
+    alert(
+      "Bitte eine gültige Portionszahl eingeben."
+    );
+
+    return;
+
+  }
+
+
+  const factor =
+  p /
+  selected.base;
+
+
+  resultTitle.textContent =
+  selected.name;
+
+
+  resultMeta.textContent =
+  selected.category +
+  " · berechnet für " +
+  p +
+  " Portionen" +
+  (
+    selected.custom
+    ? " · Eigenes Gericht"
+    : ""
+  );
+
+
+  ingredientRows.innerHTML =
+  "";
+
+
+  selected.ingredients.forEach(
+    ([name,amount,unit]) => {
+
+      appendIngredientResult(
+        name,
+        amount,
+        unit,
+        factor
+      );
+
+    }
+  );
+
+
+  const extras =
+  getRecipeExtras(
+    selected
+  );
+
+
+  extras.forEach(
+    ingredient => {
+
+      appendIngredientResult(
+        ingredient.name,
+        ingredient.amount,
+        ingredient.unit,
+        factor,
+        ingredient.id,
+        selected
+      );
+
+    }
+  );
+
+
+  extraIngredientHint.textContent =
+  "Menge für die aktuell eingestellten " +
+  p +
+  " Portionen eingeben. GastroPilot speichert die Zutat und rechnet sie künftig automatisch mit.";
+
+
+  result.style.display =
+  "block";
+
+
+  deleteRecipe.style.display =
+  selected.custom
+  ? "block"
+  : "none";
+
+
+  result.scrollIntoView({
+    behavior:"smooth",
+    block:"start"
+  });
+
+}
+
+
+/* =====================================================
+   ZUTATENZEILEN EIGENES GERICHT
+===================================================== */
+
+let ingredientRowCounter =
+0;
+
+
+function createIngredientRow(){
+
+  ingredientRowCounter++;
+
+  const row =
+  document.createElement(
+    "div"
+  );
+
+  row.className =
+  "ingredientRow";
+
+  const uniqueId =
+  ingredientRowCounter;
+
+
+  row.innerHTML = `
+
+    <input
+      id="ingredientName_${uniqueId}"
+      name="ingredientName_${uniqueId}"
+      class="ingredientName"
+      type="text"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="sentences"
+      spellcheck="false"
+      placeholder="Zutat"
+      value=""
+    >
+
+    <input
+      id="ingredientAmount_${uniqueId}"
+      name="ingredientAmount_${uniqueId}"
+      class="ingredientAmount"
+      type="number"
+      min="0"
+      step="0.01"
+      inputmode="decimal"
+      autocomplete="off"
+      placeholder="Menge"
+      value=""
+    >
+
+    <select
+      id="ingredientUnit_${uniqueId}"
+      name="ingredientUnit_${uniqueId}"
+      class="ingredientUnit"
+    >
+
+      <option value="g" selected>
+        g
+      </option>
+
+      <option value="kg">
+        kg
+      </option>
+
+      <option value="ml">
+        ml
+      </option>
+
+      <option value="l">
+        l
+      </option>
+
+      <option value="Stk">
+        Stk
+      </option>
+
+    </select>
+
+    <button
+      type="button"
+      class="removeIngredient"
+      aria-label="Zutat entfernen"
+    >
+      ×
+    </button>
+
+  `;
+
+
+  const nameInput =
+  row.querySelector(
+    ".ingredientName"
+  );
+
+  const amountInput =
+  row.querySelector(
+    ".ingredientAmount"
+  );
+
+  const unitSelect =
+  row.querySelector(
+    ".ingredientUnit"
+  );
+
+
+  nameInput.value =
+  "";
+
+  amountInput.value =
+  "";
+
+  unitSelect.value =
+  "g";
+
+
+  row
+  .querySelector(
+    ".removeIngredient"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      if(
+        customIngredients
+        .children
+        .length > 1
+      ){
+
+        row.remove();
+
+      }else{
+
+        nameInput.value =
+        "";
+
+        amountInput.value =
+        "";
+
+        unitSelect.value =
+        "g";
+
+      }
+
+    }
+  );
+
+
+  customIngredients.appendChild(
+    row
+  );
+
+
+  requestAnimationFrame(
+    () => {
+
+      nameInput.value =
+      "";
+
+      amountInput.value =
+      "";
+
+      unitSelect.value =
+      "g";
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   FORMULAR ÖFFNEN
+===================================================== */
+
+toggleCustom.addEventListener(
+  "click",
+  () => {
+
+    const open =
+    customForm.style.display ===
+    "block";
+
+
+    customForm.style.display =
+    open
+    ? "none"
+    : "block";
+
+
+    toggleCustom.textContent =
+    open
+    ? "+ Eigenes Gericht hinzufügen"
+    : "Formular schließen";
+
+  }
+);
+
+
+/* =====================================================
+   WEITERE ZUTAT BEIM EIGENEN GERICHT
+===================================================== */
+
+addIngredient.addEventListener(
+  "click",
+  createIngredientRow
+);
+
+
+/* =====================================================
+   EIGENES GERICHT SPEICHERN
+===================================================== */
+
+saveRecipe.addEventListener(
+  "click",
+  () => {
+
+    const name =
+    customName.value.trim();
+
+    const base =
+    Number(
+      customBase.value
+    );
+
+    const recipeCategory =
+    customCategory.value;
+
+
+    if(!name){
+
+      alert(
+        "Bitte einen Namen für das Gericht eingeben."
+      );
+
+      return;
+
+    }
+
+
+    if(
+      !Number.isFinite(base)
+      ||
+      base < 1
+    ){
+
+      alert(
+        "Bitte eine gültige Grundportion eingeben."
+      );
+
+      return;
+
+    }
+
+
+    const exists =
+    allRecipes().some(
+      recipe =>
+      normalize(recipe.name) ===
+      normalize(name)
+    );
+
+
+    if(exists){
+
+      alert(
+        "Ein Gericht mit diesem Namen gibt es bereits."
+      );
+
+      return;
+
+    }
+
+
+    const ingredients =
+    [];
+
+
+    document
+    .querySelectorAll(
+      "#customIngredients .ingredientRow"
+    )
+    .forEach(
+      row => {
+
+        const ingredientName =
+        row
+        .querySelector(
+          ".ingredientName"
+        )
+        .value
+        .trim();
+
+
+        const amount =
+        Number(
+          row
+          .querySelector(
+            ".ingredientAmount"
+          )
+          .value
+        );
+
+
+        const unit =
+        row
+        .querySelector(
+          ".ingredientUnit"
+        )
+        .value;
+
+
+        if(
+          ingredientName &&
+          Number.isFinite(amount) &&
+          amount > 0
+        ){
+
+          ingredients.push([
+            ingredientName,
+            amount,
+            unit
+          ]);
+
+        }
+
+      }
+    );
+
+
+    if(
+      ingredients.length ===
+      0
+    ){
+
+      alert(
+        "Bitte mindestens eine Zutat mit Menge eingeben."
+      );
+
+      return;
+
+    }
+
+
+    const newRecipe = {
+
+      name:
+      name,
+
+      category:
+      recipeCategory,
+
+      base:
+      base,
+
+      ingredients:
+      ingredients,
+
+      custom:
+      true,
+
+      id:
+      Date.now()
 
     };
 
 
-    const suche = document.getElementById("suche");
-    const kategorie = document.getElementById("kategorie");
-    const gerichtAuswahl = document.getElementById("gericht");
-    const personenEingabe = document.getElementById("personen");
-    const berechnenButton = document.getElementById("berechnenButton");
-
-    const statusText = document.getElementById("statusText");
-
-    const ergebnis = document.getElementById("ergebnis");
-    const gerichtTitel = document.getElementById("gerichtTitel");
-    const portionText = document.getElementById("portionText");
-    const zutatenListe = document.getElementById("zutatenListe");
-    const kategorieAnzeige = document.getElementById("kategorieAnzeige");
+    customRecipes.push(
+      newRecipe
+    );
 
 
-    suche.addEventListener("input", gerichteFiltern);
-    kategorie.addEventListener("change", gerichteFiltern);
-    berechnenButton.addEventListener("click", berechnen);
+    saveCustomRecipes();
 
 
-    function gerichteFiltern() {
-
-      const suchText = suche.value.toLowerCase().trim();
-      const gewaehlteKategorie = kategorie.value;
-
-      gerichtAuswahl.innerHTML =
-        '<option value="">Bitte Gericht auswählen</option>';
-
-      let anzahl = 0;
-
-      Object.keys(rezepte)
-        .sort(function(a, b) {
-          return rezepte[a].name.localeCompare(rezepte[b].name);
-        })
-        .forEach(function(key) {
-
-          const rezept = rezepte[key];
-
-          const passtZurSuche =
-            rezept.name.toLowerCase().includes(suchText);
-
-          const passtZurKategorie =
-            gewaehlteKategorie === "alle" ||
-            rezept.kategorie === gewaehlteKategorie;
-
-          if (passtZurSuche && passtZurKategorie) {
-
-            const option = document.createElement("option");
-
-            option.value = key;
-            option.textContent =
-              rezept.name + " – " + rezept.kategorie;
-
-            gerichtAuswahl.appendChild(option);
-
-            anzahl++;
-          }
-
-        });
+    category.value =
+    recipeCategory;
 
 
-      if (anzahl === 1) {
-        statusText.textContent = "1 Gericht gefunden.";
-      } else {
-        statusText.textContent =
-          anzahl + " Gerichte gefunden.";
-      }
+    fillDishSelect(
+      name
+    );
+
+
+    search.value =
+    name;
+
+
+    portions.value =
+    base;
+
+
+    renderResult();
+
+
+    saveSuccess.style.display =
+    "block";
+
+
+    customName.value =
+    "";
+
+
+    customBase.value =
+    10;
+
+
+    customIngredients.innerHTML =
+    "";
+
+
+    createIngredientRow();
+    createIngredientRow();
+    createIngredientRow();
+
+
+    setTimeout(
+      () => {
+
+        saveSuccess.style.display =
+        "none";
+
+      },
+      3000
+    );
+
+  }
+);
+
+
+/* =====================================================
+   WEITERE ZUTAT BEI JEDEM GERICHT
+===================================================== */
+
+toggleExtraIngredient.addEventListener(
+  "click",
+  () => {
+
+    const open =
+    extraIngredientForm
+    .style.display ===
+    "block";
+
+
+    extraIngredientForm.style.display =
+    open
+    ? "none"
+    : "block";
+
+
+    toggleExtraIngredient.textContent =
+    open
+    ? "+ Weitere Zutat hinzufügen"
+    : "Zutateneingabe schließen";
+
+
+    if(!open){
+
+      extraIngredientName.focus();
+
+    }
+
+  }
+);
+
+
+saveExtraIngredient.addEventListener(
+  "click",
+  () => {
+
+    const selected =
+    allRecipes().find(
+      recipe =>
+      recipe.name ===
+      dish.value
+    );
+
+
+    if(!selected){
+
+      alert(
+        "Bitte zuerst ein Gericht auswählen."
+      );
+
+      return;
 
     }
 
 
-    function berechnen() {
-
-      const gerichtKey = gerichtAuswahl.value;
-      const personen = Number(personenEingabe.value);
-
-      if (!gerichtKey) {
-        alert("Bitte zuerst ein Gericht auswählen.");
-        return;
-      }
-
-      if (!personen || personen < 1) {
-        alert("Bitte eine gültige Portionszahl eingeben.");
-        return;
-      }
-
-      const rezept = rezepte[gerichtKey];
-
-      if (!rezept) {
-        alert("Das ausgewählte Rezept wurde nicht gefunden.");
-        return;
-      }
-
-      const faktor = personen / rezept.basis;
-
-      kategorieAnzeige.textContent = rezept.kategorie;
-      gerichtTitel.textContent = rezept.name;
-
-      portionText.textContent =
-        "Berechnung für " + personen + " Portionen";
-
-      zutatenListe.innerHTML = "";
+    const p =
+    Number(
+      portions.value
+    );
 
 
-      rezept.zutaten.forEach(function(zutat) {
-
-        const name = zutat[0];
-        const basisMenge = zutat[1];
-        const einheit = zutat[2];
-
-        const neueMenge = basisMenge * faktor;
-
-        const zeile = document.createElement("tr");
-
-        const nameFeld = document.createElement("td");
-        nameFeld.textContent = name;
-
-        const mengenFeld = document.createElement("td");
-        mengenFeld.textContent =
-          formatMenge(neueMenge) + " " + einheit;
-
-        zeile.appendChild(nameFeld);
-        zeile.appendChild(mengenFeld);
-
-        zutatenListe.appendChild(zeile);
-
-      });
+    const ingredientName =
+    extraIngredientName
+    .value
+    .trim();
 
 
-      ergebnis.style.display = "block";
+    const enteredAmount =
+    Number(
+      extraIngredientAmount
+      .value
+    );
 
-      ergebnis.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
+
+    const unit =
+    extraIngredientUnit.value;
+
+
+    if(!ingredientName){
+
+      alert(
+        "Bitte eine Zutat eingeben."
+      );
+
+      return;
 
     }
 
 
-    function formatMenge(menge) {
+    if(
+      !Number.isFinite(
+        enteredAmount
+      )
+      ||
+      enteredAmount <= 0
+    ){
 
-      if (Number.isInteger(menge)) {
-        return menge.toString();
-      }
+      alert(
+        "Bitte eine gültige Menge eingeben."
+      );
 
-      return menge
-        .toFixed(2)
-        .replace(".", ",")
-        .replace(/,00$/, "")
-        .replace(/0$/, "");
+      return;
 
     }
 
 
-    gerichteFiltern();
+    if(
+      !Number.isFinite(p)
+      ||
+      p < 1
+    ){
 
-  </script>
+      alert(
+        "Bitte eine gültige Portionszahl eingeben."
+      );
+
+      return;
+
+    }
+
+
+    /*
+      Der Nutzer gibt die Menge
+      für die aktuell gewählten
+      Portionen ein.
+
+      Sie wird auf die Grundmenge
+      des Rezepts zurückgerechnet.
+    */
+
+    const baseAmount =
+    enteredAmount *
+    selected.base /
+    p;
+
+
+    const key =
+    recipeExtraKey(
+      selected
+    );
+
+
+    if(
+      !recipeExtras[key]
+    ){
+
+      recipeExtras[key] =
+      [];
+
+    }
+
+
+    recipeExtras[key].push({
+
+      id:
+      Date.now(),
+
+      name:
+      ingredientName,
+
+      amount:
+      baseAmount,
+
+      unit:
+      unit
+
+    });
+
+
+    saveRecipeExtras();
+
+
+    extraIngredientName.value =
+    "";
+
+
+    extraIngredientAmount.value =
+    "";
+
+
+    extraIngredientUnit.value =
+    "g";
+
+
+    renderResult();
+
+  }
+);
+
+
+/* =====================================================
+   EIGENES GERICHT LÖSCHEN
+===================================================== */
+
+deleteRecipe.addEventListener(
+  "click",
+  () => {
+
+    const selected =
+    customRecipes.find(
+      recipe =>
+      recipe.name ===
+      dish.value
+    );
+
+
+    if(!selected){
+
+      return;
+
+    }
+
+
+    const confirmDelete =
+    confirm(
+      'Eigenes Gericht "' +
+      selected.name +
+      '" wirklich löschen?'
+    );
+
+
+    if(!confirmDelete){
+
+      return;
+
+    }
+
+
+    const extraKey =
+    recipeExtraKey(
+      selected
+    );
+
+
+    delete recipeExtras[
+      extraKey
+    ];
+
+
+    saveRecipeExtras();
+
+
+    customRecipes =
+    customRecipes.filter(
+      recipe =>
+      recipe.id !==
+      selected.id
+    );
+
+
+    saveCustomRecipes();
+
+
+    search.value =
+    "";
+
+
+    result.style.display =
+    "none";
+
+
+    deleteRecipe.style.display =
+    "none";
+
+
+    extraIngredientForm.style.display =
+    "none";
+
+
+    toggleExtraIngredient.textContent =
+    "+ Weitere Zutat hinzufügen";
+
+
+    fillDishSelect();
+
+  }
+);
+
+
+/* =====================================================
+   HAUPT-EVENTS
+===================================================== */
+
+category.addEventListener(
+  "change",
+  () => {
+
+    fillDishSelect();
+
+
+    result.style.display =
+    "none";
+
+
+    deleteRecipe.style.display =
+    "none";
+
+
+    extraIngredientForm.style.display =
+    "none";
+
+
+    toggleExtraIngredient.textContent =
+    "+ Weitere Zutat hinzufügen";
+
+
+    if(
+      search.value.trim()
+    ){
+
+      showSuggestions();
+
+    }
+
+  }
+);
+
+
+search.addEventListener(
+  "input",
+  showSuggestions
+);
+
+
+search.addEventListener(
+  "focus",
+  () => {
+
+    if(
+      search.value.trim()
+    ){
+
+      showSuggestions();
+
+    }
+
+  }
+);
+
+
+dish.addEventListener(
+  "change",
+  () => {
+
+    if(dish.value){
+
+      search.value =
+      dish.value;
+
+
+      extraIngredientForm.style.display =
+      "none";
+
+
+      toggleExtraIngredient.textContent =
+      "+ Weitere Zutat hinzufügen";
+
+
+      renderResult();
+
+    }else{
+
+      result.style.display =
+      "none";
+
+
+      deleteRecipe.style.display =
+      "none";
+
+    }
+
+  }
+);
+
+
+calculate.addEventListener(
+  "click",
+  renderResult
+);
+
+
+portions.addEventListener(
+  "keydown",
+  event => {
+
+    if(
+      event.key ===
+      "Enter"
+    ){
+
+      renderResult();
+
+    }
+
+  }
+);
+
+
+document.addEventListener(
+  "click",
+  event => {
+
+    if(
+      !document
+      .getElementById(
+        "searchField"
+      )
+      .contains(
+        event.target
+      )
+    ){
+
+      suggestions.style.display =
+      "none";
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   START
+===================================================== */
+
+fillDishSelect();
+
+createIngredientRow();
+createIngredientRow();
+createIngredientRow();
+
+</script>
 
 </body>
 </html>
