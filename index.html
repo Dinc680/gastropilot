@@ -1368,9 +1368,7 @@ function fillDishSelect(selectedName=""){
     option.value =
     recipe.name;
 
-    option.textContent =
-    recipe.name +
-    (recipe.custom ? " ★" : "");
+    option.textContent = recipe.name;
 
     dish.appendChild(option);
 
