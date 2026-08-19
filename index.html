@@ -328,6 +328,79 @@ td:last-child{
   vertical-align:middle;
 }
 
+/* Einkaufsliste */
+
+.shoppingAdd{
+  margin-top:24px;
+}
+
+.shoppingNotice{
+  display:none;
+  margin-top:14px;
+  padding:14px 16px;
+  border-radius:16px;
+  background:#e8f5f0;
+  color:var(--green);
+  font-size:17px;
+  font-weight:800;
+}
+
+.shoppingEmpty{
+  color:#777;
+  font-size:19px;
+  line-height:1.5;
+}
+
+.shoppingDishList{
+  margin-bottom:30px;
+}
+
+.shoppingDish{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:14px;
+  align-items:center;
+  padding:16px 0;
+  border-bottom:1px solid #e6e6e6;
+}
+
+.shoppingDishName{
+  font-size:19px;
+  font-weight:800;
+}
+
+.shoppingDishMeta{
+  color:#777;
+  margin-top:4px;
+  font-size:16px;
+}
+
+.removeShoppingDish{
+  width:42px;
+  height:42px;
+  min-height:0;
+  padding:0;
+  border-radius:50%;
+  background:#eee;
+  color:#666;
+  font-size:25px;
+}
+
+.shoppingTableWrap{
+  overflow-x:auto;
+}
+
+.shoppingActions{
+  margin-top:26px;
+}
+
+.shoppingCount{
+  color:#777;
+  font-size:18px;
+  font-weight:700;
+  margin:-25px 0 24px;
+}
+
 @media(max-width:600px){
 
   header{
@@ -394,6 +467,14 @@ td:last-child{
     font-size:15px;
     padding:8px;
     min-height:52px;
+  }
+
+  .shoppingDishName{
+    font-size:17px;
+  }
+
+  .shoppingDishMeta{
+    font-size:15px;
   }
 }
 </style>
@@ -488,6 +569,21 @@ td:last-child{
 
     <tbody id="ingredientRows"></tbody>
   </table>
+
+  <button
+    id="addToShoppingList"
+    type="button"
+    class="shoppingAdd"
+  >
+    🛒 Zur Einkaufsliste
+  </button>
+
+  <div
+    id="shoppingNotice"
+    class="shoppingNotice"
+  >
+    Zur Einkaufsliste hinzugefügt ✓
+  </div>
 
   <div class="extraIngredientBox">
 
@@ -648,6 +744,64 @@ berechnet werden wie die vorhandenen Gerichte.
 
 </section>
 
+
+<section class="card" id="shoppingCard">
+
+<h2>Einkaufsliste</h2>
+
+<div
+  id="shoppingCount"
+  class="shoppingCount"
+></div>
+
+<div
+  id="shoppingEmpty"
+  class="shoppingEmpty"
+>
+  Noch keine Gerichte in der Einkaufsliste.
+</div>
+
+<div
+  id="shoppingContent"
+  style="display:none;"
+>
+
+  <h3>Gerichte</h3>
+
+  <div
+    id="shoppingDishList"
+    class="shoppingDishList"
+  ></div>
+
+  <h3>Gesamte Zutaten</h3>
+
+  <div class="shoppingTableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Zutat</th>
+          <th>Menge</th>
+        </tr>
+      </thead>
+
+      <tbody id="shoppingIngredientRows"></tbody>
+    </table>
+  </div>
+
+  <div class="shoppingActions">
+    <button
+      id="clearShoppingList"
+      type="button"
+      class="danger"
+    >
+      Einkaufsliste leeren
+    </button>
+  </div>
+
+</div>
+
+</section>
+
 </main>
 
 <script>
@@ -656,9 +810,7 @@ berechnet werden wie die vorhandenen Gerichte.
    FESTE GERICHTE
 ===================================================== */
 
-const standardRecipes = [
-
-/* FLEISCH */
+const standardRecipes = [/* FLEISCH */
 
 {
 name:"Hähnchengeschnetzeltes in Rahmsoße",
@@ -1306,10 +1458,7 @@ ingredients:[
 ["Parmesan",0.25,"kg"]
 ]}
 
-];
-
-
-/* =====================================================
+];/* =====================================================
    EIGENE GERICHTE
 ===================================================== */
 
@@ -1393,6 +1542,45 @@ function allRecipes(){
     ...standardRecipes,
     ...customRecipes
   ];
+
+}
+
+
+/* =====================================================
+   EINKAUFSLISTE LADEN / SPEICHERN
+===================================================== */
+
+function loadShoppingList(){
+
+  try{
+
+    const stored =
+    localStorage.getItem(
+      "gastropilot_shopping_list"
+    );
+
+    return stored
+      ? JSON.parse(stored)
+      : [];
+
+  }catch(error){
+
+    return [];
+
+  }
+
+}
+
+let shoppingList =
+loadShoppingList();
+
+
+function saveShoppingList(){
+
+  localStorage.setItem(
+    "gastropilot_shopping_list",
+    JSON.stringify(shoppingList)
+  );
 
 }
 
@@ -1499,6 +1687,51 @@ document.getElementById(
   "saveExtraIngredient"
 );
 
+const addToShoppingList =
+document.getElementById(
+  "addToShoppingList"
+);
+
+const shoppingNotice =
+document.getElementById(
+  "shoppingNotice"
+);
+
+const shoppingCard =
+document.getElementById(
+  "shoppingCard"
+);
+
+const shoppingCount =
+document.getElementById(
+  "shoppingCount"
+);
+
+const shoppingEmpty =
+document.getElementById(
+  "shoppingEmpty"
+);
+
+const shoppingContent =
+document.getElementById(
+  "shoppingContent"
+);
+
+const shoppingDishList =
+document.getElementById(
+  "shoppingDishList"
+);
+
+const shoppingIngredientRows =
+document.getElementById(
+  "shoppingIngredientRows"
+);
+
+const clearShoppingList =
+document.getElementById(
+  "clearShoppingList"
+);
+
 
 /* =====================================================
    NORMALISIERUNG
@@ -1506,10 +1739,11 @@ document.getElementById(
 
 function normalize(text){
 
-  return text
+  return String(text)
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g,"");
+    .replace(/[\u0300-\u036f]/g,"")
+    .trim();
 
 }
 
@@ -2187,10 +2421,7 @@ function renderResult(){
     block:"start"
   });
 
-}
-
-
-/* =====================================================
+}/* =====================================================
    ZUTATENZEILEN EIGENES GERICHT
 ===================================================== */
 
@@ -2747,15 +2978,6 @@ saveExtraIngredient.addEventListener(
     }
 
 
-    /*
-      Der Nutzer gibt die Menge
-      für die aktuell gewählten
-      Portionen ein.
-
-      Sie wird auf die Grundmenge
-      des Rezepts zurückgerechnet.
-    */
-
     const baseAmount =
     enteredAmount *
     selected.base /
@@ -2902,10 +3124,603 @@ deleteRecipe.addEventListener(
     fillDishSelect();
 
   }
+);/* =====================================================
+   EINKAUFSLISTE – HILFSFUNKTIONEN
+===================================================== */
+
+function shoppingUnitGroup(unit){
+
+  if(
+    unit === "g" ||
+    unit === "kg"
+  ){
+    return "weight";
+  }
+
+  if(
+    unit === "ml" ||
+    unit === "l"
+  ){
+    return "volume";
+  }
+
+  if(unit === "Stk"){
+    return "piece";
+  }
+
+  return "other_" + unit;
+
+}
+
+
+function amountToShoppingBase(
+  amount,
+  unit
+){
+
+  if(unit === "kg"){
+    return amount * 1000;
+  }
+
+  if(unit === "l"){
+    return amount * 1000;
+  }
+
+  return amount;
+
+}
+
+
+function formatShoppingAmount(
+  amount,
+  group,
+  originalUnit=""
+){
+
+  if(group === "weight"){
+
+    if(amount >= 1000){
+
+      return (
+        amount / 1000
+      ).toLocaleString(
+        "de-DE",
+        {
+          maximumFractionDigits:2
+        }
+      ) + " kg";
+
+    }
+
+    return Math.round(amount) +
+    " g";
+
+  }
+
+
+  if(group === "volume"){
+
+    if(amount >= 1000){
+
+      return (
+        amount / 1000
+      ).toLocaleString(
+        "de-DE",
+        {
+          maximumFractionDigits:2
+        }
+      ) + " l";
+
+    }
+
+    return Math.round(amount) +
+    " ml";
+
+  }
+
+
+  if(group === "piece"){
+
+    const rounded =
+    Math.round(
+      amount * 10
+    ) / 10;
+
+    return (
+      Number.isInteger(rounded)
+      ? rounded.toFixed(0)
+      : rounded.toFixed(1)
+    ) +
+    " Stk";
+
+  }
+
+
+  return amount.toLocaleString(
+    "de-DE",
+    {
+      maximumFractionDigits:2
+    }
+  ) +
+  (
+    originalUnit
+    ? " " + originalUnit
+    : ""
+  );
+
+}
+
+
+function buildShoppingIngredients(){
+
+  const totals =
+  {};
+
+  shoppingList.forEach(
+    item => {
+
+      item.ingredients.forEach(
+        ingredient => {
+
+          const group =
+          shoppingUnitGroup(
+            ingredient.unit
+          );
+
+          const key =
+          normalize(
+            ingredient.name
+          ) +
+          "__" +
+          group;
+
+          const converted =
+          amountToShoppingBase(
+            ingredient.amount,
+            ingredient.unit
+          );
+
+
+          if(!totals[key]){
+
+            totals[key] = {
+              name:
+              ingredient.name,
+
+              amount:
+              0,
+
+              group:
+              group,
+
+              originalUnit:
+              ingredient.unit
+            };
+
+          }
+
+          totals[key].amount +=
+          converted;
+
+        }
+      );
+
+    }
+  );
+
+  return Object.values(
+    totals
+  ).sort(
+    (a,b) =>
+    a.name.localeCompare(
+      b.name,
+      "de"
+    )
+  );
+
+}
+
+
+/* =====================================================
+   EINKAUFSLISTE – ANZEIGE
+===================================================== */
+
+function renderShoppingList(){
+
+  const numberOfDishes =
+  shoppingList.length;
+
+  shoppingCount.textContent =
+  numberOfDishes === 0
+  ? ""
+  : numberOfDishes +
+    (
+      numberOfDishes === 1
+      ? " Gericht in der Liste"
+      : " Gerichte in der Liste"
+    );
+
+
+  if(
+    shoppingList.length === 0
+  ){
+
+    shoppingEmpty.style.display =
+    "block";
+
+    shoppingContent.style.display =
+    "none";
+
+    shoppingDishList.innerHTML =
+    "";
+
+    shoppingIngredientRows.innerHTML =
+    "";
+
+    return;
+
+  }
+
+
+  shoppingEmpty.style.display =
+  "none";
+
+  shoppingContent.style.display =
+  "block";
+
+  shoppingDishList.innerHTML =
+  "";
+
+
+  shoppingList.forEach(
+    item => {
+
+      const wrapper =
+      document.createElement(
+        "div"
+      );
+
+      wrapper.className =
+      "shoppingDish";
+
+
+      const text =
+      document.createElement(
+        "div"
+      );
+
+
+      const name =
+      document.createElement(
+        "div"
+      );
+
+      name.className =
+      "shoppingDishName";
+
+      name.textContent =
+      item.recipeName;
+
+
+      const meta =
+      document.createElement(
+        "div"
+      );
+
+      meta.className =
+      "shoppingDishMeta";
+
+      meta.textContent =
+      item.portions +
+      (
+        item.portions === 1
+        ? " Portion"
+        : " Portionen"
+      );
+
+
+      text.appendChild(
+        name
+      );
+
+      text.appendChild(
+        meta
+      );
+
+
+      const remove =
+      document.createElement(
+        "button"
+      );
+
+      remove.type =
+      "button";
+
+      remove.className =
+      "removeShoppingDish";
+
+      remove.textContent =
+      "×";
+
+      remove.setAttribute(
+        "aria-label",
+        item.recipeName +
+        " aus Einkaufsliste entfernen"
+      );
+
+
+      remove.addEventListener(
+        "click",
+        () => {
+
+          shoppingList =
+          shoppingList.filter(
+            listItem =>
+            listItem.id !==
+            item.id
+          );
+
+          saveShoppingList();
+
+          renderShoppingList();
+
+        }
+      );
+
+
+      wrapper.appendChild(
+        text
+      );
+
+      wrapper.appendChild(
+        remove
+      );
+
+      shoppingDishList.appendChild(
+        wrapper
+      );
+
+    }
+  );
+
+
+  shoppingIngredientRows.innerHTML =
+  "";
+
+
+  const totals =
+  buildShoppingIngredients();
+
+
+  totals.forEach(
+    ingredient => {
+
+      const row =
+      document.createElement(
+        "tr"
+      );
+
+      const nameCell =
+      document.createElement(
+        "td"
+      );
+
+      nameCell.textContent =
+      ingredient.name;
+
+
+      const amountCell =
+      document.createElement(
+        "td"
+      );
+
+      amountCell.className =
+      "amountCell";
+
+      amountCell.textContent =
+      formatShoppingAmount(
+        ingredient.amount,
+        ingredient.group,
+        ingredient.originalUnit
+      );
+
+
+      row.appendChild(
+        nameCell
+      );
+
+      row.appendChild(
+        amountCell
+      );
+
+      shoppingIngredientRows.appendChild(
+        row
+      );
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   ZUR EINKAUFSLISTE HINZUFÜGEN
+===================================================== */
+
+addToShoppingList.addEventListener(
+  "click",
+  () => {
+
+    const selected =
+    allRecipes().find(
+      recipe =>
+      recipe.name ===
+      dish.value
+    );
+
+
+    const p =
+    Number(
+      portions.value
+    );
+
+
+    if(!selected){
+
+      alert(
+        "Bitte zuerst ein Gericht auswählen."
+      );
+
+      return;
+
+    }
+
+
+    if(
+      !Number.isFinite(p)
+      ||
+      p < 1
+    ){
+
+      alert(
+        "Bitte eine gültige Portionszahl eingeben."
+      );
+
+      return;
+
+    }
+
+
+    const factor =
+    p /
+    selected.base;
+
+
+    const ingredients =
+    [];
+
+
+    selected.ingredients.forEach(
+      ([name,amount,unit]) => {
+
+        ingredients.push({
+          name:
+          name,
+
+          amount:
+          amount * factor,
+
+          unit:
+          unit
+        });
+
+      }
+    );
+
+
+    getRecipeExtras(
+      selected
+    ).forEach(
+      ingredient => {
+
+        ingredients.push({
+          name:
+          ingredient.name,
+
+          amount:
+          ingredient.amount * factor,
+
+          unit:
+          ingredient.unit
+        });
+
+      }
+    );
+
+
+    shoppingList.push({
+
+      id:
+      Date.now() +
+      "_" +
+      Math.random()
+      .toString(36)
+      .slice(2),
+
+      recipeName:
+      selected.name,
+
+      portions:
+      p,
+
+      ingredients:
+      ingredients
+
+    });
+
+
+    saveShoppingList();
+
+    renderShoppingList();
+
+
+    shoppingNotice.style.display =
+    "block";
+
+
+    setTimeout(
+      () => {
+
+        shoppingNotice.style.display =
+        "none";
+
+      },
+      2200
+    );
+
+  }
 );
 
 
 /* =====================================================
+   EINKAUFSLISTE LEEREN
+===================================================== */
+
+clearShoppingList.addEventListener(
+  "click",
+  () => {
+
+    if(
+      shoppingList.length === 0
+    ){
+
+      return;
+
+    }
+
+
+    const confirmed =
+    confirm(
+      "Einkaufsliste wirklich komplett leeren?"
+    );
+
+
+    if(!confirmed){
+
+      return;
+
+    }
+
+
+    shoppingList =
+    [];
+
+    saveShoppingList();
+
+    renderShoppingList();
+
+  }
+);/* =====================================================
    HAUPT-EVENTS
 ===================================================== */
 
@@ -2915,22 +3730,17 @@ category.addEventListener(
 
     fillDishSelect();
 
-
     result.style.display =
     "none";
-
 
     deleteRecipe.style.display =
     "none";
 
-
     extraIngredientForm.style.display =
     "none";
 
-
     toggleExtraIngredient.textContent =
     "+ Weitere Zutat hinzufügen";
-
 
     if(
       search.value.trim()
@@ -2975,14 +3785,11 @@ dish.addEventListener(
       search.value =
       dish.value;
 
-
       extraIngredientForm.style.display =
       "none";
 
-
       toggleExtraIngredient.textContent =
       "+ Weitere Zutat hinzufügen";
-
 
       renderResult();
 
@@ -2990,7 +3797,6 @@ dish.addEventListener(
 
       result.style.display =
       "none";
-
 
       deleteRecipe.style.display =
       "none";
@@ -3057,7 +3863,10 @@ createIngredientRow();
 createIngredientRow();
 createIngredientRow();
 
+renderShoppingList();
+
 </script>
 
 </body>
 </html>
+  
