@@ -401,6 +401,99 @@ td:last-child{
   margin:-25px 0 24px;
 }
 
+
+/* Preiskalkulation */
+.priceTableWrap{
+  overflow-x:auto;
+}
+
+.priceInput{
+  width:120px;
+  min-height:46px;
+  padding:8px 10px;
+  font-size:17px;
+  border:2px solid var(--border);
+  border-radius:14px;
+  text-align:right;
+}
+
+.priceUnitHint{
+  display:block;
+  margin-top:4px;
+  color:#777;
+  font-size:13px;
+  white-space:nowrap;
+}
+
+.costCell{
+  white-space:nowrap;
+  font-weight:800;
+}
+
+.calculationBox{
+  margin-top:28px;
+  padding:24px;
+  border-radius:24px;
+  background:#f6f8f7;
+  border:2px solid #e1e7e4;
+}
+
+.calculationBox h3{
+  margin:0 0 20px;
+  font-size:25px;
+}
+
+.calcGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px 22px;
+}
+
+.calcItem{
+  padding:12px 0;
+  border-bottom:1px solid #dde4e0;
+}
+
+.calcLabel{
+  color:#666;
+  font-size:16px;
+  font-weight:700;
+}
+
+.calcValue{
+  margin-top:4px;
+  font-size:24px;
+  font-weight:900;
+  color:var(--green);
+}
+
+.targetCostField{
+  margin-top:22px;
+}
+
+.targetCostField label{
+  font-size:18px;
+  margin-bottom:10px;
+}
+
+.targetCostField input{
+  max-width:180px;
+  min-height:56px;
+  font-size:19px;
+}
+
+.priceHelp{
+  margin-top:14px;
+  color:#666;
+  font-size:15px;
+  line-height:1.45;
+}
+
+@media(max-width:600px){
+  .calcGrid{grid-template-columns:1fr;}
+  .priceInput{width:105px;font-size:15px;}
+}
+
 @media(max-width:600px){
 
   header{
@@ -559,16 +652,55 @@ td:last-child{
     class="result-meta"
   ></div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Zutat</th>
-        <th>Menge</th>
-      </tr>
-    </thead>
+  <div class="priceTableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Zutat</th>
+          <th>Menge</th>
+          <th>Einkaufspreis</th>
+          <th>Kosten</th>
+        </tr>
+      </thead>
 
-    <tbody id="ingredientRows"></tbody>
-  </table>
+      <tbody id="ingredientRows"></tbody>
+    </table>
+  </div>
+
+  <div class="calculationBox" id="calculationBox">
+    <h3>Preiskalkulation</h3>
+
+    <div class="calcGrid">
+      <div class="calcItem">
+        <div class="calcLabel">Wareneinsatz gesamt</div>
+        <div class="calcValue" id="totalFoodCost">0,00 €</div>
+      </div>
+
+      <div class="calcItem">
+        <div class="calcLabel">Wareneinsatz pro Portion</div>
+        <div class="calcValue" id="foodCostPerPortion">0,00 €</div>
+      </div>
+
+      <div class="calcItem">
+        <div class="calcLabel">Kalkulierter Verkaufspreis / Portion</div>
+        <div class="calcValue" id="suggestedSellingPrice">0,00 €</div>
+      </div>
+
+      <div class="calcItem">
+        <div class="calcLabel">Rohertrag / Portion</div>
+        <div class="calcValue" id="grossProfitPerPortion">0,00 €</div>
+      </div>
+    </div>
+
+    <div class="targetCostField">
+      <label for="targetFoodCost">Ziel-Wareneinsatz in %</label>
+      <input id="targetFoodCost" type="number" min="1" max="100" step="0.1" value="30">
+    </div>
+
+    <div class="priceHelp">
+      Beispiel: Bei 30 % Ziel-Wareneinsatz wird der Verkaufspreis so berechnet, dass die Zutatenkosten 30 % des Verkaufspreises ausmachen. Personal-, Energie- und sonstige Betriebskosten sind darin noch nicht einzeln berücksichtigt.
+    </div>
+  </div>
 
   <button
     id="addToShoppingList"
@@ -1585,6 +1717,73 @@ function saveShoppingList(){
 }
 
 
+
+/* =====================================================
+   ZUTATENPREISE
+===================================================== */
+
+function loadIngredientPrices(){
+  try{
+    const stored = localStorage.getItem("gastropilot_ingredient_prices");
+    return stored ? JSON.parse(stored) : {};
+  }catch(error){
+    return {};
+  }
+}
+
+let ingredientPrices = loadIngredientPrices();
+
+function saveIngredientPrices(){
+  localStorage.setItem(
+    "gastropilot_ingredient_prices",
+    JSON.stringify(ingredientPrices)
+  );
+}
+
+function ingredientPriceKey(name){
+  return normalize(name);
+}
+
+function priceBaseUnit(unit){
+  if(unit === "kg" || unit === "g") return "kg";
+  if(unit === "l" || unit === "ml") return "l";
+  if(unit === "Stk") return "Stk";
+  return unit;
+}
+
+function amountInPriceBase(amount, unit){
+  if(unit === "g") return amount / 1000;
+  if(unit === "ml") return amount / 1000;
+  return amount;
+}
+
+function formatEuro(value){
+  return Number(value || 0).toLocaleString("de-DE", {
+    style:"currency",
+    currency:"EUR",
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+function getIngredientPrice(name){
+  const value = Number(ingredientPrices[ingredientPriceKey(name)]);
+  return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+function setIngredientPrice(name, value){
+  const key = ingredientPriceKey(name);
+  const number = Number(value);
+
+  if(Number.isFinite(number) && number >= 0){
+    ingredientPrices[key] = number;
+  }else{
+    delete ingredientPrices[key];
+  }
+
+  saveIngredientPrices();
+}
+
 /* =====================================================
    ELEMENTE
 ===================================================== */
@@ -1731,6 +1930,21 @@ const clearShoppingList =
 document.getElementById(
   "clearShoppingList"
 );
+
+const totalFoodCost =
+document.getElementById("totalFoodCost");
+
+const foodCostPerPortion =
+document.getElementById("foodCostPerPortion");
+
+const suggestedSellingPrice =
+document.getElementById("suggestedSellingPrice");
+
+const grossProfitPerPortion =
+document.getElementById("grossProfitPerPortion");
+
+const targetFoodCost =
+document.getElementById("targetFoodCost");
 
 
 /* =====================================================
@@ -2151,148 +2365,122 @@ function appendIngredientResult(
   extraId=null,
   recipe=null
 ){
+  const row = document.createElement("tr");
+  row.dataset.ingredientName = name;
+  row.dataset.amount = String(amount * factor);
+  row.dataset.unit = unit;
 
-  const row =
-  document.createElement(
-    "tr"
-  );
-
-  const nameCell =
-  document.createElement(
-    "td"
-  );
-
-  nameCell.textContent =
-  name;
-
+  const nameCell = document.createElement("td");
+  nameCell.textContent = name;
 
   if(extraId !== null){
-
-    const badge =
-    document.createElement(
-      "span"
-    );
-
-    badge.className =
-    "extraBadge";
-
-    badge.textContent =
-    "hinzugefügt";
-
-    nameCell.appendChild(
-      badge
-    );
-
+    const badge = document.createElement("span");
+    badge.className = "extraBadge";
+    badge.textContent = "hinzugefügt";
+    nameCell.appendChild(badge);
   }
 
+  const amountCell = document.createElement("td");
+  amountCell.className = "amountCell";
 
-  const amountCell =
-  document.createElement(
-    "td"
-  );
+  const amountText = document.createElement("span");
+  amountText.textContent = formatAmount(amount * factor, unit);
+  amountCell.appendChild(amountText);
 
-  amountCell.className =
-  "amountCell";
+  if(extraId !== null && recipe){
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "removeExtra";
+    removeButton.textContent = "×";
+    removeButton.setAttribute("aria-label", "Zutat entfernen");
 
+    removeButton.addEventListener("click", () => {
+      const key = recipeExtraKey(recipe);
 
-  const amountText =
-  document.createElement(
-    "span"
-  );
+      recipeExtras[key] = getRecipeExtras(recipe).filter(
+        ingredient => ingredient.id !== extraId
+      );
 
-  amountText.textContent =
-  formatAmount(
-    amount * factor,
-    unit
-  );
-
-  amountCell.appendChild(
-    amountText
-  );
-
-
-  if(
-    extraId !== null &&
-    recipe
-  ){
-
-    const removeButton =
-    document.createElement(
-      "button"
-    );
-
-    removeButton.type =
-    "button";
-
-    removeButton.className =
-    "removeExtra";
-
-    removeButton.textContent =
-    "×";
-
-    removeButton.setAttribute(
-      "aria-label",
-      "Zutat entfernen"
-    );
-
-
-    removeButton.addEventListener(
-      "click",
-      () => {
-
-        const key =
-        recipeExtraKey(
-          recipe
-        );
-
-        recipeExtras[key] =
-        getRecipeExtras(
-          recipe
-        ).filter(
-          ingredient =>
-          ingredient.id !==
-          extraId
-        );
-
-        if(
-          recipeExtras[key]
-          .length === 0
-        ){
-
-          delete recipeExtras[
-            key
-          ];
-
-        }
-
-        saveRecipeExtras();
-
-        renderResult();
-
+      if(recipeExtras[key].length === 0){
+        delete recipeExtras[key];
       }
-    );
 
-    amountCell.appendChild(
-      removeButton
-    );
+      saveRecipeExtras();
+      renderResult();
+    });
 
+    amountCell.appendChild(removeButton);
   }
 
+  const priceCell = document.createElement("td");
+  const priceInput = document.createElement("input");
+  priceInput.type = "number";
+  priceInput.min = "0";
+  priceInput.step = "0.01";
+  priceInput.inputMode = "decimal";
+  priceInput.className = "priceInput";
+  priceInput.placeholder = "0,00";
 
-  row.appendChild(
-    nameCell
-  );
+  const storedPrice = getIngredientPrice(name);
+  if(storedPrice > 0){
+    priceInput.value = String(storedPrice);
+  }
 
-  row.appendChild(
-    amountCell
-  );
+  const hint = document.createElement("span");
+  hint.className = "priceUnitHint";
+  hint.textContent = "€ / " + priceBaseUnit(unit);
 
-  ingredientRows.appendChild(
-    row
-  );
+  priceCell.appendChild(priceInput);
+  priceCell.appendChild(hint);
 
+  const costCell = document.createElement("td");
+  costCell.className = "costCell";
+  costCell.textContent = "0,00 €";
+  row._costCell = costCell;
+
+  priceInput.addEventListener("input", () => {
+    setIngredientPrice(name, priceInput.value);
+    updatePriceCalculation();
+  });
+
+  row.appendChild(nameCell);
+  row.appendChild(amountCell);
+  row.appendChild(priceCell);
+  row.appendChild(costCell);
+
+  ingredientRows.appendChild(row);
 }
 
+function updatePriceCalculation(){
+  const p = Number(portions.value);
+  let total = 0;
+
+  ingredientRows.querySelectorAll("tr").forEach(row => {
+    const name = row.dataset.ingredientName || "";
+    const amount = Number(row.dataset.amount || 0);
+    const unit = row.dataset.unit || "";
+    const price = getIngredientPrice(name);
+    const cost = amountInPriceBase(amount, unit) * price;
+
+    total += Number.isFinite(cost) ? cost : 0;
+
+    if(row._costCell){
+      row._costCell.textContent = formatEuro(cost);
+    }
+  });
+
+  const perPortion = Number.isFinite(p) && p > 0 ? total / p : 0;
+  const target = Number(targetFoodCost.value);
+  const selling = Number.isFinite(target) && target > 0
+    ? perPortion / (target / 100)
+    : 0;
+  const grossProfit = selling - perPortion;
+
+  totalFoodCost.textContent = formatEuro(total);
+  foodCostPerPortion.textContent = formatEuro(perPortion);
+  suggestedSellingPrice.textContent = formatEuro(selling);
+  grossProfitPerPortion.textContent = formatEuro(grossProfit);
+}
 
 /* =====================================================
    BERECHNUNG
@@ -2414,6 +2602,9 @@ function renderResult(){
   selected.custom
   ? "block"
   : "none";
+
+
+  updatePriceCalculation();
 
 
   result.scrollIntoView({
@@ -2988,3 +3179,890 @@ saveExtraIngredient.addEventListener(
     recipeExtraKey(
       selected
     );
+
+
+    if(
+      !recipeExtras[key]
+    ){
+
+      recipeExtras[key] =
+      [];
+
+    }
+
+
+    recipeExtras[key].push({
+
+      id:
+      Date.now(),
+
+      name:
+      ingredientName,
+
+      amount:
+      baseAmount,
+
+      unit:
+      unit
+
+    });
+
+
+    saveRecipeExtras();
+
+
+    extraIngredientName.value =
+    "";
+
+
+    extraIngredientAmount.value =
+    "";
+
+
+    extraIngredientUnit.value =
+    "g";
+
+
+    renderResult();
+
+  }
+);
+
+
+/* =====================================================
+   EIGENES GERICHT LÖSCHEN
+===================================================== */
+
+deleteRecipe.addEventListener(
+  "click",
+  () => {
+
+    const selected =
+    customRecipes.find(
+      recipe =>
+      recipe.name ===
+      dish.value
+    );
+
+
+    if(!selected){
+
+      return;
+
+    }
+
+
+    const confirmDelete =
+    confirm(
+      'Eigenes Gericht "' +
+      selected.name +
+      '" wirklich löschen?'
+    );
+
+
+    if(!confirmDelete){
+
+      return;
+
+    }
+
+
+    const extraKey =
+    recipeExtraKey(
+      selected
+    );
+
+
+    delete recipeExtras[
+      extraKey
+    ];
+
+
+    saveRecipeExtras();
+
+
+    customRecipes =
+    customRecipes.filter(
+      recipe =>
+      recipe.id !==
+      selected.id
+    );
+
+
+    saveCustomRecipes();
+
+
+    search.value =
+    "";
+
+
+    result.style.display =
+    "none";
+
+
+    deleteRecipe.style.display =
+    "none";
+
+
+    extraIngredientForm.style.display =
+    "none";
+
+
+    toggleExtraIngredient.textContent =
+    "+ Weitere Zutat hinzufügen";
+
+
+    fillDishSelect();
+
+  }
+);/* =====================================================
+   EINKAUFSLISTE – HILFSFUNKTIONEN
+===================================================== */
+
+function shoppingUnitGroup(unit){
+
+  if(
+    unit === "g" ||
+    unit === "kg"
+  ){
+    return "weight";
+  }
+
+  if(
+    unit === "ml" ||
+    unit === "l"
+  ){
+    return "volume";
+  }
+
+  if(unit === "Stk"){
+    return "piece";
+  }
+
+  return "other_" + unit;
+
+}
+
+
+function amountToShoppingBase(
+  amount,
+  unit
+){
+
+  if(unit === "kg"){
+    return amount * 1000;
+  }
+
+  if(unit === "l"){
+    return amount * 1000;
+  }
+
+  return amount;
+
+}
+
+
+function formatShoppingAmount(
+  amount,
+  group,
+  originalUnit=""
+){
+
+  if(group === "weight"){
+
+    if(amount >= 1000){
+
+      return (
+        amount / 1000
+      ).toLocaleString(
+        "de-DE",
+        {
+          maximumFractionDigits:2
+        }
+      ) + " kg";
+
+    }
+
+    return Math.round(amount) +
+    " g";
+
+  }
+
+
+  if(group === "volume"){
+
+    if(amount >= 1000){
+
+      return (
+        amount / 1000
+      ).toLocaleString(
+        "de-DE",
+        {
+          maximumFractionDigits:2
+        }
+      ) + " l";
+
+    }
+
+    return Math.round(amount) +
+    " ml";
+
+  }
+
+
+  if(group === "piece"){
+
+    const rounded =
+    Math.round(
+      amount * 10
+    ) / 10;
+
+    return (
+      Number.isInteger(rounded)
+      ? rounded.toFixed(0)
+      : rounded.toFixed(1)
+    ) +
+    " Stk";
+
+  }
+
+
+  return amount.toLocaleString(
+    "de-DE",
+    {
+      maximumFractionDigits:2
+    }
+  ) +
+  (
+    originalUnit
+    ? " " + originalUnit
+    : ""
+  );
+
+}
+
+
+function buildShoppingIngredients(){
+
+  const totals =
+  {};
+
+  shoppingList.forEach(
+    item => {
+
+      item.ingredients.forEach(
+        ingredient => {
+
+          const group =
+          shoppingUnitGroup(
+            ingredient.unit
+          );
+
+          const key =
+          normalize(
+            ingredient.name
+          ) +
+          "__" +
+          group;
+
+          const converted =
+          amountToShoppingBase(
+            ingredient.amount,
+            ingredient.unit
+          );
+
+
+          if(!totals[key]){
+
+            totals[key] = {
+              name:
+              ingredient.name,
+
+              amount:
+              0,
+
+              group:
+              group,
+
+              originalUnit:
+              ingredient.unit
+            };
+
+          }
+
+          totals[key].amount +=
+          converted;
+
+        }
+      );
+
+    }
+  );
+
+  return Object.values(
+    totals
+  ).sort(
+    (a,b) =>
+    a.name.localeCompare(
+      b.name,
+      "de"
+    )
+  );
+
+}
+
+
+/* =====================================================
+   EINKAUFSLISTE – ANZEIGE
+===================================================== */
+
+function renderShoppingList(){
+
+  const numberOfDishes =
+  shoppingList.length;
+
+  shoppingCount.textContent =
+  numberOfDishes === 0
+  ? ""
+  : numberOfDishes +
+    (
+      numberOfDishes === 1
+      ? " Gericht in der Liste"
+      : " Gerichte in der Liste"
+    );
+
+
+  if(
+    shoppingList.length === 0
+  ){
+
+    shoppingEmpty.style.display =
+    "block";
+
+    shoppingContent.style.display =
+    "none";
+
+    shoppingDishList.innerHTML =
+    "";
+
+    shoppingIngredientRows.innerHTML =
+    "";
+
+    return;
+
+  }
+
+
+  shoppingEmpty.style.display =
+  "none";
+
+  shoppingContent.style.display =
+  "block";
+
+  shoppingDishList.innerHTML =
+  "";
+
+
+  shoppingList.forEach(
+    item => {
+
+      const wrapper =
+      document.createElement(
+        "div"
+      );
+
+      wrapper.className =
+      "shoppingDish";
+
+
+      const text =
+      document.createElement(
+        "div"
+      );
+
+
+      const name =
+      document.createElement(
+        "div"
+      );
+
+      name.className =
+      "shoppingDishName";
+
+      name.textContent =
+      item.recipeName;
+
+
+      const meta =
+      document.createElement(
+        "div"
+      );
+
+      meta.className =
+      "shoppingDishMeta";
+
+      meta.textContent =
+      item.portions +
+      (
+        item.portions === 1
+        ? " Portion"
+        : " Portionen"
+      );
+
+
+      text.appendChild(
+        name
+      );
+
+      text.appendChild(
+        meta
+      );
+
+
+      const remove =
+      document.createElement(
+        "button"
+      );
+
+      remove.type =
+      "button";
+
+      remove.className =
+      "removeShoppingDish";
+
+      remove.textContent =
+      "×";
+
+      remove.setAttribute(
+        "aria-label",
+        item.recipeName +
+        " aus Einkaufsliste entfernen"
+      );
+
+
+      remove.addEventListener(
+        "click",
+        () => {
+
+          shoppingList =
+          shoppingList.filter(
+            listItem =>
+            listItem.id !==
+            item.id
+          );
+
+          saveShoppingList();
+
+          renderShoppingList();
+
+        }
+      );
+
+
+      wrapper.appendChild(
+        text
+      );
+
+      wrapper.appendChild(
+        remove
+      );
+
+      shoppingDishList.appendChild(
+        wrapper
+      );
+
+    }
+  );
+
+
+  shoppingIngredientRows.innerHTML =
+  "";
+
+
+  const totals =
+  buildShoppingIngredients();
+
+
+  totals.forEach(
+    ingredient => {
+
+      const row =
+      document.createElement(
+        "tr"
+      );
+
+      const nameCell =
+      document.createElement(
+        "td"
+      );
+
+      nameCell.textContent =
+      ingredient.name;
+
+
+      const amountCell =
+      document.createElement(
+        "td"
+      );
+
+      amountCell.className =
+      "amountCell";
+
+      amountCell.textContent =
+      formatShoppingAmount(
+        ingredient.amount,
+        ingredient.group,
+        ingredient.originalUnit
+      );
+
+
+      row.appendChild(
+        nameCell
+      );
+
+      row.appendChild(
+        amountCell
+      );
+
+      shoppingIngredientRows.appendChild(
+        row
+      );
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   ZUR EINKAUFSLISTE HINZUFÜGEN
+===================================================== */
+
+addToShoppingList.addEventListener(
+  "click",
+  () => {
+
+    const selected =
+    allRecipes().find(
+      recipe =>
+      recipe.name ===
+      dish.value
+    );
+
+
+    const p =
+    Number(
+      portions.value
+    );
+
+
+    if(!selected){
+
+      alert(
+        "Bitte zuerst ein Gericht auswählen."
+      );
+
+      return;
+
+    }
+
+
+    if(
+      !Number.isFinite(p)
+      ||
+      p < 1
+    ){
+
+      alert(
+        "Bitte eine gültige Portionszahl eingeben."
+      );
+
+      return;
+
+    }
+
+
+    const factor =
+    p /
+    selected.base;
+
+
+    const ingredients =
+    [];
+
+
+    selected.ingredients.forEach(
+      ([name,amount,unit]) => {
+
+        ingredients.push({
+          name:
+          name,
+
+          amount:
+          amount * factor,
+
+          unit:
+          unit
+        });
+
+      }
+    );
+
+
+    getRecipeExtras(
+      selected
+    ).forEach(
+      ingredient => {
+
+        ingredients.push({
+          name:
+          ingredient.name,
+
+          amount:
+          ingredient.amount * factor,
+
+          unit:
+          ingredient.unit
+        });
+
+      }
+    );
+
+
+    shoppingList.push({
+
+      id:
+      Date.now() +
+      "_" +
+      Math.random()
+      .toString(36)
+      .slice(2),
+
+      recipeName:
+      selected.name,
+
+      portions:
+      p,
+
+      ingredients:
+      ingredients
+
+    });
+
+
+    saveShoppingList();
+
+    renderShoppingList();
+
+
+    shoppingNotice.style.display =
+    "block";
+
+
+    setTimeout(
+      () => {
+
+        shoppingNotice.style.display =
+        "none";
+
+      },
+      2200
+    );
+
+  }
+);
+
+
+/* =====================================================
+   EINKAUFSLISTE LEEREN
+===================================================== */
+
+clearShoppingList.addEventListener(
+  "click",
+  () => {
+
+    if(
+      shoppingList.length === 0
+    ){
+
+      return;
+
+    }
+
+
+    const confirmed =
+    confirm(
+      "Einkaufsliste wirklich komplett leeren?"
+    );
+
+
+    if(!confirmed){
+
+      return;
+
+    }
+
+
+    shoppingList =
+    [];
+
+    saveShoppingList();
+
+    renderShoppingList();
+
+  }
+);targetFoodCost.addEventListener(
+  "input",
+  updatePriceCalculation
+);
+
+/* =====================================================
+   HAUPT-EVENTS
+===================================================== */
+
+category.addEventListener(
+  "change",
+  () => {
+
+    fillDishSelect();
+
+    result.style.display =
+    "none";
+
+    deleteRecipe.style.display =
+    "none";
+
+    extraIngredientForm.style.display =
+    "none";
+
+    toggleExtraIngredient.textContent =
+    "+ Weitere Zutat hinzufügen";
+
+    if(
+      search.value.trim()
+    ){
+
+      showSuggestions();
+
+    }
+
+  }
+);
+
+
+search.addEventListener(
+  "input",
+  showSuggestions
+);
+
+
+search.addEventListener(
+  "focus",
+  () => {
+
+    if(
+      search.value.trim()
+    ){
+
+      showSuggestions();
+
+    }
+
+  }
+);
+
+
+dish.addEventListener(
+  "change",
+  () => {
+
+    if(dish.value){
+
+      search.value =
+      dish.value;
+
+      extraIngredientForm.style.display =
+      "none";
+
+      toggleExtraIngredient.textContent =
+      "+ Weitere Zutat hinzufügen";
+
+      renderResult();
+
+    }else{
+
+      result.style.display =
+      "none";
+
+      deleteRecipe.style.display =
+      "none";
+
+    }
+
+  }
+);
+
+
+calculate.addEventListener(
+  "click",
+  renderResult
+);
+
+
+portions.addEventListener(
+  "keydown",
+  event => {
+
+    if(
+      event.key ===
+      "Enter"
+    ){
+
+      renderResult();
+
+    }
+
+  }
+);
+
+
+document.addEventListener(
+  "click",
+  event => {
+
+    if(
+      !document
+      .getElementById(
+        "searchField"
+      )
+      .contains(
+        event.target
+      )
+    ){
+
+      suggestions.style.display =
+      "none";
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   START
+===================================================== */
+
+fillDishSelect();
+
+createIngredientRow();
+createIngredientRow();
+createIngredientRow();
+
+renderShoppingList();
+
+</script>
+
+</body>
+</html>
+  
