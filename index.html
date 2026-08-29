@@ -402,6 +402,95 @@ td:last-child{
 }
 
 
+
+/* Wochenplaner */
+.weekPlannerIntro{
+  color:#666;
+  font-size:19px;
+  line-height:1.5;
+  margin:-25px 0 28px;
+}
+
+.weekDay{
+  margin-bottom:24px;
+  padding:22px;
+  border:2px solid #e3e8e5;
+  border-radius:24px;
+  background:#fafcfb;
+}
+
+.weekDay h3{
+  margin:0 0 16px;
+  font-size:24px;
+}
+
+.weekMealRow{
+  display:grid;
+  grid-template-columns:1fr 150px;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.weekMealRow select,
+.weekMealRow input{
+  min-height:58px;
+  padding:12px 15px;
+  font-size:17px;
+  border-radius:18px;
+  border-width:2px;
+}
+
+.weekSummary{
+  margin-top:28px;
+  padding:24px;
+  border-radius:24px;
+  background:#f6f8f7;
+  border:2px solid #e1e7e4;
+}
+
+.weekSummaryGrid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px 22px;
+}
+
+.weekSummaryItem{
+  padding:12px 0;
+  border-bottom:1px solid #dde4e0;
+}
+
+.weekSummaryLabel{
+  color:#666;
+  font-size:16px;
+  font-weight:700;
+}
+
+.weekSummaryValue{
+  margin-top:4px;
+  font-size:24px;
+  font-weight:900;
+  color:var(--green);
+}
+
+.weekShoppingWrap{
+  margin-top:30px;
+  overflow-x:auto;
+}
+
+.weekActions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:24px;
+}
+
+@media(max-width:600px){
+  .weekMealRow{grid-template-columns:1fr 95px;gap:7px;}
+  .weekMealRow select,.weekMealRow input{font-size:15px;padding:8px;min-height:52px;}
+  .weekSummaryGrid{grid-template-columns:1fr;}
+  .weekActions{grid-template-columns:1fr;}
+}
+
 /* Preiskalkulation */
 .priceTableWrap{
   overflow-x:auto;
@@ -876,6 +965,62 @@ berechnet werden wie die vorhandenen Gerichte.
 
 </section>
 
+
+
+<section class="card" id="weekPlannerCard">
+
+<h2>Wochenplaner</h2>
+
+<p class="weekPlannerIntro">
+Plane Montag bis Freitag deine Gerichte und Portionszahlen. GastroPilot berechnet daraus automatisch den gesamten Wareneinsatz und fasst alle Zutaten für die Woche zusammen.
+</p>
+
+<div id="weekPlannerRows"></div>
+
+<div class="weekSummary">
+  <h3>Wochenkalkulation</h3>
+  <div class="weekSummaryGrid">
+    <div class="weekSummaryItem">
+      <div class="weekSummaryLabel">Geplante Portionen gesamt</div>
+      <div class="weekSummaryValue" id="weekTotalPortions">0</div>
+    </div>
+    <div class="weekSummaryItem">
+      <div class="weekSummaryLabel">Wareneinsatz Woche</div>
+      <div class="weekSummaryValue" id="weekTotalFoodCost">0,00 €</div>
+    </div>
+    <div class="weekSummaryItem">
+      <div class="weekSummaryLabel">Ø Wareneinsatz / Portion</div>
+      <div class="weekSummaryValue" id="weekFoodCostPerPortion">0,00 €</div>
+    </div>
+    <div class="weekSummaryItem">
+      <div class="weekSummaryLabel">Kalk. Umsatz bei Ziel-Wareneinsatz</div>
+      <div class="weekSummaryValue" id="weekSuggestedRevenue">0,00 €</div>
+    </div>
+  </div>
+</div>
+
+<div class="weekShoppingWrap">
+  <h3>Einkauf für die Woche</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Zutat</th>
+        <th>Menge</th>
+        <th>Kosten</th>
+      </tr>
+    </thead>
+    <tbody id="weekIngredientRows"></tbody>
+  </table>
+</div>
+
+<div class="weekActions">
+  <button id="weekToShoppingList" type="button">🛒 Woche zur Einkaufsliste</button>
+  <button id="clearWeekPlanner" type="button" class="secondary">Wochenplan leeren</button>
+</div>
+
+<div id="weekPlannerNotice" class="shoppingNotice">Wochenplan zur Einkaufsliste hinzugefügt ✓</div>
+
+</section>
 
 <section class="card" id="shoppingCard">
 
@@ -1784,9 +1929,64 @@ function setIngredientPrice(name, value){
   saveIngredientPrices();
 }
 
+
+/* =====================================================
+   WOCHENPLANER LADEN / SPEICHERN
+===================================================== */
+
+const weekDays = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
+const weekSlotsPerDay = 3;
+
+function emptyWeekPlan(){
+  const plan = {};
+  weekDays.forEach(day => {
+    plan[day] = Array.from({length:weekSlotsPerDay}, () => ({recipeName:"", portions:10}));
+  });
+  return plan;
+}
+
+function loadWeekPlan(){
+  try{
+    const stored = localStorage.getItem("gastropilot_week_plan");
+    if(!stored) return emptyWeekPlan();
+    const parsed = JSON.parse(stored);
+    const clean = emptyWeekPlan();
+    weekDays.forEach(day => {
+      if(Array.isArray(parsed[day])){
+        parsed[day].slice(0,weekSlotsPerDay).forEach((item,index) => {
+          clean[day][index] = {
+            recipeName:String(item.recipeName || ""),
+            portions:Number(item.portions) > 0 ? Number(item.portions) : 10
+          };
+        });
+      }
+    });
+    return clean;
+  }catch(error){
+    return emptyWeekPlan();
+  }
+}
+
+let weekPlan = loadWeekPlan();
+
+function saveWeekPlan(){
+  localStorage.setItem("gastropilot_week_plan", JSON.stringify(weekPlan));
+}
+
 /* =====================================================
    ELEMENTE
 ===================================================== */
+
+
+const weekPlannerRows = document.getElementById("weekPlannerRows");
+const weekTotalPortions = document.getElementById("weekTotalPortions");
+const weekTotalFoodCost = document.getElementById("weekTotalFoodCost");
+const weekFoodCostPerPortion = document.getElementById("weekFoodCostPerPortion");
+const weekSuggestedRevenue = document.getElementById("weekSuggestedRevenue");
+const weekIngredientRows = document.getElementById("weekIngredientRows");
+const weekToShoppingList = document.getElementById("weekToShoppingList");
+const clearWeekPlanner = document.getElementById("clearWeekPlanner");
+const weekPlannerNotice = document.getElementById("weekPlannerNotice");
 
 const search =
 document.getElementById("search");
@@ -2441,6 +2641,7 @@ function appendIngredientResult(
   priceInput.addEventListener("input", () => {
     setIngredientPrice(name, priceInput.value);
     updatePriceCalculation();
+    updateWeekCalculation();
   });
 
   row.appendChild(nameCell);
@@ -3007,6 +3208,7 @@ saveRecipe.addEventListener(
 
 
     renderResult();
+    renderWeekPlanner();
 
 
     saveSuccess.style.display =
@@ -3313,9 +3515,199 @@ deleteRecipe.addEventListener(
 
 
     fillDishSelect();
+    renderWeekPlanner();
 
   }
-);/* =====================================================
+);
+/* =====================================================
+   WOCHENPLANER
+===================================================== */
+
+function recipeIngredientsForPortions(recipe, portionsCount){
+  const factor = portionsCount / recipe.base;
+  const result = recipe.ingredients.map(([name,amount,unit]) => ({
+    name, amount:amount * factor, unit
+  }));
+
+  getRecipeExtras(recipe).forEach(extra => {
+    result.push({
+      name:extra.name,
+      amount:extra.amount * factor,
+      unit:extra.unit
+    });
+  });
+
+  return result;
+}
+
+function recipeFoodCost(recipe, portionsCount){
+  return recipeIngredientsForPortions(recipe, portionsCount).reduce((sum,ingredient) => {
+    return sum + amountInPriceBase(ingredient.amount, ingredient.unit) * getIngredientPrice(ingredient.name);
+  },0);
+}
+
+function renderWeekPlanner(){
+  if(!weekPlannerRows) return;
+  const recipes = allRecipes().slice().sort((a,b) => a.name.localeCompare(b.name,"de"));
+  weekPlannerRows.innerHTML = "";
+
+  weekDays.forEach(day => {
+    const box = document.createElement("div");
+    box.className = "weekDay";
+    const title = document.createElement("h3");
+    title.textContent = day;
+    box.appendChild(title);
+
+    weekPlan[day].forEach((slot,index) => {
+      const row = document.createElement("div");
+      row.className = "weekMealRow";
+
+      const select = document.createElement("select");
+      const empty = document.createElement("option");
+      empty.value = "";
+      empty.textContent = "Gericht " + (index + 1) + " auswählen";
+      select.appendChild(empty);
+
+      recipes.forEach(recipe => {
+        const option = document.createElement("option");
+        option.value = recipe.name;
+        option.textContent = recipe.name;
+        select.appendChild(option);
+      });
+      select.value = slot.recipeName;
+
+      const portionsInput = document.createElement("input");
+      portionsInput.type = "number";
+      portionsInput.min = "1";
+      portionsInput.max = "10000";
+      portionsInput.inputMode = "numeric";
+      portionsInput.value = slot.portions || 10;
+      portionsInput.setAttribute("aria-label", day + " Gericht " + (index + 1) + " Portionen");
+
+      select.addEventListener("change", () => {
+        weekPlan[day][index].recipeName = select.value;
+        saveWeekPlan();
+        updateWeekCalculation();
+      });
+
+      portionsInput.addEventListener("input", () => {
+        const value = Number(portionsInput.value);
+        weekPlan[day][index].portions = Number.isFinite(value) && value > 0 ? value : 0;
+        saveWeekPlan();
+        updateWeekCalculation();
+      });
+
+      row.appendChild(select);
+      row.appendChild(portionsInput);
+      box.appendChild(row);
+    });
+
+    weekPlannerRows.appendChild(box);
+  });
+
+  updateWeekCalculation();
+}
+
+function buildWeekTotals(){
+  const totals = {};
+  let totalPortions = 0;
+  let totalCost = 0;
+
+  weekDays.forEach(day => {
+    weekPlan[day].forEach(slot => {
+      if(!slot.recipeName || !slot.portions || slot.portions < 1) return;
+      const recipe = allRecipes().find(item => item.name === slot.recipeName);
+      if(!recipe) return;
+
+      totalPortions += Number(slot.portions);
+      totalCost += recipeFoodCost(recipe, Number(slot.portions));
+
+      recipeIngredientsForPortions(recipe, Number(slot.portions)).forEach(ingredient => {
+        const group = shoppingUnitGroup(ingredient.unit);
+        const key = normalize(ingredient.name) + "__" + group;
+        if(!totals[key]){
+          totals[key] = {
+            name:ingredient.name, amount:0, group, originalUnit:ingredient.unit, cost:0
+          };
+        }
+        totals[key].amount += amountToShoppingBase(ingredient.amount, ingredient.unit);
+        totals[key].cost += amountInPriceBase(ingredient.amount, ingredient.unit) * getIngredientPrice(ingredient.name);
+      });
+    });
+  });
+
+  return {totals,totalPortions,totalCost};
+}
+
+function updateWeekCalculation(){
+  if(!weekIngredientRows) return;
+  const {totals,totalPortions,totalCost} = buildWeekTotals();
+  const target = Number(targetFoodCost.value);
+  const revenue = Number.isFinite(target) && target > 0 ? totalCost / (target / 100) : 0;
+
+  weekTotalPortions.textContent = totalPortions.toLocaleString("de-DE");
+  weekTotalFoodCost.textContent = formatEuro(totalCost);
+  weekFoodCostPerPortion.textContent = formatEuro(totalPortions > 0 ? totalCost / totalPortions : 0);
+  weekSuggestedRevenue.textContent = formatEuro(revenue);
+
+  weekIngredientRows.innerHTML = "";
+  const items = Object.values(totals).sort((a,b) => a.name.localeCompare(b.name,"de"));
+
+  if(items.length === 0){
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 3;
+    cell.textContent = "Noch keine Gerichte im Wochenplan.";
+    cell.style.color = "#777";
+    row.appendChild(cell);
+    weekIngredientRows.appendChild(row);
+    return;
+  }
+
+  items.forEach(item => {
+    const row = document.createElement("tr");
+    const nameCell = document.createElement("td");
+    const amountCell = document.createElement("td");
+    const costCell = document.createElement("td");
+    nameCell.textContent = item.name;
+    amountCell.textContent = formatShoppingAmount(item.amount,item.group,item.originalUnit);
+    costCell.textContent = formatEuro(item.cost);
+    row.appendChild(nameCell);
+    row.appendChild(amountCell);
+    row.appendChild(costCell);
+    weekIngredientRows.appendChild(row);
+  });
+}
+
+function addWeekToShoppingList(){
+  let added = 0;
+  weekDays.forEach(day => {
+    weekPlan[day].forEach(slot => {
+      if(!slot.recipeName || !slot.portions || slot.portions < 1) return;
+      const recipe = allRecipes().find(item => item.name === slot.recipeName);
+      if(!recipe) return;
+      shoppingList.push({
+        id:Date.now() + "_" + Math.random().toString(16).slice(2),
+        name:recipe.name,
+        portions:Number(slot.portions),
+        ingredients:recipeIngredientsForPortions(recipe, Number(slot.portions))
+      });
+      added += 1;
+    });
+  });
+
+  if(added === 0){
+    alert("Bitte zuerst mindestens ein Gericht im Wochenplan auswählen.");
+    return;
+  }
+
+  saveShoppingList();
+  renderShoppingList();
+  weekPlannerNotice.style.display = "block";
+  setTimeout(() => { weekPlannerNotice.style.display = "none"; }, 1800);
+}
+
+/* =====================================================
    EINKAUFSLISTE – HILFSFUNKTIONEN
 ===================================================== */
 
@@ -4049,6 +4441,19 @@ document.addEventListener(
 );
 
 
+
+
+weekToShoppingList.addEventListener("click", addWeekToShoppingList);
+
+clearWeekPlanner.addEventListener("click", () => {
+  if(!confirm("Wochenplan wirklich leeren?")) return;
+  weekPlan = emptyWeekPlan();
+  saveWeekPlan();
+  renderWeekPlanner();
+});
+
+targetFoodCost.addEventListener("input", updateWeekCalculation);
+
 /* =====================================================
    START
 ===================================================== */
@@ -4060,9 +4465,9 @@ createIngredientRow();
 createIngredientRow();
 
 renderShoppingList();
+renderWeekPlanner();
 
 </script>
 
 </body>
 </html>
-  
