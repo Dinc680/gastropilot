@@ -427,9 +427,16 @@ td:last-child{
 
 .weekMealRow{
   display:grid;
-  grid-template-columns:1fr 150px;
+  grid-template-columns:150px 1fr 130px;
   gap:12px;
   margin-bottom:12px;
+  align-items:center;
+}
+
+.weekMealLabel{
+  font-size:16px;
+  font-weight:800;
+  color:var(--green);
 }
 
 .weekMealRow select,
@@ -486,7 +493,8 @@ td:last-child{
 }
 
 @media(max-width:600px){
-  .weekMealRow{grid-template-columns:1fr 95px;gap:7px;}
+  .weekMealRow{grid-template-columns:1fr 92px;gap:7px;}
+  .weekMealLabel{grid-column:1 / -1;font-size:15px;margin-top:4px;}
   .weekMealRow select,.weekMealRow input{font-size:15px;padding:8px;min-height:52px;}
   .weekSummaryGrid{grid-template-columns:1fr;}
   .weekActions{grid-template-columns:1fr;}
@@ -1074,36 +1082,14 @@ berechnet werden wie die vorhandenen Gerichte.
 <h2>Wochenplaner</h2>
 
 <p class="weekPlannerIntro">
-Plane Montag bis Freitag deine Gerichte und Portionszahlen. GastroPilot berechnet daraus automatisch den gesamten Wareneinsatz und fasst alle Zutaten für die Woche zusammen.
+Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jeden Platz legst du die Portionszahl separat fest.
 </p>
 
 <div id="weekPlannerRows"></div>
 
-<div class="weekSummary">
-  <h3>Wochenkalkulation</h3>
-  <div class="weekSummaryGrid">
-    <div class="weekSummaryItem">
-      <div class="weekSummaryLabel">Geplante Portionen gesamt</div>
-      <div class="weekSummaryValue" id="weekTotalPortions">0</div>
-    </div>
-    <div class="weekSummaryItem">
-      <div class="weekSummaryLabel">Wareneinsatz Woche</div>
-      <div class="weekSummaryValue" id="weekTotalFoodCost">0,00 €</div>
-    </div>
-    <div class="weekSummaryItem">
-      <div class="weekSummaryLabel">Ø Wareneinsatz / Portion</div>
-      <div class="weekSummaryValue" id="weekFoodCostPerPortion">0,00 €</div>
-    </div>
-    <div class="weekSummaryItem">
-      <div class="weekSummaryLabel">Kalk. Umsatz bei Ziel-Wareneinsatz</div>
-      <div class="weekSummaryValue" id="weekSuggestedRevenue">0,00 €</div>
-    </div>
-  </div>
-</div>
-
 <div class="weekShoppingWrap">
-  <h3>Einkauf für die Woche</h3>
-  <p class="shoppingHint">Klicke bei „Nach Zutaten“ auf eine Zutat, um genau zu sehen, für welche Gerichte und Tage sie benötigt wird.</p>
+  <h3>Einkauf für diese Woche</h3>
+  <p class="shoppingHint">Die Liste wird direkt aus deinem Wochenplan berechnet. Klicke auf eine Zutat, um Tag, Menüplatz, Gericht und Teilmenge zu kontrollieren.</p>
   <div class="shoppingViewToggle" id="weekShoppingViewToggle">
     <button type="button" class="secondary active" data-view="ingredients">Nach Zutaten</button>
     <button type="button" class="secondary" data-view="dishes">Nach Gerichten</button>
@@ -1112,11 +1098,11 @@ Plane Montag bis Freitag deine Gerichte und Portionszahlen. GastroPilot berechne
 </div>
 
 <div class="weekActions">
-  <button id="weekToShoppingList" type="button">🛒 Woche zur Einkaufsliste</button>
+  <button id="weekToShoppingList" type="button">🛒 Einkaufsliste für diese Woche erstellen</button>
   <button id="clearWeekPlanner" type="button" class="secondary">Wochenplan leeren</button>
 </div>
 
-<div id="weekPlannerNotice" class="shoppingNotice">Wochenplan zur Einkaufsliste hinzugefügt ✓</div>
+<div id="weekPlannerNotice" class="shoppingNotice">Einkaufsliste für diese Woche wurde erstellt ✓</div>
 
 </section>
 
@@ -2026,12 +2012,23 @@ function setIngredientPrice(name, value){
 ===================================================== */
 
 const weekDays = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
-const weekSlotsPerDay = 3;
+const weekSlotTypes = [
+  {key:"soup", label:"Suppe"},
+  {key:"main1", label:"Hauptgericht 1"},
+  {key:"main2", label:"Hauptgericht 2"},
+  {key:"main3", label:"Hauptgericht 3"},
+  {key:"dessert", label:"Dessert"}
+];
+const weekSlotsPerDay = weekSlotTypes.length;
 
 function emptyWeekPlan(){
   const plan = {};
   weekDays.forEach(day => {
-    plan[day] = Array.from({length:weekSlotsPerDay}, () => ({recipeName:"", portions:10}));
+    plan[day] = weekSlotTypes.map(slot => ({
+      slotKey:slot.key,
+      recipeName:"",
+      portions:10
+    }));
   });
   return plan;
 }
@@ -2046,6 +2043,7 @@ function loadWeekPlan(){
       if(Array.isArray(parsed[day])){
         parsed[day].slice(0,weekSlotsPerDay).forEach((item,index) => {
           clean[day][index] = {
+            slotKey:weekSlotTypes[index].key,
             recipeName:String(item.recipeName || ""),
             portions:Number(item.portions) > 0 ? Number(item.portions) : 10
           };
@@ -2070,10 +2068,6 @@ function saveWeekPlan(){
 
 
 const weekPlannerRows = document.getElementById("weekPlannerRows");
-const weekTotalPortions = document.getElementById("weekTotalPortions");
-const weekTotalFoodCost = document.getElementById("weekTotalFoodCost");
-const weekFoodCostPerPortion = document.getElementById("weekFoodCostPerPortion");
-const weekSuggestedRevenue = document.getElementById("weekSuggestedRevenue");
 const weekIngredientRows = document.getElementById("weekIngredientRows");
 const weekToShoppingList = document.getElementById("weekToShoppingList");
 const clearWeekPlanner = document.getElementById("clearWeekPlanner");
@@ -3650,7 +3644,7 @@ function renderWeekPlanner(){
     if(!Array.isArray(weekPlan[day])){
       weekPlan[day] = Array.from(
         {length:weekSlotsPerDay},
-        () => ({recipeName:"", portions:10})
+        (_,index) => ({slotKey:weekSlotTypes[index].key, recipeName:"", portions:10})
       );
     }
     const box = document.createElement("div");
@@ -3663,10 +3657,15 @@ function renderWeekPlanner(){
       const row = document.createElement("div");
       row.className = "weekMealRow";
 
+      const slotType = weekSlotTypes[index];
+      const label = document.createElement("div");
+      label.className = "weekMealLabel";
+      label.textContent = slotType.label;
+
       const select = document.createElement("select");
       const empty = document.createElement("option");
       empty.value = "";
-      empty.textContent = "Gericht " + (index + 1) + " auswählen";
+      empty.textContent = slotType.label + " auswählen";
       select.appendChild(empty);
 
       recipes.forEach(recipe => {
@@ -3698,6 +3697,7 @@ function renderWeekPlanner(){
         updateWeekCalculation();
       });
 
+      row.appendChild(label);
       row.appendChild(select);
       row.appendChild(portionsInput);
       box.appendChild(row);
@@ -3743,6 +3743,7 @@ function collectWeekEntries(){
       entries.push({
         day,
         slot:index+1,
+        slotLabel:weekSlotTypes[index].label,
         recipe,
         recipeName:recipe.name,
         portions:Number(slot.portions),
@@ -3771,6 +3772,7 @@ function buildTotalsWithSources(entries){
       totals[key].cost+=cost;
       totals[key].sources.push({
         day:entry.day||"",
+        slotLabel:entry.slotLabel||"",
         recipeName:entry.recipeName||entry.name||"Gericht",
         portions:entry.portions,
         amount:converted,
@@ -3826,7 +3828,7 @@ function createIngredientGroups(container, totals, showCosts=false){
         row.className="ingredientSourceRow";
         const left=document.createElement("div");
         const dish=document.createElement("strong");
-        dish.textContent=(source.day ? source.day+" – " : "")+source.recipeName;
+        dish.textContent=(source.day ? source.day+" · " : "")+(source.slotLabel ? source.slotLabel+" – " : "")+source.recipeName;
         const meta=document.createElement("div");
         meta.className="ingredientSourceMeta";
         meta.textContent=source.portions+" Portion"+(source.portions===1?"":"en");
@@ -3851,7 +3853,7 @@ function createDishBreakdown(container, entries, showCosts=false){
   entries.forEach(entry => {
     const box=document.createElement("div"); box.className="dishBreakdown";
     const title=document.createElement("h4");
-    title.textContent=(entry.day ? entry.day+" – " : "")+(entry.recipeName||entry.name||"Gericht");
+    title.textContent=(entry.day ? entry.day+" · " : "")+(entry.slotLabel ? entry.slotLabel+" – " : "")+(entry.recipeName||entry.name||"Gericht");
     const meta=document.createElement("div"); meta.className="dishBreakdownMeta";
     const cost=showCosts && entry.recipe ? recipeFoodCost(entry.recipe,entry.portions) : 0;
     meta.textContent=entry.portions+" Portion"+(entry.portions===1?"":"en")+(showCosts?" · Wareneinsatz "+formatEuro(cost):"");
@@ -3888,24 +3890,17 @@ function setToggleState(toggleId, view){
 
 function updateWeekCalculation(){
   if(!weekIngredientRows) return;
-  const {totals,totalPortions,totalCost,entries}=buildWeekTotals();
-  const target=Number(targetFoodCost ? targetFoodCost.value : 30);
-  const revenue=Number.isFinite(target)&&target>0 ? totalCost/(target/100) : 0;
-
-  weekTotalPortions.textContent=totalPortions.toLocaleString("de-DE");
-  weekTotalFoodCost.textContent=formatEuro(totalCost);
-  weekFoodCostPerPortion.textContent=formatEuro(totalPortions>0 ? totalCost/totalPortions : 0);
-  weekSuggestedRevenue.textContent=formatEuro(revenue);
+  const {totals,entries}=buildWeekTotals();
 
   setToggleState("weekShoppingViewToggle",weekShoppingView);
-  if(weekShoppingView==="dishes") createDishBreakdown(weekIngredientRows,entries,true);
-  else createIngredientGroups(weekIngredientRows,totals,true);
+  if(weekShoppingView==="dishes") createDishBreakdown(weekIngredientRows,entries,false);
+  else createIngredientGroups(weekIngredientRows,totals,false);
 }
 
 function addWeekToShoppingList(){
   let added = 0;
   weekDays.forEach(day => {
-    weekPlan[day].forEach(slot => {
+    weekPlan[day].forEach((slot,index) => {
       if(!slot.recipeName || !slot.portions || slot.portions < 1) return;
       const recipe = allRecipes().find(item => item.name === slot.recipeName);
       if(!recipe) return;
@@ -3914,6 +3909,7 @@ function addWeekToShoppingList(){
         name:recipe.name,
         recipeName:recipe.name,
         day:day,
+        slotLabel:weekSlotTypes[index].label,
         portions:Number(slot.portions),
         ingredients:recipeIngredientsForPortions(recipe, Number(slot.portions))
       });
@@ -4136,6 +4132,7 @@ function buildShoppingIngredients(){
 function normalShoppingEntries(){
   return shoppingList.map(item => ({
     day:item.day||"",
+    slotLabel:item.slotLabel||"",
     recipeName:item.recipeName||item.name||"Gericht",
     name:item.recipeName||item.name||"Gericht",
     portions:Number(item.portions)||0,
@@ -4164,7 +4161,7 @@ function renderShoppingList(){
     const text=document.createElement("div");
     const name=document.createElement("div"); name.className="shoppingDishName";
     const displayName=item.recipeName||item.name||"Gericht";
-    name.textContent=(item.day ? item.day+" – " : "")+displayName;
+    name.textContent=(item.day ? item.day+" · " : "")+(item.slotLabel ? item.slotLabel+" – " : "")+displayName;
     const meta=document.createElement("div"); meta.className="shoppingDishMeta";
     meta.textContent=item.portions+(item.portions===1?" Portion":" Portionen");
     text.appendChild(name); text.appendChild(meta);
@@ -4556,10 +4553,6 @@ try{
       saveWeekPlan();
       renderWeekPlanner();
     });
-  }
-
-  if(targetFoodCost){
-    targetFoodCost.addEventListener("input", updateWeekCalculation);
   }
 
   renderWeekPlanner();
