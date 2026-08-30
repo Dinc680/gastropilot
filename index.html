@@ -881,6 +881,237 @@ td:last-child{
   .recipeImportText{min-height:240px;font-size:16px}
 }
 
+
+
+/* =====================================================
+   KOMPAKTE APP-OBERFLÄCHE
+===================================================== */
+
+.compactDashboard{
+  margin-bottom:26px;
+}
+
+.dashboardHero{
+  background:linear-gradient(135deg,var(--green),#1c7561);
+  color:white;
+  border-radius:30px;
+  padding:28px;
+  margin-bottom:18px;
+}
+
+.dashboardHero h2{
+  color:white;
+  font-size:32px;
+  margin:0 0 8px;
+}
+
+.dashboardHero p{
+  margin:0;
+  font-size:17px;
+  line-height:1.45;
+  opacity:.92;
+}
+
+.dashboardStats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:20px;
+}
+
+.dashboardStat{
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:18px;
+  padding:14px 10px;
+  text-align:center;
+}
+
+.dashboardStat strong{
+  display:block;
+  font-size:24px;
+  line-height:1.1;
+}
+
+.dashboardStat span{
+  display:block;
+  margin-top:4px;
+  font-size:12px;
+  opacity:.9;
+}
+
+.dashboardActions{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+
+.dashboardAction{
+  min-height:88px;
+  padding:17px;
+  border-radius:22px;
+  background:white;
+  color:var(--green);
+  border:2px solid #dce7e3;
+  text-align:left;
+  font-size:18px;
+  box-shadow:0 4px 14px rgba(0,0,0,.05);
+}
+
+.dashboardAction span{
+  display:block;
+  color:#777;
+  font-size:13px;
+  font-weight:600;
+  margin-top:5px;
+}
+
+.appPanel{
+  padding:0 !important;
+  overflow:visible;
+}
+
+.appPanel > summary{
+  list-style:none;
+  cursor:pointer;
+  padding:27px 30px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  color:var(--green);
+  font-size:29px;
+  font-weight:850;
+  user-select:none;
+}
+
+.appPanel > summary::-webkit-details-marker{display:none}
+
+.appPanel > summary::after{
+  content:"＋";
+  flex:0 0 auto;
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#edf5f2;
+  font-size:24px;
+}
+
+.appPanel[open] > summary::after{content:"−"}
+
+.appPanel[open] > summary{
+  border-bottom:1px solid #edf0ef;
+}
+
+.appPanelBody{
+  padding:28px 30px 34px;
+}
+
+.appPanelBody > .sectionText,
+.appPanelBody > .weekPlannerIntro{
+  margin-top:0;
+}
+
+.compactBlock{
+  border:2px solid #e5e9e7;
+  border-radius:20px;
+  margin:18px 0;
+  overflow:hidden;
+  background:#fff;
+}
+
+.compactBlock > summary{
+  list-style:none;
+  cursor:pointer;
+  padding:17px 18px;
+  font-size:18px;
+  font-weight:800;
+  color:var(--green);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.compactBlock > summary::-webkit-details-marker{display:none}
+.compactBlock > summary::after{content:"▾";color:#777}
+.compactBlock[open] > summary::after{content:"▴"}
+.compactBlock[open] > summary{border-bottom:1px solid #e8e8e8}
+.compactBlockBody{padding:16px}
+
+/* Wochenplan: immer nur die Tagesdetails öffnen, die man braucht */
+.weekDay{
+  padding:0 !important;
+  overflow:hidden;
+}
+
+details.weekDay > summary.weekDaySummary{
+  list-style:none;
+  cursor:pointer;
+  margin:0;
+  padding:18px 20px;
+  color:var(--green);
+  font-size:21px;
+  font-weight:850;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+details.weekDay > summary.weekDaySummary::-webkit-details-marker{display:none}
+.weekDaySummaryMeta{
+  font-size:13px;
+  color:#777;
+  font-weight:700;
+  white-space:nowrap;
+}
+
+details.weekDay[open] > summary.weekDaySummary{
+  border-bottom:1px solid #e8e8e8;
+  margin-bottom:8px;
+}
+
+details.weekDay .weekMealRow{
+  margin-left:14px;
+  margin-right:14px;
+}
+
+/* Ergebnis und Listen auf Mobilgeräten deutlich dichter */
+.result table th,
+.result table td{
+  padding-top:10px;
+  padding-bottom:10px;
+}
+
+.shoppingGroup,
+.weekShoppingWrap{
+  border-radius:18px;
+}
+
+@media(max-width:600px){
+  .compactDashboard{margin-bottom:18px}
+  .dashboardHero{border-radius:24px;padding:22px 20px}
+  .dashboardHero h2{font-size:27px}
+  .dashboardStats{gap:7px}
+  .dashboardStat{padding:11px 5px;border-radius:15px}
+  .dashboardStat strong{font-size:20px}
+  .dashboardStat span{font-size:11px}
+  .dashboardActions{gap:8px}
+  .dashboardAction{min-height:78px;padding:13px;font-size:16px;border-radius:18px}
+  .dashboardAction span{font-size:12px}
+  .appPanel > summary{padding:22px 20px;font-size:24px}
+  .appPanelBody{padding:22px 18px 28px}
+  .appPanel > summary::after{width:34px;height:34px;font-size:21px}
+  .compactBlock{border-radius:17px}
+  details.weekDay > summary.weekDaySummary{padding:16px;font-size:19px}
+  details.weekDay .weekMealRow{margin-left:10px;margin-right:10px}
+  .field{margin-bottom:22px}
+  label{margin-bottom:10px}
+}
+
 </style>
 </head>
 
@@ -893,9 +1124,26 @@ td:last-child{
 
 <main>
 
-<section class="card">
+<section class="compactDashboard" id="compactDashboard">
+  <div class="dashboardHero">
+    <h2>GastroPilot</h2>
+    <p>Deine Küche kompakt im Blick. Öffne nur den Bereich, den du gerade brauchst.</p>
+    <div class="dashboardStats">
+      <div class="dashboardStat"><strong id="dashRecipeCount">–</strong><span>Gerichte</span></div>
+      <div class="dashboardStat"><strong id="dashWeekCount">–</strong><span>im Wochenplan</span></div>
+      <div class="dashboardStat"><strong id="dashShoppingCount">–</strong><span>Einkaufsgerichte</span></div>
+    </div>
+  </div>
+  <div class="dashboardActions">
+    <button type="button" class="dashboardAction" data-target="panelCalculator">🍽 Mengenrechner<span>Gericht wählen & berechnen</span></button>
+    <button type="button" class="dashboardAction" data-target="panelCustom">➕ Gericht anlegen<span>Rezept einfügen oder erfassen</span></button>
+    <button type="button" class="dashboardAction" data-target="weekPlannerCard">📅 Wochenplan<span>Montag bis Freitag planen</span></button>
+    <button type="button" class="dashboardAction" data-target="shoppingCard">🛒 Einkauf<span>Gesamtmengen & Herkunft</span></button>
+  </div>
+</section>
 
-<h2>Mengenrechner</h2>
+
+<details class="card appPanel" id="panelCalculator" open><summary>Mengenrechner</summary><div class="appPanelBody">
 
 <div class="field" id="searchField">
   <label for="search">Gericht suchen</label>
@@ -964,6 +1212,9 @@ td:last-child{
     id="resultMeta"
     class="result-meta"
   ></div>
+  <details class="compactBlock" open>
+    <summary>Zutaten & Mengen</summary>
+    <div class="compactBlockBody">
 
   <div class="priceTableWrap">
     <table>
@@ -984,8 +1235,13 @@ td:last-child{
     <button id="resetRecipeAmounts" type="button" class="secondary">Standardmengen dieses Gerichts wiederherstellen</button>
     <div class="amountHelp">Die Mengen sind direkt editierbar. Eine Änderung wird für dieses Gericht gespeichert und bei anderen Portionszahlen automatisch hoch- oder heruntergerechnet.</div>
   </div>
+    </div>
+  </details>
 
-  <div class="calculationBox" id="calculationBox">
+  <details class="compactBlock">
+    <summary>Preiskalkulation</summary>
+    <div class="compactBlockBody">
+      <div class="calculationBox" id="calculationBox">
     <h3>Preiskalkulation</h3>
 
     <div class="calcGrid">
@@ -1019,6 +1275,8 @@ td:last-child{
       Beispiel: Bei 30 % Ziel-Wareneinsatz wird der Verkaufspreis so berechnet, dass die Zutatenkosten 30 % des Verkaufspreises ausmachen. Personal-, Energie- und sonstige Betriebskosten sind darin noch nicht einzeln berücksichtigt.
     </div>
   </div>
+    </div>
+  </details>
 
   <button
     id="addToShoppingList"
@@ -1097,12 +1355,10 @@ td:last-child{
 
 </div>
 
-</section>
+</div></details>
 
 
-<section class="card">
-
-<h2>Eigenes Gericht</h2>
+<details class="card appPanel" id="panelCustom"><summary>Gericht anlegen</summary><div class="appPanelBody">
 
 <p class="sectionText">
 Du kannst eigene Gerichte anlegen. Sie werden anschließend
@@ -1110,8 +1366,11 @@ automatisch in GastroPilot gespeichert und können genauso
 berechnet werden wie die vorhandenen Gerichte.
 </p>
 
-<div class="recipeImportBox">
-  <h3>Rezept einfügen</h3>
+<details class="compactBlock" open>
+  <summary>Rezept per Copy & Paste einfügen</summary>
+  <div class="compactBlockBody">
+  <div class="recipeImportBox">
+  <h3 style="display:none;">Rezept einfügen</h3>
   <p>Rezept aus Word, E-Mail, Webseite oder Speiseplan hier einfügen. GastroPilot erkennt Gericht, Portionen, Zutaten, Mengen und Kategorie und trägt alles unten zur Kontrolle ein.</p>
 
   <textarea
@@ -1133,6 +1392,8 @@ Chili con Carne – 10 Portionen
 
   <div id="recipeImportStatus" class="recipeImportStatus"></div>
 </div>
+  </div>
+</details>
 
 <button
   id="toggleCustom"
@@ -1218,13 +1479,11 @@ Chili con Carne – 10 Portionen
 
 </div>
 
-</section>
+</div></details>
 
 
 
-<section class="card" id="weekPlannerCard">
-
-<h2>Wochenplaner</h2>
+<details class="card appPanel" id="weekPlannerCard"><summary>Wochenplaner</summary><div class="appPanelBody">
 
 <p class="weekPlannerIntro">
 Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jeden Platz legst du die Portionszahl separat fest.
@@ -1249,11 +1508,9 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 
 <div id="weekPlannerNotice" class="shoppingNotice">Einkaufsliste für diese Woche wurde erstellt ✓</div>
 
-</section>
+</div></details>
 
-<section class="card" id="shoppingCard">
-
-<h2>Einkaufsliste</h2>
+<details class="card appPanel" id="shoppingCard"><summary>Einkaufsliste</summary><div class="appPanelBody">
 
 <div
   id="shoppingCount"
@@ -1299,7 +1556,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 
 </div>
 
-</section>
+</div></details>
 
 </main>
 
@@ -4182,10 +4439,23 @@ function renderWeekPlanner(){
         (_,index) => ({slotKey:weekSlotTypes[index].key, recipeName:"", portions:10})
       );
     }
-    const box = document.createElement("div");
+    const box = document.createElement("details");
     box.className = "weekDay";
-    const title = document.createElement("h3");
-    title.textContent = day;
+    box.open = day === "Montag";
+
+    const title = document.createElement("summary");
+    title.className = "weekDaySummary";
+
+    const dayName = document.createElement("span");
+    dayName.textContent = day;
+
+    const filledCount = weekPlan[day].filter(item => item && item.recipeName).length;
+    const dayMeta = document.createElement("span");
+    dayMeta.className = "weekDaySummaryMeta";
+    dayMeta.textContent = filledCount + "/" + weekSlotsPerDay + " belegt";
+
+    title.appendChild(dayName);
+    title.appendChild(dayMeta);
     box.appendChild(title);
 
     weekPlan[day].forEach((slot,index) => {
@@ -5105,6 +5375,60 @@ try{
       '<div class="shoppingEmpty">Der Wochenplan konnte nicht geladen werden. Bitte Seite neu laden.</div>';
   }
 }
+
+
+
+/* =====================================================
+   KOMPAKTE NAVIGATION / DASHBOARD
+===================================================== */
+
+function updateCompactDashboard(){
+  try{
+    const recipeEl = document.getElementById("dashRecipeCount");
+    const weekEl = document.getElementById("dashWeekCount");
+    const shoppingEl = document.getElementById("dashShoppingCount");
+
+    if(recipeEl && typeof allRecipes === "function"){
+      recipeEl.textContent = allRecipes().length;
+    }
+
+    if(weekEl && typeof weekPlan !== "undefined" && typeof weekDays !== "undefined"){
+      let filled = 0;
+      weekDays.forEach(day => {
+        const entries = Array.isArray(weekPlan[day]) ? weekPlan[day] : [];
+        filled += entries.filter(item => item && item.recipeName).length;
+      });
+      weekEl.textContent = filled;
+    }
+
+    if(shoppingEl && typeof shoppingList !== "undefined"){
+      shoppingEl.textContent = Array.isArray(shoppingList) ? shoppingList.length : 0;
+    }
+  }catch(error){
+    console.warn("Dashboard konnte nicht aktualisiert werden", error);
+  }
+}
+
+function openCompactPanel(targetId){
+  const panel = document.getElementById(targetId);
+  if(!panel) return;
+  if(panel.tagName.toLowerCase() === "details") panel.open = true;
+  panel.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+document.querySelectorAll(".dashboardAction").forEach(button => {
+  button.addEventListener("click", () => openCompactPanel(button.dataset.target));
+});
+
+document.addEventListener("change", () => {
+  window.setTimeout(updateCompactDashboard, 0);
+});
+
+document.addEventListener("click", () => {
+  window.setTimeout(updateCompactDashboard, 50);
+});
+
+window.setTimeout(updateCompactDashboard, 150);
 
 </script>
 
