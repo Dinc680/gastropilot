@@ -256,6 +256,71 @@ td:last-child{
   border:3px solid var(--green);
 }
 
+
+/* Rezept per Copy & Paste erkennen */
+.recipeImportBox{
+  margin:0 0 28px;
+  padding:24px;
+  border:2px solid #dfe7e4;
+  border-radius:24px;
+  background:#f7faf9;
+}
+
+.recipeImportBox h3{
+  margin:0 0 10px;
+  font-size:26px;
+}
+
+.recipeImportBox p{
+  margin:0 0 16px;
+  color:#666;
+  font-size:17px;
+  line-height:1.5;
+}
+
+.recipeImportText{
+  width:100%;
+  min-height:210px;
+  resize:vertical;
+  font:inherit;
+  font-size:18px;
+  line-height:1.45;
+  padding:18px 20px;
+  border:3px solid var(--border);
+  border-radius:22px;
+  background:white;
+  color:#111;
+  outline:none;
+}
+
+.recipeImportText:focus{border-color:var(--blue)}
+
+.recipeImportActions{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:12px;
+  margin-top:14px;
+}
+
+.recipeImportClear{
+  width:auto;
+  min-width:90px;
+  background:white;
+  color:#666;
+  border:2px solid #bbb;
+}
+
+.recipeImportStatus{
+  display:none;
+  margin-top:14px;
+  padding:13px 15px;
+  border-radius:14px;
+  background:#e8f5f0;
+  color:var(--green);
+  font-size:16px;
+  font-weight:700;
+}
+
 .saveRecipe{margin-top:28px}
 
 .success{
@@ -809,6 +874,13 @@ td:last-child{
     font-size:15px;
   }
 }
+
+@media(max-width:600px){
+  .recipeImportActions{grid-template-columns:1fr}
+  .recipeImportClear{width:100%}
+  .recipeImportText{min-height:240px;font-size:16px}
+}
+
 </style>
 </head>
 
@@ -1037,6 +1109,30 @@ Du kannst eigene Gerichte anlegen. Sie werden anschließend
 automatisch in GastroPilot gespeichert und können genauso
 berechnet werden wie die vorhandenen Gerichte.
 </p>
+
+<div class="recipeImportBox">
+  <h3>Rezept einfügen</h3>
+  <p>Rezept aus Word, E-Mail, Webseite oder Speiseplan hier einfügen. GastroPilot erkennt Gericht, Portionen, Zutaten, Mengen und Kategorie und trägt alles unten zur Kontrolle ein.</p>
+
+  <textarea
+    id="recipeImportText"
+    class="recipeImportText"
+    placeholder="Beispiel:
+Chili con Carne – 10 Portionen
+1,4 kg Rinderhackfleisch
+1 kg Kidneybohnen
+600 g Mais
+1,5 kg Tomaten
+400 g Zwiebeln"
+  ></textarea>
+
+  <div class="recipeImportActions">
+    <button id="analyzeRecipeText" type="button">✨ Rezept automatisch erkennen</button>
+    <button id="clearRecipeImport" type="button" class="recipeImportClear">Leeren</button>
+  </div>
+
+  <div id="recipeImportStatus" class="recipeImportStatus"></div>
+</div>
 
 <button
   id="toggleCustom"
@@ -2307,6 +2403,18 @@ document.getElementById("deleteRecipe");
 const toggleCustom =
 document.getElementById("toggleCustom");
 
+const recipeImportText =
+document.getElementById("recipeImportText");
+
+const analyzeRecipeText =
+document.getElementById("analyzeRecipeText");
+
+const clearRecipeImport =
+document.getElementById("clearRecipeImport");
+
+const recipeImportStatus =
+document.getElementById("recipeImportStatus");
+
 const customForm =
 document.getElementById("customForm");
 
@@ -3311,6 +3419,197 @@ function createIngredientRow(){
 
 }
 
+
+/* =====================================================
+   REZEPT PER COPY & PASTE ERKENNEN
+===================================================== */
+
+function parseGermanNumber(value){
+  const cleaned = String(value || "")
+    .trim()
+    .replace(/\s/g, "")
+    .replace(/\.(?=\d{3}(?:\D|$))/g, "")
+    .replace(",", ".");
+  const number = Number(cleaned);
+  return Number.isFinite(number) ? number : null;
+}
+
+function normalizeImportedUnit(rawUnit, amount){
+  const u = normalize(rawUnit).replace(/\./g, "");
+
+  if(["kg","kilogramm","kilogram"].includes(u)) return {amount,unit:"kg"};
+  if(["g","gr","gramm","gram"].includes(u)) return {amount,unit:"g"};
+  if(["l","liter","ltr"].includes(u)) return {amount,unit:"l"};
+  if(["ml","milliliter"].includes(u)) return {amount,unit:"ml"};
+  if(["cl","zentiliter"].includes(u)) return {amount:amount*10,unit:"ml"};
+  if(["dl","deziliter"].includes(u)) return {amount:amount*100,unit:"ml"};
+  if(["el","essloffel","essloeffel"].includes(u)) return {amount:amount*15,unit:"ml"};
+  if(["tl","teeloffel","teeloeffel"].includes(u)) return {amount:amount*5,unit:"ml"};
+  if(["stk","stuck","stueck","st","x"].includes(u)) return {amount,unit:"Stk"};
+  return null;
+}
+
+function cleanImportedIngredientName(name){
+  return String(name || "")
+    .replace(/^[\-–—•*·]+\s*/, "")
+    .replace(/[;,]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseIngredientLine(line){
+  let text = String(line || "").trim();
+  text = text.replace(/^[\-–—•*·]+\s*/, "");
+  if(!text) return null;
+
+  const number = "(\\d+(?:[.,]\\d+)?)";
+  const unit = "(kg|kilogramm|g|gr\\.?|gramm|l|liter|ltr\\.?|ml|milliliter|cl|dl|EL|TL|Stk\\.?|Stück|Stueck|St\\.?)";
+
+  let match = text.match(new RegExp("^" + number + "\\s*" + unit + "\\s+(.+)$", "i"));
+  if(match){
+    const amount = parseGermanNumber(match[1]);
+    const converted = normalizeImportedUnit(match[2], amount);
+    const name = cleanImportedIngredientName(match[3]);
+    if(converted && name) return {name, amount:converted.amount, unit:converted.unit};
+  }
+
+  match = text.match(new RegExp("^(.+?)\\s+" + number + "\\s*" + unit + "$", "i"));
+  if(match){
+    const amount = parseGermanNumber(match[2]);
+    const converted = normalizeImportedUnit(match[3], amount);
+    const name = cleanImportedIngredientName(match[1]);
+    if(converted && name) return {name, amount:converted.amount, unit:converted.unit};
+  }
+
+  // Stückangaben ohne ausgeschriebene Einheit, z. B. "6 Eier" oder "2 Zitronen"
+  match = text.match(/^(\d+(?:[.,]\d+)?)\s+([A-Za-zÄÖÜäöüß][^:;]*)$/);
+  if(match){
+    const amount = parseGermanNumber(match[1]);
+    const name = cleanImportedIngredientName(match[2]);
+    const likelyPiece = /ei(er)?|zitrone|limette|apfel|äpfel|birne|banane|zwiebel|knoblauchzehe|tomate|paprika|gurke|kartoffel|brötchen|broetchen|blatt|scheibe/i.test(name);
+    if(likelyPiece) return {name, amount, unit:"Stk"};
+  }
+
+  return null;
+}
+
+function inferRecipeCategory(name, ingredients){
+  const text = normalize(
+    String(name || "") + " " + ingredients.map(item => item.name).join(" ")
+  );
+
+  if(/dessert|pudding|mousse|creme|tiramisu|joghurt|quark|kompott|kuchen|kuchen|eis|obstsalat|milchreis|gries|grieß/.test(text)) return "Dessert";
+  if(/suppe|eintopf|consomme|consommé|cremesuppe|brühe|bruehe/.test(text)) return "Suppe";
+  if(/spaghetti|penne|nudel|pasta|tagliatelle|rigatoni|fusilli|tortellini|lasagne|macaroni|gnocchi/.test(text)) return "Pasta";
+  if(/lachs|seelachs|kabeljau|zander|fisch|matjes|forelle|thunfisch|garnel|scampi|dorade/.test(text)) return "Fisch";
+  if(/rind|schwein|hähn|haehn|pute|kalb|lamm|hackfleisch|speck|schinken|wurst|schnitzel|fleisch|ente|gans/.test(text)) return "Fleisch";
+  if(/vegan/.test(text)) return "Vegan";
+  return "Vegetarisch";
+}
+
+function detectRecipePortions(lines, fullText){
+  const patterns = [
+    /(?:für|fuer)\s*(\d+)\s*(?:portionen?|personen?)/i,
+    /(\d+)\s*(?:portionen?|personen?)/i,
+    /(?:ergibt|menge)\s*:?\s*(\d+)/i
+  ];
+
+  for(const pattern of patterns){
+    const match = String(fullText).match(pattern);
+    if(match){
+      const value = Number(match[1]);
+      if(Number.isFinite(value) && value > 0) return value;
+    }
+  }
+  return 10;
+}
+
+function detectRecipeName(lines){
+  for(const raw of lines){
+    const line = raw.trim();
+    if(!line) continue;
+    if(parseIngredientLine(line)) continue;
+    if(/^(zutaten|zubereitung|anleitung|portionen?|für\s+\d+|fuer\s+\d+)\s*:?/i.test(line)) continue;
+
+    let candidate = line
+      .replace(/\s*[\-–—|]\s*(?:für|fuer)?\s*\d+\s*(?:portionen?|personen?).*$/i, "")
+      .replace(/\s*\(\s*(?:für|fuer)?\s*\d+\s*(?:portionen?|personen?)\s*\)\s*$/i, "")
+      .trim();
+
+    if(candidate && candidate.length <= 100) return candidate;
+  }
+  return "Importiertes Gericht";
+}
+
+function fillCustomIngredientsFromImport(ingredients){
+  customIngredients.innerHTML = "";
+
+  ingredients.forEach(item => {
+    createIngredientRow();
+    const row = customIngredients.lastElementChild;
+    row.querySelector(".ingredientName").value = item.name;
+    row.querySelector(".ingredientAmount").value = item.amount;
+    row.querySelector(".ingredientUnit").value = item.unit;
+  });
+
+  if(ingredients.length === 0) createIngredientRow();
+}
+
+function analyzeImportedRecipe(){
+  const raw = recipeImportText.value.trim();
+  if(!raw){
+    alert("Bitte zuerst ein Rezept oder eine Zutatenliste einfügen.");
+    return;
+  }
+
+  const lines = raw
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const ingredients = [];
+  lines.forEach(line => {
+    const parsed = parseIngredientLine(line);
+    if(parsed && parsed.amount !== null && parsed.amount >= 0){
+      ingredients.push(parsed);
+    }
+  });
+
+  if(ingredients.length === 0){
+    alert("Ich konnte noch keine Zutaten mit Mengen erkennen. Am besten stehen sie zeilenweise wie „1,5 kg Kartoffeln“ oder „500 g Hackfleisch“.");
+    return;
+  }
+
+  const detectedName = detectRecipeName(lines);
+  const detectedPortions = detectRecipePortions(lines, raw);
+  const detectedCategory = inferRecipeCategory(detectedName, ingredients);
+
+  customName.value = detectedName;
+  customBase.value = detectedPortions;
+  customCategory.value = detectedCategory;
+  fillCustomIngredientsFromImport(ingredients);
+
+  customForm.style.display = "block";
+  toggleCustom.textContent = "Formular schließen";
+
+  recipeImportStatus.style.display = "block";
+  recipeImportStatus.textContent =
+    ingredients.length +
+    (ingredients.length === 1 ? " Zutat erkannt" : " Zutaten erkannt") +
+    " · Kategorie: " + detectedCategory +
+    " · Basis: " + detectedPortions + " Portionen. Bitte kurz prüfen und dann speichern.";
+
+  customForm.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+analyzeRecipeText.addEventListener("click", analyzeImportedRecipe);
+
+clearRecipeImport.addEventListener("click", () => {
+  recipeImportText.value = "";
+  recipeImportStatus.style.display = "none";
+  recipeImportStatus.textContent = "";
+  recipeImportText.focus();
+});
 
 /* =====================================================
    FORMULAR ÖFFNEN
