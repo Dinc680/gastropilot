@@ -688,6 +688,46 @@ td:last-child{
   line-height:1.45;
 }
 
+.editableAmount{
+  width:110px;
+  min-height:48px;
+  padding:8px 10px;
+  font-size:16px;
+  border:2px solid var(--border);
+  border-radius:14px;
+  text-align:right;
+}
+
+.amountEditWrap{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:7px;
+  white-space:nowrap;
+}
+
+.amountUnitLabel{
+  font-size:15px;
+  font-weight:700;
+  color:#555;
+}
+
+.recipeAmountActions{
+  margin:18px 0 4px;
+}
+
+.recipeAmountActions button{
+  font-size:16px;
+  padding:12px 16px;
+}
+
+.amountHelp{
+  margin:10px 0 0;
+  color:#666;
+  font-size:14px;
+  line-height:1.4;
+}
+
 @media(max-width:600px){
   .calcGrid{grid-template-columns:1fr;}
   .priceInput{width:105px;font-size:15px;}
@@ -808,6 +848,8 @@ td:last-child{
     <option value="Vegetarisch">Vegetarisch</option>
     <option value="Vegan">Vegan</option>
     <option value="Pasta">Pasta</option>
+    <option value="Suppe">Suppe</option>
+    <option value="Dessert">Dessert</option>
   </select>
 </div>
 
@@ -864,6 +906,11 @@ td:last-child{
 
       <tbody id="ingredientRows"></tbody>
     </table>
+  </div>
+
+  <div class="recipeAmountActions">
+    <button id="resetRecipeAmounts" type="button" class="secondary">Standardmengen dieses Gerichts wiederherstellen</button>
+    <div class="amountHelp">Die Mengen sind direkt editierbar. Eine Änderung wird für dieses Gericht gespeichert und bei anderen Portionszahlen automatisch hoch- oder heruntergerechnet.</div>
   </div>
 
   <div class="calculationBox" id="calculationBox">
@@ -1023,6 +1070,8 @@ berechnet werden wie die vorhandenen Gerichte.
       <option value="Vegetarisch">Vegetarisch</option>
       <option value="Vegan">Vegan</option>
       <option value="Pasta">Pasta</option>
+      <option value="Suppe">Suppe</option>
+      <option value="Dessert">Dessert</option>
     </select>
   </div>
 
@@ -1810,6 +1859,94 @@ ingredients:[
 ["Chili",10,"g"],
 ["Petersilie",40,"g"],
 ["Parmesan",0.25,"kg"]
+]},
+
+/* SUPPEN */
+{
+name:"Tomatencremesuppe",
+category:"Suppe",
+base:10,
+ingredients:[
+["Tomaten gehackt",1.5,"kg"],["Zwiebeln",0.25,"kg"],["Gemüsebrühe",1.5,"l"],["Sahne",0.4,"l"],["Tomatenmark",0.08,"kg"]
+]},
+{
+name:"Kartoffelcremesuppe",
+category:"Suppe",
+base:10,
+ingredients:[
+["Kartoffeln",1.5,"kg"],["Zwiebeln",0.25,"kg"],["Lauch",0.3,"kg"],["Gemüsebrühe",1.8,"l"],["Sahne",0.35,"l"]
+]},
+{
+name:"Kürbiscremesuppe",
+category:"Suppe",
+base:10,
+ingredients:[
+["Kürbis",1.6,"kg"],["Zwiebeln",0.25,"kg"],["Gemüsebrühe",1.6,"l"],["Sahne",0.35,"l"],["Ingwer",30,"g"]
+]},
+{
+name:"Gemüsebrühe mit Einlage",
+category:"Suppe",
+base:10,
+ingredients:[
+["Gemüsebrühe",2.2,"l"],["Karotten",0.35,"kg"],["Sellerie",0.2,"kg"],["Lauch",0.25,"kg"],["Suppennudeln",0.3,"kg"]
+]},
+{
+name:"Linsensuppe",
+category:"Suppe",
+base:10,
+ingredients:[
+["Tellerlinsen",0.7,"kg"],["Kartoffeln",0.8,"kg"],["Karotten",0.4,"kg"],["Sellerie",0.25,"kg"],["Gemüsebrühe",2,"l"]
+]},
+{
+name:"Brokkolicremesuppe",
+category:"Suppe",
+base:10,
+ingredients:[
+["Brokkoli",1.4,"kg"],["Kartoffeln",0.6,"kg"],["Zwiebeln",0.2,"kg"],["Gemüsebrühe",1.6,"l"],["Sahne",0.35,"l"]
+]},
+
+/* DESSERTS */
+{
+name:"Vanillepudding",
+category:"Dessert",
+base:10,
+ingredients:[
+["Milch",1.5,"l"],["Vanillepuddingpulver",0.12,"kg"],["Zucker",0.15,"kg"]
+]},
+{
+name:"Schokoladenpudding",
+category:"Dessert",
+base:10,
+ingredients:[
+["Milch",1.5,"l"],["Schokoladenpuddingpulver",0.12,"kg"],["Zucker",0.14,"kg"]
+]},
+{
+name:"Joghurt mit Früchten",
+category:"Dessert",
+base:10,
+ingredients:[
+["Joghurt",1.5,"kg"],["Obst gemischt",0.8,"kg"],["Honig",0.12,"kg"]
+]},
+{
+name:"Quarkspeise mit Beeren",
+category:"Dessert",
+base:10,
+ingredients:[
+["Quark",1.3,"kg"],["Joghurt",0.5,"kg"],["Beeren",0.7,"kg"],["Zucker",0.12,"kg"]
+]},
+{
+name:"Milchreis mit Zimt und Zucker",
+category:"Dessert",
+base:10,
+ingredients:[
+["Milchreis",0.7,"kg"],["Milch",2.2,"l"],["Zucker",0.15,"kg"],["Zimt",12,"g"]
+]},
+{
+name:"Apfelkompott mit Vanillesoße",
+category:"Dessert",
+base:10,
+ingredients:[
+["Äpfel",1.8,"kg"],["Zucker",0.12,"kg"],["Vanillesoße",1,"l"],["Zimt",8,"g"]
 ]}
 
 ];/* =====================================================
@@ -2008,6 +2145,61 @@ function setIngredientPrice(name, value){
 
 
 /* =====================================================
+   VARIABLE REZEPTMENGEN
+===================================================== */
+
+function loadRecipeAmountOverrides(){
+  try{
+    const stored=localStorage.getItem("gastropilot_recipe_amount_overrides");
+    return stored ? JSON.parse(stored) : {};
+  }catch(error){
+    return {};
+  }
+}
+
+let recipeAmountOverrides=loadRecipeAmountOverrides();
+
+function saveRecipeAmountOverrides(){
+  localStorage.setItem("gastropilot_recipe_amount_overrides",JSON.stringify(recipeAmountOverrides));
+}
+
+function recipeAmountKey(recipe){
+  return recipeExtraKey(recipe);
+}
+
+function ingredientAmountKey(name,unit){
+  return normalize(name)+"__"+String(unit);
+}
+
+function getRecipeBaseAmount(recipe,name,unit,defaultAmount){
+  const recipeKey=recipeAmountKey(recipe);
+  const ingredientKey=ingredientAmountKey(name,unit);
+  const value=recipeAmountOverrides[recipeKey] && recipeAmountOverrides[recipeKey][ingredientKey];
+  return Number.isFinite(Number(value)) ? Number(value) : Number(defaultAmount);
+}
+
+function setRecipeBaseAmount(recipe,name,unit,baseAmount){
+  const recipeKey=recipeAmountKey(recipe);
+  const ingredientKey=ingredientAmountKey(name,unit);
+  if(!recipeAmountOverrides[recipeKey]) recipeAmountOverrides[recipeKey]={};
+  recipeAmountOverrides[recipeKey][ingredientKey]=Number(baseAmount);
+  saveRecipeAmountOverrides();
+}
+
+function resetRecipeBaseAmounts(recipe){
+  delete recipeAmountOverrides[recipeAmountKey(recipe)];
+  saveRecipeAmountOverrides();
+}
+
+function getRecipeBaseIngredients(recipe){
+  return recipe.ingredients.map(([name,amount,unit])=>[
+    name,
+    getRecipeBaseAmount(recipe,name,unit,amount),
+    unit
+  ]);
+}
+
+/* =====================================================
    WOCHENPLANER LADEN / SPEICHERN
 ===================================================== */
 
@@ -2105,6 +2297,9 @@ document.getElementById("resultMeta");
 
 const ingredientRows =
 document.getElementById("ingredientRows");
+
+const resetRecipeAmounts =
+document.getElementById("resetRecipeAmounts");
 
 const deleteRecipe =
 document.getElementById("deleteRecipe");
@@ -2668,9 +2863,53 @@ function appendIngredientResult(
   const amountCell = document.createElement("td");
   amountCell.className = "amountCell";
 
-  const amountText = document.createElement("span");
-  amountText.textContent = formatAmount(amount * factor, unit);
-  amountCell.appendChild(amountText);
+  const amountWrap = document.createElement("div");
+  amountWrap.className = "amountEditWrap";
+
+  const amountInput = document.createElement("input");
+  amountInput.type = "number";
+  amountInput.min = "0";
+  amountInput.step = unit === "Stk" ? "0.1" : "0.01";
+  amountInput.inputMode = "decimal";
+  amountInput.className = "editableAmount";
+  amountInput.value = String(Math.round((amount * factor) * 1000) / 1000);
+  amountInput.setAttribute("aria-label", name + " Menge");
+
+  const amountUnitLabel = document.createElement("span");
+  amountUnitLabel.className = "amountUnitLabel";
+  amountUnitLabel.textContent = unit;
+
+  amountWrap.appendChild(amountInput);
+  amountWrap.appendChild(amountUnitLabel);
+  amountCell.appendChild(amountWrap);
+
+  if(extraId === null && recipe){
+    amountInput.addEventListener("input",()=>{
+      const entered=Number(amountInput.value);
+      if(!Number.isFinite(entered) || entered < 0 || factor <= 0) return;
+      const baseAmount=entered / factor;
+      setRecipeBaseAmount(recipe,name,unit,baseAmount);
+      row.dataset.amount=String(entered);
+      updatePriceCalculation();
+      try{ updateWeekCalculation(); }catch(error){ console.error(error); }
+    });
+  }else{
+    amountInput.addEventListener("input",()=>{
+      const entered=Number(amountInput.value);
+      if(!Number.isFinite(entered) || entered < 0 || factor <= 0) return;
+      row.dataset.amount=String(entered);
+      if(recipe && extraId !== null){
+        const key=recipeExtraKey(recipe);
+        const baseAmount=entered / factor;
+        recipeExtras[key]=getRecipeExtras(recipe).map(item =>
+          item.id===extraId ? {...item,amount:baseAmount} : item
+        );
+        saveRecipeExtras();
+      }
+      updatePriceCalculation();
+      try{ updateWeekCalculation(); }catch(error){ console.error(error); }
+    });
+  }
 
   if(extraId !== null && recipe){
     const removeButton = document.createElement("button");
@@ -2838,14 +3077,16 @@ function renderResult(){
   "";
 
 
-  selected.ingredients.forEach(
+  getRecipeBaseIngredients(selected).forEach(
     ([name,amount,unit]) => {
 
       appendIngredientResult(
         name,
         amount,
         unit,
-        factor
+        factor,
+        null,
+        selected
       );
 
     }
@@ -3604,13 +3845,23 @@ deleteRecipe.addEventListener(
 
   }
 );
+if(resetRecipeAmounts){
+  resetRecipeAmounts.addEventListener("click",()=>{
+    const selected=allRecipes().find(recipe=>recipe.name===dish.value);
+    if(!selected) return;
+    resetRecipeBaseAmounts(selected);
+    renderResult();
+    try{ updateWeekCalculation(); }catch(error){ console.error(error); }
+  });
+}
+
 /* =====================================================
    WOCHENPLANER
 ===================================================== */
 
 function recipeIngredientsForPortions(recipe, portionsCount){
   const factor = portionsCount / recipe.base;
-  const result = recipe.ingredients.map(([name,amount,unit]) => ({
+  const result = getRecipeBaseIngredients(recipe).map(([name,amount,unit]) => ({
     name, amount:amount * factor, unit
   }));
 
@@ -3668,7 +3919,13 @@ function renderWeekPlanner(){
       empty.textContent = slotType.label + " auswählen";
       select.appendChild(empty);
 
-      recipes.forEach(recipe => {
+      const allowedRecipes = recipes.filter(recipe => {
+        if(slotType.key === "soup") return recipe.category === "Suppe";
+        if(slotType.key === "dessert") return recipe.category === "Dessert";
+        return recipe.category !== "Suppe" && recipe.category !== "Dessert";
+      });
+
+      allowedRecipes.forEach(recipe => {
         const option = document.createElement("option");
         option.value = recipe.name;
         option.textContent = recipe.name;
@@ -3714,9 +3971,9 @@ function ingredientCategory(name){
   const groups = [
     ["Fleisch & Wurst",["hahnchen","pute","rind","schwein","hackfleisch","schnitzel","speck","kochschinken","schinken","cordon"]],
     ["Fisch",["lachs","seelachs","kabeljau","zander","matjes","fisch"]],
-    ["Gemüse & Obst",["zwiebel","paprika","zucchini","karotte","mohre","sellerie","brokkoli","blumenkohl","kartoffel","susskartoffel","aubergine","spinat","tomate","cherrytomate","lauch","champignon","pilz","apfel","zitrone","knoblauch","krauter","petersilie","dill"]],
-    ["Molkerei & Eier",["sahne","milch","joghurt","butter","kase","parmesan","feta","ei","eier","bechamel"]],
-    ["Trockenware & Konserven",["nudel","spaghetti","penne","tagliatelle","fusilli","rigatoni","tortellini","lasagne","couscous","linsen","kichererbsen","bohnen","kidney","mais","haferflocken","paniermehl","mehl","semmelwurfel","tomatenmark","tomatensosse","tomatensoße","tomaten gehackt"]],
+    ["Gemüse & Obst",["zwiebel","paprika","zucchini","karotte","mohre","sellerie","brokkoli","blumenkohl","kartoffel","susskartoffel","aubergine","spinat","tomate","cherrytomate","lauch","champignon","pilz","apfel","zitrone","knoblauch","krauter","petersilie","dill","kurbis","kürbis","ingwer","obst","beere"]],
+    ["Molkerei & Eier",["sahne","milch","joghurt","quark","butter","kase","parmesan","feta","ei","eier","bechamel","vanillesosse","vanillesoße"]],
+    ["Trockenware & Konserven",["nudel","spaghetti","penne","tagliatelle","fusilli","rigatoni","tortellini","lasagne","couscous","linsen","kichererbsen","bohnen","kidney","mais","haferflocken","paniermehl","mehl","semmelwurfel","tomatenmark","tomatensosse","tomatensoße","tomaten gehackt","puddingpulver","milchreis","zucker","honig"]],
     ["Öle, Soßen & Würzmittel",["ol","öl","fond","bruhe","brühe","senf","currypaste","sojasosse","sojasoße","sesamol","sesamöl","garam","paprikapulver","salz","pfeffer","chili","kapern","oliven","gewurzgurke"]]
   ];
   for(const [group,terms] of groups){
@@ -4239,7 +4496,7 @@ addToShoppingList.addEventListener(
     [];
 
 
-    selected.ingredients.forEach(
+    getRecipeBaseIngredients(selected).forEach(
       ([name,amount,unit]) => {
 
         ingredients.push({
