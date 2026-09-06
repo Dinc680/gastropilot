@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -4539,14 +4539,38 @@ function updateWeekCalculation(){
 }
 
 function addWeekToShoppingList(){
+  /*
+    WICHTIG:
+    Ein erneuter Klick auf „Einkaufsliste für diese Woche erstellen“
+    darf die Woche nicht noch einmal addieren.
+
+    Deshalb werden zuerst alle Einträge entfernt, die bereits aus
+    dem Wochenplan stammen. Ältere GastroPilot-Versionen hatten noch
+    kein source-Feld; diese Einträge erkennen wir zusätzlich daran,
+    dass Tag UND Menüplatz gespeichert sind.
+
+    Manuell über „Zur Einkaufsliste“ hinzugefügte Gerichte bleiben bestehen.
+  */
+  shoppingList = shoppingList.filter(item => {
+    const isWeekEntry =
+      item.source === "week" ||
+      (Boolean(item.day) && Boolean(item.slotLabel));
+
+    return !isWeekEntry;
+  });
+
   let added = 0;
+
   weekDays.forEach(day => {
     weekPlan[day].forEach((slot,index) => {
       if(!slot.recipeName || !slot.portions || slot.portions < 1) return;
+
       const recipe = allRecipes().find(item => item.name === slot.recipeName);
       if(!recipe) return;
+
       shoppingList.push({
         id:Date.now() + "_" + Math.random().toString(16).slice(2),
+        source:"week",
         name:recipe.name,
         recipeName:recipe.name,
         day:day,
@@ -4554,19 +4578,28 @@ function addWeekToShoppingList(){
         portions:Number(slot.portions),
         ingredients:recipeIngredientsForPortions(recipe, Number(slot.portions))
       });
+
       added += 1;
     });
   });
 
   if(added === 0){
+    saveShoppingList();
+    renderShoppingList();
     alert("Bitte zuerst mindestens ein Gericht im Wochenplan auswählen.");
     return;
   }
 
   saveShoppingList();
   renderShoppingList();
+
+  weekPlannerNotice.textContent =
+    "Einkaufsliste für diese Woche wurde aktualisiert ✓";
   weekPlannerNotice.style.display = "block";
-  setTimeout(() => { weekPlannerNotice.style.display = "none"; }, 1800);
+
+  setTimeout(() => {
+    weekPlannerNotice.style.display = "none";
+  }, 1800);
 }
 
 /* =====================================================
@@ -5210,4 +5243,3 @@ try{
 
 </body>
 </html>
-  
