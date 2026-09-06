@@ -1026,6 +1026,24 @@ button,.btn{min-height:44px;border-radius:12px!important;font-weight:700!importa
  .card{box-shadow:none!important}
 }
 </style>
+
+<style id="gp-topnav-fix-style">
+.quickNavInner .gpTopNavButton{
+  appearance:none;
+  -webkit-appearance:none;
+  border:0;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+  cursor:pointer;
+  min-height:0;
+}
+.quickNavInner .gpTopNavButton.gp-top-active{
+  background:var(--green, #135847);
+  color:#fff;
+}
+</style>
+
 </head>
 
 <body>
@@ -1036,10 +1054,10 @@ button,.btn{min-height:44px;border-radius:12px!important;font-weight:700!importa
 </header>
 <nav class="quickNav" aria-label="GastroPilot Navigation">
   <div class="quickNavInner">
-    <a href="#mengenrechner">⚖️ Mengen</a>
-    <a href="#gerichte">➕ Gericht</a>
-    <a href="#weekPlannerCard">📅 Wochenplan</a>
-    <a href="#shoppingCard">🛒 Einkauf</a>
+    <button type="button" class="gpTopNavButton gp-top-active" data-screen="mengenrechner" data-label="Mengenrechner">⚖️ Mengen</button>
+    <button type="button" class="gpTopNavButton" data-screen="gerichte" data-label="Gericht anlegen">➕ Gericht</button>
+    <button type="button" class="gpTopNavButton" data-screen="weekPlannerCard" data-label="Wochenplan">📅 Wochenplan</button>
+    <button type="button" class="gpTopNavButton" data-screen="shoppingCard" data-label="Einkaufsliste">🛒 Einkauf</button>
   </div>
 </nav>
 
@@ -5314,6 +5332,9 @@ try{
     document.querySelectorAll('#gpAppNav button').forEach(function(btn){
       btn.classList.toggle('gp-nav-active',btn.dataset.screen===id);
     });
+    document.querySelectorAll('.quickNav .gpTopNavButton').forEach(function(btn){
+      btn.classList.toggle('gp-top-active',btn.dataset.screen===id);
+    });
     var l=document.getElementById('gpScreenLabel');
     if(l) l.textContent=label||'';
     /* Kein Smooth-Scroll: Bereich wird an derselben App-Position gewechselt. */
@@ -5329,6 +5350,9 @@ try{
     var startBtn=document.querySelector('#gpAppNav button[data-screen="'+start+'"]');
     showScreen(start,startBtn?startBtn.dataset.label:'Mengenrechner');
     document.querySelectorAll('#gpAppNav button').forEach(function(btn){
+      btn.addEventListener('click',function(){showScreen(btn.dataset.screen,btn.dataset.label);});
+    });
+    document.querySelectorAll('.quickNav .gpTopNavButton').forEach(function(btn){
       btn.addEventListener('click',function(){showScreen(btn.dataset.screen,btn.dataset.label);});
     });
   }
