@@ -989,8 +989,16 @@ main{max-width:980px!important;margin:0 auto!important;padding:14px 12px 28px!im
 .gp-quicknav{display:none!important}
 
 /* WICHTIG: GastroPilot ist jetzt eine Ein-Bereich-App statt einer langen Seite. */
+/* Sicherheits-Fallback:
+   Ohne initialisierten App-Modus bleibt der Mengenrechner sichtbar.
+   Erst wenn JS vollständig gestartet ist, wird auf Ein-Seiten-Modus umgeschaltet. */
 .appSection{display:none!important}
-.appSection.gp-screen-active{display:block!important;animation:gpFade .16s ease-out}
+#mengenrechner.appSection{display:block!important}
+body.gp-app-ready .appSection{display:none!important}
+body.gp-app-ready .appSection.gp-screen-active{
+  display:block!important;
+  animation:gpFade .16s ease-out
+}
 @keyframes gpFade{from{opacity:.35;transform:translateY(4px)}to{opacity:1;transform:none}}
 
 .card{background:var(--gp-card)!important;border:1px solid var(--gp-line)!important;border-radius:18px!important;box-shadow:0 8px 26px rgba(20,54,44,.07)!important;margin:0!important}
@@ -5445,6 +5453,10 @@ try{
 (function(){
   var screenIds=['mengenrechner','gerichte','weekPlannerCard','shoppingCard'];
   function showScreen(id,label){
+    if(screenIds.indexOf(id)<0 || !document.getElementById(id)){
+      id='mengenrechner';
+      label='Mengenrechner';
+    }
     screenIds.forEach(function(screenId){
       var el=document.getElementById(screenId);
       if(el) el.classList.toggle('gp-screen-active',screenId===id);
@@ -5484,14 +5496,19 @@ try{
       var saved=localStorage.getItem('gastropilot_active_screen');
       if(screenIds.indexOf(saved)>=0) start=saved;
     }catch(e){}
-    var startBtn=document.querySelector('#gpAppNav button[data-screen="'+start+'"]');
-    showScreen(start,startBtn?startBtn.dataset.label:'Mengenrechner');
+
     document.querySelectorAll('#gpAppNav button').forEach(function(btn){
       btn.addEventListener('click',function(){showScreen(btn.dataset.screen,btn.dataset.label);});
     });
     document.querySelectorAll('.quickNav .gpTopNavButton').forEach(function(btn){
       btn.addEventListener('click',function(){showScreen(btn.dataset.screen,btn.dataset.label);});
     });
+
+    /* Erst jetzt wird der Ein-Seiten-App-Modus aktiviert. */
+    document.body.classList.add('gp-app-ready');
+
+    var startBtn=document.querySelector('#gpAppNav button[data-screen="'+start+'"]');
+    showScreen(start,startBtn?startBtn.dataset.label:'Mengenrechner');
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
