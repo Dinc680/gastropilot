@@ -970,19 +970,61 @@ footer{font-size:14px}
 }
 
 </style>
-<style id="gp-polish-v2">
-:root{--gp-green:#135847;--gp-dark:#0d4336;--gp-soft:#eaf3f0;--gp-bg:#f4f6f5;--gp-line:#dfe5e2;--gp-text:#1d2925}
-html{scroll-behavior:smooth}body{background:var(--gp-bg)!important;color:var(--gp-text);padding-bottom:84px!important}
-header{background:linear-gradient(135deg,var(--gp-dark),var(--gp-green))!important;padding:22px 16px 20px!important;box-shadow:0 5px 18px rgba(13,67,54,.18)}
-main{max-width:980px!important;padding:18px 14px 28px!important}.card{border:1px solid var(--gp-line)!important;border-radius:18px!important;box-shadow:0 8px 28px rgba(20,54,44,.08)!important;background:#fff!important;margin-bottom:16px!important}
+<style id="gp-appmode-v3">
+:root{
+  --gp-green:#135847;
+  --gp-dark:#0d4336;
+  --gp-soft:#eaf3f0;
+  --gp-bg:#f4f6f5;
+  --gp-card:#fff;
+  --gp-line:#dfe5e2;
+  --gp-text:#1d2925;
+  --gp-muted:#6f7c77;
+}
+html{scroll-behavior:auto!important}
+body{background:var(--gp-bg)!important;color:var(--gp-text);padding-bottom:92px!important}
+header{background:linear-gradient(135deg,var(--gp-dark),var(--gp-green))!important;padding:18px 16px 16px!important;box-shadow:0 4px 16px rgba(13,67,54,.16)}
+header h1{margin:0 0 3px!important;letter-spacing:-.5px}
+main{max-width:980px!important;margin:0 auto!important;padding:14px 12px 28px!important;min-height:calc(100vh - 160px)}
+.gp-quicknav{display:none!important}
+
+/* WICHTIG: GastroPilot ist jetzt eine Ein-Bereich-App statt einer langen Seite. */
+.appSection{display:none!important}
+.appSection.gp-screen-active{display:block!important;animation:gpFade .16s ease-out}
+@keyframes gpFade{from{opacity:.35;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.card{background:var(--gp-card)!important;border:1px solid var(--gp-line)!important;border-radius:18px!important;box-shadow:0 8px 26px rgba(20,54,44,.07)!important;margin:0!important}
+.card>h2{margin-top:0!important;font-size:24px!important;letter-spacing:-.35px}
 input,select,textarea{border:1px solid #cfd8d4!important;border-radius:12px!important;background:#fff!important;min-height:46px;font-size:16px!important}
 input:focus,select:focus,textarea:focus{outline:none!important;border-color:var(--gp-green)!important;box-shadow:0 0 0 3px rgba(19,88,71,.12)!important}
-button,.btn{min-height:44px;border-radius:12px!important;font-weight:700!important}#gpMobileNav{display:none}
-@media(max-width:700px){body{padding-bottom:88px!important}main{padding:12px 10px 22px!important}header{padding:18px 14px 16px!important}header h1{font-size:27px!important}.card{border-radius:16px!important;margin-bottom:12px!important;padding:15px!important}.gp-quicknav{display:none!important}
-#gpMobileNav{position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;border:1px solid rgba(19,88,71,.14);border-radius:18px;background:rgba(255,255,255,.96);box-shadow:0 10px 34px rgba(20,54,44,.18)}
-#gpMobileNav button{min-width:0;min-height:56px;padding:6px 2px;border:0!important;background:transparent!important;color:#51615b!important;box-shadow:none!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px!important;line-height:1.1}
-#gpMobileNav .ico{font-size:20px;line-height:1}#gpMobileNav button.active{color:var(--gp-green)!important;background:var(--gp-soft)!important}}
-@media print{#gpMobileNav,.gp-quicknav{display:none!important}body{padding-bottom:0!important;background:#fff!important}.card{box-shadow:none!important}}
+button,.btn{min-height:44px;border-radius:12px!important;font-weight:700!important}
+
+#gpAppNav{position:fixed;left:10px;right:10px;bottom:10px;z-index:9999;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:6px;border:1px solid rgba(19,88,71,.15);border-radius:19px;background:rgba(255,255,255,.97);box-shadow:0 10px 34px rgba(20,54,44,.20);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+#gpAppNav button{min-width:0;min-height:58px;padding:6px 2px;border:0!important;background:transparent!important;color:#56645f!important;box-shadow:none!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px!important;line-height:1.05}
+#gpAppNav .ico{font-size:21px;line-height:1}
+#gpAppNav button.gp-nav-active{background:var(--gp-soft)!important;color:var(--gp-green)!important}
+
+#gpScreenLabel{max-width:980px;margin:0 auto;padding:11px 15px 0;color:var(--gp-muted);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+
+@media(max-width:700px){
+ body{padding-bottom:90px!important}
+ header{padding:16px 14px 14px!important}
+ header h1{font-size:27px!important}
+ main{padding:10px 9px 20px!important}
+ .card{border-radius:16px!important;padding:15px!important}
+ .card>h2{font-size:22px!important;margin-bottom:14px!important}
+ #gpScreenLabel{padding:9px 12px 0}
+ table{font-size:14px}
+}
+@media(min-width:701px){
+ #gpAppNav{left:50%;right:auto;width:520px;transform:translateX(-50%)}
+}
+@media print{
+ body{padding-bottom:0!important;background:#fff!important}
+ #gpAppNav,#gpScreenLabel{display:none!important}
+ .appSection{display:block!important}
+ .card{box-shadow:none!important}
+}
 </style>
 </head>
 
@@ -5254,22 +5296,43 @@ try{
 }
 
 </script>
-
-<nav id="gpMobileNav" aria-label="GastroPilot Navigation">
-<button type="button" data-gp-target="calculator"><span class="ico">⚖️</span><span>Mengen</span></button>
-<button type="button" data-gp-target="custom"><span class="ico">➕</span><span>Gericht</span></button>
-<button type="button" data-gp-target="week"><span class="ico">📅</span><span>Woche</span></button>
-<button type="button" data-gp-target="shopping"><span class="ico">🛒</span><span>Einkauf</span></button>
+<div id="gpScreenLabel">Mengenrechner</div>
+<nav id="gpAppNav" aria-label="GastroPilot Hauptnavigation">
+  <button type="button" class="gp-nav-active" data-screen="mengenrechner" data-label="Mengenrechner"><span class="ico">⚖️</span><span>Mengen</span></button>
+  <button type="button" data-screen="gerichte" data-label="Gericht anlegen"><span class="ico">➕</span><span>Gericht</span></button>
+  <button type="button" data-screen="weekPlannerCard" data-label="Wochenplan"><span class="ico">📅</span><span>Woche</span></button>
+  <button type="button" data-screen="shoppingCard" data-label="Einkaufsliste"><span class="ico">🛒</span><span>Einkauf</span></button>
 </nav>
-<script id="gp-polish-v2-js">
+<script id="gp-appmode-v3-js">
 (function(){
-function findTarget(kind){
-var words={calculator:['mengenrechner','mengen'],custom:['eigenes gericht','gericht anlegen'],week:['wochenplan'],shopping:['einkaufsliste','einkauf']}[kind]||[];
-var heads=document.querySelectorAll('h1,h2,h3');
-for(var i=0;i<heads.length;i++){var t=(heads[i].textContent||'').toLowerCase();if(words.some(function(w){return t.indexOf(w)>=0;}))return heads[i].closest('.card,section')||heads[i];}
-return null;}
-document.querySelectorAll('#gpMobileNav button').forEach(function(b){b.addEventListener('click',function(){var el=findTarget(b.dataset.gpTarget);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});document.querySelectorAll('#gpMobileNav button').forEach(function(x){x.classList.toggle('active',x===b);});});});
-var first=document.querySelector('#gpMobileNav button');if(first)first.classList.add('active');
+  var screenIds=['mengenrechner','gerichte','weekPlannerCard','shoppingCard'];
+  function showScreen(id,label){
+    screenIds.forEach(function(screenId){
+      var el=document.getElementById(screenId);
+      if(el) el.classList.toggle('gp-screen-active',screenId===id);
+    });
+    document.querySelectorAll('#gpAppNav button').forEach(function(btn){
+      btn.classList.toggle('gp-nav-active',btn.dataset.screen===id);
+    });
+    var l=document.getElementById('gpScreenLabel');
+    if(l) l.textContent=label||'';
+    /* Kein Smooth-Scroll: Bereich wird an derselben App-Position gewechselt. */
+    window.scrollTo(0,0);
+    try{localStorage.setItem('gastropilot_active_screen',id);}catch(e){}
+  }
+  function init(){
+    var start='mengenrechner';
+    try{
+      var saved=localStorage.getItem('gastropilot_active_screen');
+      if(screenIds.indexOf(saved)>=0) start=saved;
+    }catch(e){}
+    var startBtn=document.querySelector('#gpAppNav button[data-screen="'+start+'"]');
+    showScreen(start,startBtn?startBtn.dataset.label:'Mengenrechner');
+    document.querySelectorAll('#gpAppNav button').forEach(function(btn){
+      btn.addEventListener('click',function(){showScreen(btn.dataset.screen,btn.dataset.label);});
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
 </script>
 </body>
