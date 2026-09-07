@@ -1154,6 +1154,144 @@ td{border-color:#edf1ef!important}
 @media(max-width:390px){.gpBrandClaim{display:none}#gpScreenHeading{font-size:25px!important}.gpScreenIcon{width:44px;height:44px}#gpAppNav button{font-size:9px!important}}
 </style>
 
+
+<style id="gp-mengen-v43">
+/* V4.3 – ausschließlich Mengenrechner */
+#mengenrechner{
+  --m-green:#135847;
+  --m-soft:#e9f3f0;
+  --m-line:#dce7e3;
+  --m-muted:#6c7b75;
+}
+#mengenrechner .gpCalcSteps{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin:4px 0 18px;
+}
+#mengenrechner .gpCalcStep{
+  min-height:54px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:8px;
+  border:1px solid var(--m-line);
+  border-radius:15px;
+  background:rgba(255,255,255,.62);
+  color:var(--m-muted);
+  font-size:12px;
+}
+#mengenrechner .gpCalcStep span{
+  width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:#eef3f1;color:#687770;
+  font-weight:900;font-size:11px;
+}
+#mengenrechner .gpCalcStepActive{
+  background:var(--m-soft);
+  color:var(--m-green);
+  border-color:#cfe1db;
+}
+#mengenrechner .gpCalcStepActive span{
+  background:var(--m-green);color:#fff;
+}
+
+/* Auswahlbereich kompakt wie eine App-Eingabemaske */
+#mengenrechner > .field{
+  margin-bottom:10px!important;
+}
+#mengenrechner #searchField{
+  border:2px solid #cfe0da!important;
+  box-shadow:0 6px 20px rgba(19,88,71,.06)!important;
+}
+#mengenrechner #searchInput{
+  font-size:17px!important;
+  font-weight:750!important;
+}
+#mengenrechner #category,
+#mengenrechner #portions{
+  font-size:16px!important;
+  font-weight:700!important;
+}
+
+/* Berechnen = klare Hauptaktion */
+#mengenrechner #calculate{
+  margin-top:6px!important;
+  min-height:54px!important;
+  font-size:16px!important;
+  letter-spacing:.01em;
+}
+
+/* Ergebnis visuell deutlich von der Eingabe trennen */
+#mengenrechner .result{
+  margin-top:24px!important;
+  border:0!important;
+  box-shadow:0 10px 30px rgba(21,65,53,.09)!important;
+}
+#mengenrechner #resultTitle{
+  font-size:22px!important;
+  letter-spacing:-.35px;
+  color:#17241f!important;
+}
+#mengenrechner #resultMeta{
+  color:var(--m-muted)!important;
+  font-size:13px!important;
+}
+
+/* Mengen-Tabelle: Menge optisch priorisieren */
+#mengenrechner #ingredientRows td:nth-child(2){
+  font-weight:850!important;
+  color:var(--m-green)!important;
+}
+#mengenrechner .amountInput{
+  font-weight:850!important;
+  text-align:right!important;
+}
+
+/* Aktionen unter dem Ergebnis */
+#mengenrechner #addToShoppingList{
+  min-height:52px!important;
+}
+#mengenrechner #toggleExtraIngredient,
+#mengenrechner #resetRecipeAmounts{
+  min-height:46px!important;
+  border-radius:14px!important;
+}
+
+/* Kalkulation als separater Unterbereich */
+#mengenrechner .calculationBox{
+  border:0!important;
+  box-shadow:0 8px 26px rgba(21,65,53,.07)!important;
+}
+#mengenrechner .calcGrid{
+  gap:9px!important;
+}
+#mengenrechner .calcItem{
+  min-height:82px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+/* iPhone: großzügig, aber nicht langgezogen */
+@media(max-width:700px){
+  #mengenrechner .gpCalcSteps{gap:5px;margin-bottom:14px}
+  #mengenrechner .gpCalcStep{
+    min-height:46px;
+    border-radius:13px;
+    gap:5px;
+    font-size:11px;
+    padding:6px 3px;
+  }
+  #mengenrechner .gpCalcStep span{width:21px;height:21px;font-size:10px}
+  #mengenrechner .result{margin-top:18px!important;padding:15px!important}
+  #mengenrechner #resultTitle{font-size:20px!important}
+  #mengenrechner .calcGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #mengenrechner .calcItem{min-height:76px;padding:10px!important}
+}
+</style>
+
 </head>
 
 <body>
@@ -1194,6 +1332,11 @@ td{border-color:#edf1ef!important}
 <section class="card appSection" id="mengenrechner">
 
 <h2>Mengenrechner</h2>
+<div class="gpCalcSteps" aria-hidden="true">
+  <div class="gpCalcStep gpCalcStepActive"><span>1</span><b>Gericht</b></div>
+  <div class="gpCalcStep"><span>2</span><b>Portionen</b></div>
+  <div class="gpCalcStep"><span>3</span><b>Ergebnis</b></div>
+</div>
 <p class="sectionLead">Gericht wählen, Portionen festlegen und Mengen sowie Kosten sofort berechnen.</p>
 
 <div class="field" id="searchField">
