@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V4.3 Mengen</title>
+<title>GastroPilot – V4.4 Mengen</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -1292,6 +1292,16 @@ td{border-color:#edf1ef!important}
 }
 </style>
 
+
+<style id="gp-v44-cleanup">
+/* V4.4 – klare Mengen-Seite ohne künstliche Schrittanzeige */
+#mengenrechner .gpCalcSteps{display:none!important;}
+#mengenrechner .sectionLead{
+  margin-top:0!important;
+  margin-bottom:16px!important;
+}
+</style>
+
 </head>
 
 <body>
@@ -1301,7 +1311,7 @@ td{border-color:#edf1ef!important}
     <div class="gpBrandMark" aria-hidden="true">GP</div>
     <div class="gpBrandText">
       <div class="gpBrandName">GastroPilot</div>
-      <div class="gpBrandClaim">Gemeinsam Schritt für Schritt. · V4.3</div>
+      <div class="gpBrandClaim">Gemeinsam Schritt für Schritt. · V4.4</div>
     </div>
   </div>
   <div class="gpCurrentScreen">
@@ -1332,125 +1342,6 @@ td{border-color:#edf1ef!important}
 <section class="card appSection" id="mengenrechner">
 
 <h2>Mengenrechner</h2>
-<div class="gpCalcSteps" aria-hidden="true">
-  <div class="gpCalcStep gpCalcStepActive"><span>1</span><b>Gericht</b></div>
-  <div class="gpCalcStep"><span>2</span><b>Portionen</b></div>
-  <div class="gpCalcStep"><span>3</span><b>Ergebnis</b></div>
-</div>
-<p class="sectionLead">Gericht wählen, Portionen festlegen und Mengen sowie Kosten sofort berechnen.</p>
-
-<div class="field" id="searchField">
-  <label for="search">Gericht suchen</label>
-
-  <input
-    id="search"
-    type="text"
-    autocomplete="off"
-    placeholder="z. B. Lachs, Curry, Pasta …"
-  >
-
-  <div id="suggestions" class="suggestions"></div>
-</div>
-
-<div class="field">
-  <label for="category">Kategorie</label>
-
-  <select id="category">
-    <option value="Alle Gerichte">Alle Gerichte</option>
-    <option value="Fleisch">Fleisch</option>
-    <option value="Fisch">Fisch</option>
-    <option value="Vegetarisch">Vegetarisch</option>
-    <option value="Vegan">Vegan</option>
-    <option value="Pasta">Pasta</option>
-    <option value="Suppe">Suppe</option>
-    <option value="Dessert">Dessert</option>
-  </select>
-</div>
-
-<div class="field">
-  <label for="dish">Gericht auswählen</label>
-  <select id="dish"></select>
-  <div class="small" id="count"></div>
-</div>
-
-<div class="field">
-  <label for="portions">Anzahl Portionen</label>
-
-  <input
-    id="portions"
-    type="number"
-    inputmode="numeric"
-    min="1"
-    max="10000"
-    value="10"
-  >
-</div>
-
-<button id="calculate">
-  Mengen berechnen
-</button>
-
-<button
-  id="deleteRecipe"
-  class="danger"
-  style="display:none;"
->
-  Eigenes Gericht löschen
-</button>
-
-<div id="result" class="result">
-
-  <h3 id="resultTitle"></h3>
-
-  <div
-    id="resultMeta"
-    class="result-meta"
-  ></div>
-
-  <div class="priceTableWrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Zutat</th>
-          <th>Menge</th>
-          <th>Einkaufspreis</th>
-          <th>Kosten</th>
-        </tr>
-      </thead>
-
-      <tbody id="ingredientRows"></tbody>
-    </table>
-  </div>
-
-  <div class="recipeAmountActions">
-    <button id="resetRecipeAmounts" type="button" class="secondary">Standardmengen dieses Gerichts wiederherstellen</button>
-    <div class="amountHelp">Die Mengen sind direkt editierbar. Eine Änderung wird für dieses Gericht gespeichert und bei anderen Portionszahlen automatisch hoch- oder heruntergerechnet.</div>
-  </div>
-
-  <div class="calculationBox" id="calculationBox">
-    <h3>Preiskalkulation</h3>
-
-    <div class="calcGrid">
-      <div class="calcItem">
-        <div class="calcLabel">Wareneinsatz gesamt</div>
-        <div class="calcValue" id="totalFoodCost">0,00 €</div>
-      </div>
-
-      <div class="calcItem">
-        <div class="calcLabel">Wareneinsatz pro Portion</div>
-        <div class="calcValue" id="foodCostPerPortion">0,00 €</div>
-      </div>
-
-      <div class="calcItem">
-        <div class="calcLabel">Kalkulierter Verkaufspreis / Portion</div>
-        <div class="calcValue" id="suggestedSellingPrice">0,00 €</div>
-      </div>
-
-      <div class="calcItem">
-        <div class="calcLabel">Rohertrag / Portion</div>
-        <div class="calcValue" id="grossProfitPerPortion">0,00 €</div>
-      </div>
-    </div>
 
     <div class="targetCostField">
       <label for="targetFoodCost">Ziel-Wareneinsatz in %</label>
@@ -2979,6 +2870,93 @@ document.getElementById("grossProfitPerPortion");
 const targetFoodCost =
 document.getElementById("targetFoodCost");
 
+const calculatorStateKey = "gastropilot_calculator_state";
+
+function saveCalculatorState(){
+  try{
+    const state = {
+      search: search ? search.value : "",
+      category: category ? category.value : "Alle Gerichte",
+      dish: dish ? dish.value : "",
+      portions: portions ? portions.value : "10",
+      targetFoodCost: targetFoodCost ? targetFoodCost.value : "30",
+      showResult: Boolean(
+        result &&
+        result.style.display !== "none" &&
+        dish &&
+        dish.value
+      )
+    };
+    localStorage.setItem(calculatorStateKey, JSON.stringify(state));
+  }catch(error){
+    console.warn("Mengenrechner-Zustand konnte nicht gespeichert werden:", error);
+  }
+}
+
+function loadCalculatorState(){
+  try{
+    const raw = localStorage.getItem(calculatorStateKey);
+    if(!raw) return null;
+    const state = JSON.parse(raw);
+    return state && typeof state === "object" ? state : null;
+  }catch(error){
+    console.warn("Mengenrechner-Zustand konnte nicht geladen werden:", error);
+    return null;
+  }
+}
+
+function restoreCalculatorState(){
+  const state = loadCalculatorState();
+  if(!state) return;
+
+  if(
+    category &&
+    typeof state.category === "string" &&
+    Array.from(category.options).some(option => option.value === state.category)
+  ){
+    category.value = state.category;
+  }
+
+  fillDishSelect(
+    typeof state.dish === "string"
+      ? state.dish
+      : ""
+  );
+
+  if(search && typeof state.search === "string"){
+    search.value = state.search;
+  }
+
+  if(
+    portions &&
+    state.portions !== undefined &&
+    Number(state.portions) > 0
+  ){
+    portions.value = state.portions;
+  }
+
+  if(
+    targetFoodCost &&
+    state.targetFoodCost !== undefined &&
+    Number(state.targetFoodCost) > 0
+  ){
+    targetFoodCost.value = state.targetFoodCost;
+  }
+
+  if(
+    dish &&
+    typeof state.dish === "string" &&
+    Array.from(dish.options).some(option => option.value === state.dish)
+  ){
+    dish.value = state.dish;
+  }
+
+  if(state.showResult && dish && dish.value){
+    renderResult();
+  }
+}
+
+
 
 /* =====================================================
    NORMALISIERUNG
@@ -3248,6 +3226,7 @@ function chooseRecipe(recipe){
   "+ Weitere Zutat hinzufügen";
 
   renderResult();
+  saveCalculatorState();
 
 }
 
@@ -5380,7 +5359,10 @@ clearShoppingList.addEventListener(
   }
 );targetFoodCost.addEventListener(
   "input",
-  updatePriceCalculation
+  () => {
+    updatePriceCalculation();
+    saveCalculatorState();
+  }
 );
 
 /* =====================================================
@@ -5392,6 +5374,7 @@ category.addEventListener(
   () => {
 
     fillDishSelect();
+    saveCalculatorState();
 
     result.style.display =
     "none";
@@ -5419,7 +5402,10 @@ category.addEventListener(
 
 search.addEventListener(
   "input",
-  showSuggestions
+  () => {
+    showSuggestions();
+    saveCalculatorState();
+  }
 );
 
 
@@ -5442,6 +5428,8 @@ search.addEventListener(
 dish.addEventListener(
   "change",
   () => {
+
+    saveCalculatorState();
 
     if(dish.value){
 
@@ -5472,9 +5460,22 @@ dish.addEventListener(
 
 calculate.addEventListener(
   "click",
-  renderResult
+  () => {
+    renderResult();
+    saveCalculatorState();
+  }
 );
 
+
+portions.addEventListener(
+  "input",
+  saveCalculatorState
+);
+
+portions.addEventListener(
+  "change",
+  saveCalculatorState
+);
 
 portions.addEventListener(
   "keydown",
@@ -5526,6 +5527,7 @@ document.addEventListener(
 
 try{
   fillDishSelect();
+  restoreCalculatorState();
 
   createIngredientRow();
   createIngredientRow();
