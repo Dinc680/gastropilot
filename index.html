@@ -1612,6 +1612,470 @@ body.gp-app-ready .appSection.gp-screen-active{
 }
 </style>
 
+
+<style id="gp-recipe-v47">
+/* V4.7 – Gericht anlegen als Rezept-Assistent */
+#gerichte .sectionLead{
+  color:#6b7873!important;
+  margin-bottom:15px!important;
+}
+#gerichte .gpRecipeAssistant{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:15px;
+  margin-bottom:10px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#135847,#1e7560);
+  color:#fff;
+  box-shadow:0 12px 28px rgba(19,88,71,.16);
+}
+#gerichte .gpAssistantIcon{
+  width:42px;height:42px;flex:0 0 42px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:13px;
+  background:rgba(255,255,255,.15);
+  font-size:20px;
+}
+#gerichte .gpRecipeAssistant strong{
+  display:block;
+  font-size:17px;
+  margin:1px 0 4px;
+}
+#gerichte .gpRecipeAssistant p{
+  margin:0;
+  color:rgba(255,255,255,.86);
+  font-size:12px;
+  line-height:1.45;
+}
+#gerichte .gpRecipeFlow{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  margin:0 0 12px;
+}
+#gerichte .gpRecipeFlow span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-height:36px;
+  padding:5px;
+  border:1px solid #dce7e3;
+  border-radius:12px;
+  background:#fff;
+  color:#5e6d67;
+  font-size:10px;
+  font-weight:800;
+  text-align:center;
+}
+#gerichte .gpRecipeFlow b{
+  width:19px;height:19px;flex:0 0 19px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;
+  background:#e9f4f0;
+  color:#135847;
+  font-size:9px;
+}
+#gerichte .recipeImportBox{
+  padding:15px!important;
+  margin-bottom:14px!important;
+  border:1px solid #d8e5e0!important;
+  border-radius:19px!important;
+  background:#fff!important;
+  box-shadow:0 8px 24px rgba(16,58,46,.06)!important;
+}
+#gerichte #recipeImportText{
+  min-height:150px!important;
+  resize:vertical;
+  line-height:1.5!important;
+  font-size:15px!important;
+  background:#f9fbfa!important;
+}
+#gerichte #analyzeRecipeText{
+  min-height:52px!important;
+  border-radius:15px!important;
+  font-size:15px!important;
+  font-weight:900!important;
+  background:linear-gradient(135deg,#135847,#1f7a64)!important;
+  box-shadow:0 10px 22px rgba(19,88,71,.16)!important;
+}
+#gerichte #clearRecipeImport{
+  border-radius:14px!important;
+  background:#f1f5f3!important;
+  color:#52635d!important;
+  box-shadow:none!important;
+}
+#gerichte #recipeImportStatus{
+  border-radius:13px!important;
+  font-weight:750!important;
+}
+#gerichte #toggleCustom{
+  min-height:48px!important;
+  border-radius:15px!important;
+  background:#fff!important;
+  color:#135847!important;
+  border:1px solid #cfe0da!important;
+  box-shadow:0 5px 16px rgba(19,88,71,.05)!important;
+  font-weight:850!important;
+}
+#gerichte #customForm{
+  margin-top:12px!important;
+  padding-top:4px!important;
+}
+#gerichte #customIngredients{
+  display:grid;
+  gap:8px;
+}
+#gerichte .ingredientRow{
+  border:1px solid #e0e8e5!important;
+  border-radius:15px!important;
+  background:#fff!important;
+  padding:9px!important;
+}
+#gerichte #addIngredient{
+  border-radius:14px!important;
+  background:#edf5f2!important;
+  color:#135847!important;
+  border:1px solid #d5e6e0!important;
+  box-shadow:none!important;
+}
+#gerichte #saveRecipe{
+  min-height:54px!important;
+  border-radius:17px!important;
+  font-size:16px!important;
+  font-weight:900!important;
+  box-shadow:0 10px 22px rgba(19,88,71,.15)!important;
+}
+#gerichte #saveSuccess{
+  border-radius:14px!important;
+}
+
+/* Desktop: Import links, manuelle Bearbeitung rechts wenn Formular offen */
+@media(min-width:800px){
+  #gerichte .gpRecipeAssistant,
+  #gerichte .gpRecipeFlow{
+    max-width:100%;
+  }
+}
+
+/* iPhone */
+@media(max-width:700px){
+  #gerichte .gpRecipeAssistant{
+    padding:13px;
+    border-radius:16px;
+  }
+  #gerichte .gpAssistantIcon{
+    width:38px;height:38px;flex-basis:38px;
+  }
+  #gerichte .gpRecipeFlow{
+    gap:4px;
+  }
+  #gerichte .gpRecipeFlow span{
+    min-height:34px;
+    font-size:9px;
+    padding:4px 2px;
+  }
+  #gerichte .recipeImportBox{
+    padding:12px!important;
+    border-radius:17px!important;
+  }
+  #gerichte #recipeImportText{
+    min-height:135px!important;
+  }
+}
+</style>
+
+
+<style id="gp-week-v48">
+/* V4.8 – Wochenplaner im App-Stil */
+#weekPlannerCard .sectionLead{
+  color:#6b7873!important;
+  margin-bottom:8px!important;
+}
+#weekPlannerCard .weekPlannerIntro{
+  margin:0 0 14px!important;
+  padding:11px 13px!important;
+  border-radius:14px!important;
+  background:#f0f6f3!important;
+  border:1px solid #dce8e3!important;
+  color:#53645e!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+}
+#weekPlannerCard .gpWeekSummary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px 15px;
+  margin:0 0 14px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#135847,#1e7560);
+  color:#fff;
+  box-shadow:0 12px 28px rgba(19,88,71,.16);
+}
+#weekPlannerCard .gpWeekSummaryText span{
+  display:block;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  opacity:.75;
+  font-weight:800;
+  margin-bottom:3px;
+}
+#weekPlannerCard .gpWeekSummaryText strong{
+  display:block;
+  font-size:15px;
+}
+#weekPlannerCard .gpWeekSummaryBadge{
+  flex:0 0 auto;
+  padding:8px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.18);
+  font-size:11px;
+  font-weight:850;
+  white-space:nowrap;
+}
+
+#weekPlannerRows{
+  display:grid;
+  gap:13px;
+}
+#weekPlannerCard .weekDay{
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid #dce6e2!important;
+  border-radius:20px!important;
+  background:#fff!important;
+  box-shadow:0 8px 25px rgba(16,58,46,.06)!important;
+}
+#weekPlannerCard .gpWeekDayHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px 15px 12px;
+  border-bottom:1px solid #edf1ef;
+  background:linear-gradient(180deg,#fff,#fbfcfc);
+}
+#weekPlannerCard .gpWeekDayTitleWrap h3{
+  margin:0!important;
+  font-size:18px!important;
+  letter-spacing:-.25px;
+  color:#18342c!important;
+}
+#weekPlannerCard .gpWeekDayMeta{
+  display:block;
+  margin-top:3px;
+  font-size:10px;
+  color:#7b8984;
+  font-weight:720;
+}
+#weekPlannerCard .gpWeekDayBadge{
+  width:39px;height:39px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:13px;
+  background:#e9f4f0;
+  color:#135847;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.04em;
+}
+#weekPlannerCard .weekMealRow{
+  display:grid!important;
+  grid-template-columns:145px minmax(0,1fr) 142px!important;
+  align-items:center!important;
+  gap:9px!important;
+  padding:10px 13px!important;
+  margin:0!important;
+  border:0!important;
+  border-bottom:1px solid #f0f3f2!important;
+  border-radius:0!important;
+  background:#fff!important;
+  transition:background .15s ease;
+}
+#weekPlannerCard .weekMealRow:last-child{
+  border-bottom:0!important;
+}
+#weekPlannerCard .weekMealRow.gpWeekMealFilled{
+  background:#fbfdfc!important;
+}
+#weekPlannerCard .weekMealLabel{
+  display:flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  font-size:11px!important;
+  font-weight:850!important;
+  color:#455750!important;
+}
+#weekPlannerCard .gpWeekSlotIcon{
+  width:29px;height:29px;
+  display:flex;align-items:center;justify-content:center;
+  flex:0 0 29px;
+  border-radius:9px;
+  background:#f0f5f3;
+  font-size:14px;
+}
+#weekPlannerCard .gpWeekRecipeSelect{
+  width:100%!important;
+  min-width:0!important;
+  min-height:44px!important;
+  margin:0!important;
+  border-radius:12px!important;
+  background:#f9fbfa!important;
+  font-size:12px!important;
+  font-weight:720!important;
+  padding-left:10px!important;
+}
+#weekPlannerCard .gpWeekMealFilled .gpWeekRecipeSelect{
+  border-color:#bed8cf!important;
+  background:#f6fbf9!important;
+  color:#173f33!important;
+}
+#weekPlannerCard .gpWeekPortionControl{
+  display:grid;
+  grid-template-columns:36px minmax(50px,1fr) 36px;
+  gap:5px;
+  align-items:center;
+}
+#weekPlannerCard .gpWeekPortionBtn{
+  width:36px!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:0!important;
+  margin:0!important;
+  border-radius:10px!important;
+  border:1px solid #d9e6e1!important;
+  background:#edf5f2!important;
+  color:#135847!important;
+  box-shadow:none!important;
+  font-size:20px!important;
+  font-weight:700!important;
+}
+#weekPlannerCard .gpWeekPortionInput{
+  min-height:36px!important;
+  height:36px!important;
+  margin:0!important;
+  padding:5px!important;
+  text-align:center!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  font-size:13px!important;
+  font-weight:900!important;
+  color:#135847!important;
+}
+
+/* Wochen-Einkauf klar absetzen */
+#weekPlannerCard .weekShoppingWrap{
+  margin-top:18px!important;
+  padding:15px!important;
+  border:1px solid #dce6e2!important;
+  border-radius:20px!important;
+  background:#fff!important;
+  box-shadow:0 8px 24px rgba(16,58,46,.05)!important;
+}
+#weekPlannerCard .weekShoppingWrap h3{
+  margin-top:0!important;
+  font-size:17px!important;
+}
+#weekPlannerCard .shoppingViewToggle{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:7px!important;
+}
+#weekPlannerCard .shoppingViewToggle button{
+  min-height:42px!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+}
+#weekPlannerCard .shoppingViewToggle button.active{
+  background:#135847!important;
+  color:#fff!important;
+}
+#weekPlannerCard .weekActions{
+  display:grid!important;
+  grid-template-columns:1fr auto!important;
+  gap:8px!important;
+  margin-top:13px!important;
+}
+#weekPlannerCard #weekToShoppingList{
+  min-height:52px!important;
+  border-radius:16px!important;
+  font-weight:900!important;
+  background:linear-gradient(135deg,#135847,#1f7a64)!important;
+  box-shadow:0 10px 22px rgba(19,88,71,.15)!important;
+}
+#weekPlannerCard #clearWeekPlanner{
+  min-height:52px!important;
+  border-radius:16px!important;
+  box-shadow:none!important;
+}
+
+/* Tablet/Desktop: zwei Tage nebeneinander */
+@media(min-width:880px){
+  #weekPlannerRows{
+    grid-template-columns:1fr 1fr;
+  }
+  #weekPlannerRows .weekDay:last-child{
+    grid-column:1/-1;
+  }
+}
+
+/* iPhone */
+@media(max-width:700px){
+  #weekPlannerCard .gpWeekSummary{
+    padding:12px 13px;
+    border-radius:16px;
+  }
+  #weekPlannerCard .gpWeekSummaryText strong{
+    font-size:13px;
+  }
+  #weekPlannerCard .gpWeekSummaryBadge{
+    font-size:10px;
+    padding:7px 8px;
+  }
+  #weekPlannerCard .weekDay{
+    border-radius:17px!important;
+  }
+  #weekPlannerCard .gpWeekDayHeader{
+    padding:12px 12px 10px;
+  }
+  #weekPlannerCard .weekMealRow{
+    grid-template-columns:1fr!important;
+    gap:6px!important;
+    padding:10px 11px!important;
+  }
+  #weekPlannerCard .weekMealLabel{
+    font-size:10px!important;
+  }
+  #weekPlannerCard .gpWeekSlotIcon{
+    width:26px;height:26px;flex-basis:26px;
+    font-size:13px;
+  }
+  #weekPlannerCard .gpWeekRecipeSelect{
+    min-height:43px!important;
+    font-size:12px!important;
+  }
+  #weekPlannerCard .gpWeekPortionControl{
+    grid-template-columns:42px 1fr 42px;
+  }
+  #weekPlannerCard .gpWeekPortionBtn{
+    width:42px!important;
+    height:40px!important;
+    min-height:40px!important;
+  }
+  #weekPlannerCard .gpWeekPortionInput{
+    height:40px!important;
+    min-height:40px!important;
+  }
+  #weekPlannerCard .weekActions{
+    grid-template-columns:1fr!important;
+  }
+}
+</style>
+
 </head>
 
 <body>
@@ -1879,6 +2343,20 @@ automatisch in GastroPilot gespeichert und können genauso
 berechnet werden wie die vorhandenen Gerichte.
 </p>
 
+<div class="gpRecipeAssistant">
+  <div class="gpAssistantIcon" aria-hidden="true">✨</div>
+  <div>
+    <strong>Rezept-Assistent</strong>
+    <p>Rezepttext einfügen – GastroPilot übernimmt Name, Kategorie, Portionen und Zutaten soweit er sie erkennt.</p>
+  </div>
+</div>
+
+<div class="gpRecipeFlow" aria-hidden="true">
+  <span><b>1</b> Einfügen</span>
+  <span><b>2</b> Erkennen</span>
+  <span><b>3</b> Prüfen & speichern</span>
+</div>
+
 <div class="recipeImportBox">
   <h3>Rezept einfügen</h3>
   <p>Rezept aus Word, E-Mail, Webseite oder Speiseplan hier einfügen. GastroPilot erkennt Gericht, Portionen, Zutaten, Mengen und Kategorie und trägt alles unten zur Kontrolle ein.</p>
@@ -1999,6 +2477,14 @@ Chili con Carne – 10 Portionen
 <p class="weekPlannerIntro">
 Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jeden Platz legst du die Portionszahl separat fest.
 </p>
+
+<div class="gpWeekSummary">
+  <div class="gpWeekSummaryText">
+    <span>Wochenübersicht</span>
+    <strong id="gpWeekFilledCount">0 von 25 Menüplätzen belegt</strong>
+  </div>
+  <div class="gpWeekSummaryBadge" id="gpWeekPortionTotal">0 Portionen</div>
+</div>
 
 <div id="weekPlannerRows"></div>
 
@@ -5021,11 +5507,41 @@ function renderWeekPlanner(){
         (_,index) => ({slotKey:weekSlotTypes[index].key, recipeName:"", portions:10})
       );
     }
+
     const box = document.createElement("div");
     box.className = "weekDay";
+
+    const header = document.createElement("div");
+    header.className = "gpWeekDayHeader";
+
+    const titleWrap = document.createElement("div");
+    titleWrap.className = "gpWeekDayTitleWrap";
+
     const title = document.createElement("h3");
     title.textContent = day;
-    box.appendChild(title);
+
+    const dayMeta = document.createElement("span");
+    dayMeta.className = "gpWeekDayMeta";
+
+    const updateDayMeta = () => {
+      const filled = weekPlan[day].filter(slot => slot.recipeName).length;
+      const portionsTotal = weekPlan[day].reduce((sum,slot) => {
+        return sum + (slot.recipeName && Number(slot.portions) > 0 ? Number(slot.portions) : 0);
+      },0);
+      dayMeta.textContent = filled + "/5 belegt · " + portionsTotal + " Portionen";
+      updateWeekSummary();
+    };
+
+    titleWrap.appendChild(title);
+    titleWrap.appendChild(dayMeta);
+
+    const dayBadge = document.createElement("div");
+    dayBadge.className = "gpWeekDayBadge";
+    dayBadge.textContent = day.slice(0,2).toUpperCase();
+
+    header.appendChild(titleWrap);
+    header.appendChild(dayBadge);
+    box.appendChild(header);
 
     weekPlan[day].forEach((slot,index) => {
       const row = document.createElement("div");
@@ -5034,9 +5550,22 @@ function renderWeekPlanner(){
       const slotType = weekSlotTypes[index];
       const label = document.createElement("div");
       label.className = "weekMealLabel";
-      label.textContent = slotType.label;
+
+      const slotIcon = document.createElement("span");
+      slotIcon.className = "gpWeekSlotIcon";
+      slotIcon.textContent =
+        slotType.key === "soup" ? "🥣" :
+        slotType.key === "dessert" ? "🍮" : "🍽️";
+
+      const slotText = document.createElement("span");
+      slotText.textContent = slotType.label;
+
+      label.appendChild(slotIcon);
+      label.appendChild(slotText);
 
       const select = document.createElement("select");
+      select.className = "gpWeekRecipeSelect";
+
       const empty = document.createElement("option");
       empty.value = "";
       empty.textContent = slotType.label + " auswählen";
@@ -5054,7 +5583,17 @@ function renderWeekPlanner(){
         option.textContent = recipe.name;
         select.appendChild(option);
       });
+
       select.value = slot.recipeName;
+
+      const portionWrap = document.createElement("div");
+      portionWrap.className = "gpWeekPortionControl";
+
+      const minus = document.createElement("button");
+      minus.type = "button";
+      minus.className = "gpWeekPortionBtn";
+      minus.textContent = "−";
+      minus.setAttribute("aria-label", day + " " + slotType.label + " eine Portion weniger");
 
       const portionsInput = document.createElement("input");
       portionsInput.type = "number";
@@ -5062,12 +5601,38 @@ function renderWeekPlanner(){
       portionsInput.max = "10000";
       portionsInput.inputMode = "numeric";
       portionsInput.value = slot.portions || 10;
-      portionsInput.setAttribute("aria-label", day + " Gericht " + (index + 1) + " Portionen");
+      portionsInput.className = "gpWeekPortionInput";
+      portionsInput.setAttribute("aria-label", day + " " + slotType.label + " Portionen");
+
+      const plus = document.createElement("button");
+      plus.type = "button";
+      plus.className = "gpWeekPortionBtn";
+      plus.textContent = "+";
+      plus.setAttribute("aria-label", day + " " + slotType.label + " eine Portion mehr");
+
+      const commitPortions = value => {
+        const clean = Math.max(1,Math.min(10000,Number(value) || 1));
+        portionsInput.value = clean;
+        weekPlan[day][index].portions = clean;
+        saveWeekPlan();
+        updateWeekCalculation();
+        updateDayMeta();
+      };
+
+      minus.addEventListener("click", () => {
+        commitPortions((Number(portionsInput.value) || 1) - 1);
+      });
+
+      plus.addEventListener("click", () => {
+        commitPortions((Number(portionsInput.value) || 1) + 1);
+      });
 
       select.addEventListener("change", () => {
         weekPlan[day][index].recipeName = select.value;
         saveWeekPlan();
         updateWeekCalculation();
+        updateDayMeta();
+        row.classList.toggle("gpWeekMealFilled", Boolean(select.value));
       });
 
       portionsInput.addEventListener("input", () => {
@@ -5075,18 +5640,50 @@ function renderWeekPlanner(){
         weekPlan[day][index].portions = Number.isFinite(value) && value > 0 ? value : 0;
         saveWeekPlan();
         updateWeekCalculation();
+        updateDayMeta();
       });
+
+      portionWrap.appendChild(minus);
+      portionWrap.appendChild(portionsInput);
+      portionWrap.appendChild(plus);
 
       row.appendChild(label);
       row.appendChild(select);
-      row.appendChild(portionsInput);
+      row.appendChild(portionWrap);
+
+      row.classList.toggle("gpWeekMealFilled", Boolean(select.value));
       box.appendChild(row);
     });
 
+    updateDayMeta();
     weekPlannerRows.appendChild(box);
   });
 
   updateWeekCalculation();
+  updateWeekSummary();
+}
+
+function updateWeekSummary(){
+  const filledEl = document.getElementById("gpWeekFilledCount");
+  const totalEl = document.getElementById("gpWeekPortionTotal");
+  if(!filledEl || !totalEl) return;
+
+  let filled = 0;
+  let portionsTotal = 0;
+
+  weekDays.forEach(day => {
+    (weekPlan[day] || []).forEach(slot => {
+      if(slot.recipeName){
+        filled += 1;
+        if(Number(slot.portions) > 0){
+          portionsTotal += Number(slot.portions);
+        }
+      }
+    });
+  });
+
+  filledEl.textContent = filled + " von " + (weekDays.length * weekSlotsPerDay) + " Menüplätzen belegt";
+  totalEl.textContent = portionsTotal + " Portion" + (portionsTotal === 1 ? "" : "en");
 }
 
 function ingredientCategory(name){
@@ -6145,6 +6742,26 @@ try{
   }else{
     init();
   }
+})();
+</script>
+
+
+<script id="gp-recipe-v47-js">
+(function(){
+  function focusImportIfUseful(){
+    var area=document.getElementById('recipeImportText');
+    var form=document.getElementById('customForm');
+    if(!area) return;
+    if(area.value.trim()) return;
+    if(form && getComputedStyle(form).display!=='none') return;
+    setTimeout(function(){
+      try{ area.focus({preventScroll:true}); }catch(e){}
+    },120);
+  }
+
+  document.querySelectorAll('[data-screen="gerichte"]').forEach(function(btn){
+    btn.addEventListener('click',focusImportIfUseful);
+  });
 })();
 </script>
 
