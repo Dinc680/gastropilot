@@ -1292,6 +1292,326 @@ td{border-color:#edf1ef!important}
 }
 </style>
 
+
+<style id="gp-app-v46">
+:root{
+  --gp6-green:#125b49;
+  --gp6-green-dark:#0d4538;
+  --gp6-green-soft:#e9f4f0;
+  --gp6-bg:#eef3f1;
+  --gp6-card:#ffffff;
+  --gp6-text:#17231f;
+  --gp6-muted:#6b7873;
+  --gp6-line:#dce6e2;
+  --gp6-shadow:0 12px 34px rgba(18,63,50,.08);
+}
+
+/* Gesamte App */
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(circle at 50% -120px,rgba(19,88,71,.12),transparent 310px),
+    var(--gp6-bg)!important;
+}
+main{
+  max-width:940px!important;
+  padding-bottom:110px!important;
+}
+.gpScreenBar{
+  margin-top:18px!important;
+}
+.gpScreenKicker{
+  letter-spacing:.08em!important;
+  text-transform:uppercase;
+  font-size:10px!important;
+  font-weight:850!important;
+  color:var(--gp6-green)!important;
+}
+#gpScreenHeading{
+  letter-spacing:-.6px!important;
+}
+
+/* Aktive Seite wirkt wie eigenständiger App-Screen */
+body.gp-app-ready .appSection.gp-screen-active{
+  animation:gp6In .18s ease-out!important;
+}
+@keyframes gp6In{
+  from{opacity:.35;transform:translateY(5px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.appSection{
+  padding-top:6px!important;
+}
+
+/* Standardfelder */
+.appSection .field{
+  border:1px solid var(--gp6-line)!important;
+  background:var(--gp6-card)!important;
+  box-shadow:0 5px 18px rgba(16,58,46,.045)!important;
+  border-radius:17px!important;
+  padding:13px!important;
+}
+.appSection .field label{
+  font-size:12px!important;
+  font-weight:850!important;
+  color:#44534e!important;
+  margin-bottom:7px!important;
+}
+.appSection input,
+.appSection select,
+.appSection textarea{
+  border-color:#d6e1dd!important;
+  background:#fbfcfc!important;
+  border-radius:13px!important;
+}
+.appSection input:focus,
+.appSection select:focus,
+.appSection textarea:focus{
+  border-color:#78aa99!important;
+  box-shadow:0 0 0 3px rgba(18,91,73,.09)!important;
+}
+
+/* MENgenrechner */
+#mengenrechner .sectionLead{
+  max-width:620px;
+  color:var(--gp6-muted)!important;
+  font-size:14px!important;
+  margin-bottom:18px!important;
+}
+#mengenrechner #searchField{
+  border:1px solid #cfe0da!important;
+  box-shadow:0 9px 28px rgba(19,88,71,.07)!important;
+}
+#mengenrechner #search{
+  font-size:17px!important;
+  font-weight:760!important;
+}
+#mengenrechner #category,
+#mengenrechner #dish{
+  font-size:16px!important;
+  font-weight:720!important;
+}
+
+/* Portionssteuerung */
+.gpPortionField{
+  background:linear-gradient(180deg,#fff,#f9fbfa)!important;
+}
+.gpPortionControl{
+  display:grid;
+  grid-template-columns:52px 1fr 52px;
+  gap:8px;
+  align-items:center;
+}
+.gpPortionControl #portions{
+  text-align:center!important;
+  font-size:22px!important;
+  font-weight:900!important;
+  min-height:52px!important;
+  color:var(--gp6-green-dark)!important;
+}
+.gpPortionRound{
+  min-height:52px!important;
+  height:52px!important;
+  padding:0!important;
+  border-radius:15px!important;
+  font-size:26px!important;
+  font-weight:600!important;
+  background:var(--gp6-green-soft)!important;
+  color:var(--gp6-green)!important;
+  box-shadow:none!important;
+  border:1px solid #d4e7e0!important;
+}
+.gpPortionPresets{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:7px;
+  margin-top:9px;
+}
+.gpPortionPresets button{
+  min-height:36px!important;
+  padding:6px!important;
+  border-radius:11px!important;
+  background:#f2f6f4!important;
+  color:#496159!important;
+  border:1px solid #e0e8e5!important;
+  box-shadow:none!important;
+  font-size:12px!important;
+  font-weight:800!important;
+}
+.gpPortionPresets button.gpPresetActive{
+  background:var(--gp6-green)!important;
+  color:#fff!important;
+  border-color:var(--gp6-green)!important;
+}
+
+/* Hauptaktion */
+#mengenrechner #calculate{
+  min-height:56px!important;
+  border-radius:17px!important;
+  font-size:16px!important;
+  font-weight:900!important;
+  background:linear-gradient(135deg,var(--gp6-green),#1f7a64)!important;
+  box-shadow:0 12px 24px rgba(19,88,71,.20)!important;
+  margin:4px 0 0!important;
+}
+
+/* Ergebnis wie eigener App-Bereich */
+#mengenrechner .result{
+  margin-top:24px!important;
+  padding:17px!important;
+  border:1px solid rgba(19,88,71,.08)!important;
+  border-radius:22px!important;
+  background:#fff!important;
+  box-shadow:var(--gp6-shadow)!important;
+}
+#mengenrechner #resultTitle{
+  font-size:23px!important;
+  margin-bottom:5px!important;
+}
+#mengenrechner #resultMeta{
+  background:var(--gp6-green-soft);
+  display:inline-flex;
+  padding:6px 10px;
+  border-radius:999px;
+  font-weight:750;
+  color:var(--gp6-green-dark)!important;
+}
+#mengenrechner .priceTableWrap{
+  border-radius:16px!important;
+  overflow:auto!important;
+  border:1px solid var(--gp6-line)!important;
+  margin-top:14px!important;
+}
+#mengenrechner table{
+  margin:0!important;
+}
+#mengenrechner thead th{
+  background:#f4f8f6!important;
+  color:#4d5d57!important;
+  font-size:11px!important;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+#mengenrechner #ingredientRows td:nth-child(2){
+  font-weight:900!important;
+  color:var(--gp6-green)!important;
+}
+#mengenrechner .calculationBox{
+  border-radius:18px!important;
+  background:linear-gradient(180deg,#fbfdfc,#f5f9f7)!important;
+}
+#mengenrechner .calcItem{
+  border:1px solid #e0e8e5!important;
+  background:#fff!important;
+  border-radius:14px!important;
+}
+#mengenrechner .calcValue{
+  color:var(--gp6-green-dark)!important;
+}
+#mengenrechner #addToShoppingList{
+  min-height:54px!important;
+  border-radius:17px!important;
+  font-weight:900!important;
+}
+
+/* Andere Screens bekommen denselben visuellen Qualitätsstandard */
+#gerichte .recipeImportBox,
+#weekPlannerCard .weekDay,
+#shoppingCard #shoppingContent,
+#shoppingCard .shoppingGroup{
+  border-radius:19px!important;
+  border-color:var(--gp6-line)!important;
+  box-shadow:0 7px 23px rgba(16,58,46,.055)!important;
+}
+#gerichte .recipeImportBox{
+  background:linear-gradient(180deg,#fff,#f8fbfa)!important;
+}
+#weekPlannerCard .weekDay{
+  background:#fff!important;
+}
+#shoppingCard #shoppingContent{
+  background:#fff!important;
+}
+
+/* Navigation wie native Tabbar */
+#gpAppNav{
+  padding:7px!important;
+  border-radius:23px!important;
+  border:1px solid rgba(19,88,71,.14)!important;
+  background:rgba(255,255,255,.94)!important;
+  box-shadow:0 16px 40px rgba(18,50,41,.20)!important;
+  padding-bottom:max(7px,env(safe-area-inset-bottom))!important;
+}
+#gpAppNav button{
+  border-radius:17px!important;
+  min-height:58px!important;
+  font-weight:780!important;
+}
+#gpAppNav button.gp-nav-active{
+  background:linear-gradient(180deg,#edf6f3,#e4f1ed)!important;
+  color:var(--gp6-green)!important;
+  box-shadow:inset 0 0 0 1px rgba(19,88,71,.06)!important;
+}
+#gpAppNav button.gp-nav-active .ico{
+  transform:translateY(-1px) scale(1.05);
+}
+
+/* Desktop: Eingabe kompakter */
+@media(min-width:760px){
+  #mengenrechner{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  #mengenrechner > h2,
+  #mengenrechner > .sectionLead,
+  #mengenrechner > #searchField,
+  #mengenrechner > #calculate,
+  #mengenrechner > #deleteRecipe,
+  #mengenrechner > .result{
+    grid-column:1/-1;
+  }
+}
+
+/* iPhone */
+@media(max-width:700px){
+  .gpScreenBar{
+    margin-top:12px!important;
+    padding:0 13px!important;
+  }
+  main{padding-left:12px!important;padding-right:12px!important}
+  .appSection .field{
+    padding:12px!important;
+    border-radius:15px!important;
+  }
+  #mengenrechner .result{
+    margin-top:18px!important;
+    padding:14px!important;
+    border-radius:19px!important;
+  }
+  #mengenrechner #resultTitle{
+    font-size:21px!important;
+  }
+  .gpPortionControl{
+    grid-template-columns:48px 1fr 48px;
+  }
+  .gpPortionRound{
+    height:48px!important;
+    min-height:48px!important;
+  }
+  .gpPortionControl #portions{
+    min-height:48px!important;
+  }
+  #gpAppNav{
+    left:8px!important;
+    right:8px!important;
+    bottom:max(8px,env(safe-area-inset-bottom))!important;
+    width:auto!important;
+    transform:none!important;
+  }
+}
+</style>
+
 </head>
 
 <body>
@@ -1368,17 +1688,28 @@ td{border-color:#edf1ef!important}
   <div class="small" id="count"></div>
 </div>
 
-<div class="field">
+<div class="field gpPortionField">
   <label for="portions">Anzahl Portionen</label>
 
-  <input
-    id="portions"
-    type="number"
-    inputmode="numeric"
-    min="1"
-    max="10000"
-    value="10"
-  >
+  <div class="gpPortionControl">
+    <button type="button" id="gpPortionMinus" class="gpPortionRound" aria-label="Eine Portion weniger">−</button>
+    <input
+      id="portions"
+      type="number"
+      inputmode="numeric"
+      min="1"
+      max="10000"
+      value="10"
+    >
+    <button type="button" id="gpPortionPlus" class="gpPortionRound" aria-label="Eine Portion mehr">+</button>
+  </div>
+
+  <div class="gpPortionPresets" aria-label="Schnelle Portionsauswahl">
+    <button type="button" data-portions="10">10</button>
+    <button type="button" data-portions="25">25</button>
+    <button type="button" data-portions="50">50</button>
+    <button type="button" data-portions="100">100</button>
+  </div>
 </div>
 
 <button id="calculate">
@@ -5728,6 +6059,95 @@ try{
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
 </script>
+
+<script id="gp-app-v46-js">
+(function(){
+  function clampPortions(value){
+    var n = parseInt(value,10);
+    if(!Number.isFinite(n)) n = 1;
+    return Math.max(1,Math.min(10000,n));
+  }
+
+  function refreshPortionUI(){
+    var p=document.getElementById('portions');
+    if(!p) return;
+    var current=String(clampPortions(p.value));
+    document.querySelectorAll('.gpPortionPresets button').forEach(function(btn){
+      btn.classList.toggle('gpPresetActive',btn.dataset.portions===current);
+    });
+  }
+
+  function setPortions(value){
+    var p=document.getElementById('portions');
+    var d=document.getElementById('dish');
+    if(!p) return;
+
+    p.value=clampPortions(value);
+    p.dispatchEvent(new Event('input',{bubbles:true}));
+    p.dispatchEvent(new Event('change',{bubbles:true}));
+
+    if(typeof saveCalculatorState==='function'){
+      saveCalculatorState();
+    }
+
+    if(d && d.value && typeof renderResult==='function'){
+      renderResult();
+    }
+
+    refreshPortionUI();
+  }
+
+  function init(){
+    var p=document.getElementById('portions');
+    var minus=document.getElementById('gpPortionMinus');
+    var plus=document.getElementById('gpPortionPlus');
+
+    if(minus){
+      minus.addEventListener('click',function(){
+        setPortions((parseInt(p.value,10)||1)-1);
+      });
+    }
+    if(plus){
+      plus.addEventListener('click',function(){
+        setPortions((parseInt(p.value,10)||1)+1);
+      });
+    }
+
+    document.querySelectorAll('.gpPortionPresets button').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        setPortions(btn.dataset.portions);
+      });
+    });
+
+    if(p){
+      p.addEventListener('input',function(){
+        refreshPortionUI();
+      });
+      p.addEventListener('change',function(){
+        if(p.value){
+          p.value=clampPortions(p.value);
+        }
+        refreshPortionUI();
+
+        var d=document.getElementById('dish');
+        var r=document.getElementById('result');
+        if(d && d.value && r && getComputedStyle(r).display!=='none' && typeof renderResult==='function'){
+          renderResult();
+        }
+      });
+    }
+
+    refreshPortionUI();
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',init);
+  }else{
+    init();
+  }
+})();
+</script>
+
 </body>
 </html>
   
