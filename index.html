@@ -5341,38 +5341,157 @@ function gpSplitChaoticBlock(block){
   return [text];
 }
 
+
+function gpIsAmountOnly(line){
+  const t = String(line || "").trim();
+  if(!t) return false;
+  const amount = gpAmountTokenPattern();
+  return new RegExp(`^${amount}$`,"i").test(t);
+}
+
+function gpIsUnitOnly(line){
+  const t = String(line || "").trim().replace(/\.$/,"");
+  if(!t) return false;
+  const units = gpUnitAliasPattern();
+  return new RegExp(`^(?:${units})$`,"i").test(t);
+}
+
+function gpIsLikelyDescriptor(line){
+  const t = String(line || "").trim();
+  if(!t) return false;
+  if(gpIsAmountOnly(t) || gpIsUnitOnly(t)) return false;
+  if(isLikelyHeading(t) || isLikelyInstructionLine(t)) return false;
+
+  // Parenthetical / adjective-style descriptions frequently copied as own lines.
+  if(/^\(.+\)$/.test(t)) return true;
+  if(/\(.*\)/.test(t)) return true;
+  if(/^(groß|gross|klein|mittel|rot|grün|gruen|gelb|heiß|heiss|kalt|frisch|geröstet|geroestet|ungesalzen|gehackt|fein|grob|daumengroß|daumengross)\b/i.test(t)) return true;
+
+  return false;
+}
+
+function gpCanonicalUnitFromLine(line){
+  return normalizeImportedUnit(String(line || "").trim());
+}
+
+function gpBuildMultiLineIngredient(amountLine, unitLine, nameLine, descriptorLine){
+  const amount = parseImportedAmountToken(amountLine);
+  if(!Number.isFinite(amount) || amount <= 0) return null;
+
+  let unit = unitLine ? gpCanonicalUnitFromLine(unitLine) : "Stk";
+  let name = cleanImportedIngredientName(nameLine || "");
+  if(!name) return null;
+
+  // Preserve natural piece-unit semantics if the ingredient itself implies one.
+  if(!unitLine){
+    const lower = name.toLowerCase();
+    if(/knoblauchzehen?/.test(lower)){
+      unit = "Zehe";
+      name = name.replace(/knoblauchzehen?/i,"Knoblauch").trim();
+    }
+  }
+
+  if(descriptorLine){
+    name += " – " + cleanImportedIngredientName(descriptorLine);
+  }
+
+  return {
+    name,
+    amount,
+    unit,
+    original:[amountLine, unitLine, nameLine, descriptorLine].filter(Boolean).join(" | "),
+    confidence:"high"
+  };
+}
+
+function gpParseSequentialIngredientLines(text){
+  const cleaned = gpNormalizeRecipeText(text);
+  const lines = cleaned
+    .split(/\n+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const ingredients = [];
+  const unparsed = [];
+  let i = 0;
+
+  while(i < lines.length){
+    const line = lines[i];
+
+    if(isLikelyHeading(line)){
+      i += 1;
+      continue;
+    }
+
+    // Primary pattern:
+    // amount -> optional unit -> ingredient -> optional descriptor
+    if(gpIsAmountOnly(line)){
+      const amountLine = line;
+      let unitLine = null;
+      let nameLine = null;
+      let descriptorLine = null;
+      let cursor = i + 1;
+
+      if(cursor < lines.length && gpIsUnitOnly(lines[cursor])){
+        unitLine = lines[cursor];
+        cursor += 1;
+      }
+
+      if(cursor < lines.length){
+        const candidate = lines[cursor];
+        if(!gpIsAmountOnly(candidate) && !gpIsUnitOnly(candidate) && !isLikelyHeading(candidate)){
+          nameLine = candidate;
+          cursor += 1;
+        }
+      }
+
+      if(nameLine && cursor < lines.length){
+        const candidate = lines[cursor];
+
+        // Descriptor belongs to current ingredient if next line is not a new amount/unit
+        // and looks like a copied adjective / parenthetical note.
+        if(gpIsLikelyDescriptor(candidate)){
+          descriptorLine = candidate;
+          cursor += 1;
+        }
+      }
+
+      const built = gpBuildMultiLineIngredient(amountLine, unitLine, nameLine, descriptorLine);
+
+      if(built){
+        ingredients.push(built);
+        i = cursor;
+        continue;
+      }
+    }
+
+    // Secondary: full ingredient line already intact.
+    const direct = gpRecoverIngredientFromNoise(line);
+    if(direct && direct.confidence !== "low" && direct.amount !== null){
+      ingredients.push(direct);
+      i += 1;
+      continue;
+    }
+
+    // Quantity-less ingredients like "Salz" remain visible for review.
+    if(!isLikelyInstructionLine(line)){
+      unparsed.push(line);
+    }
+
+    i += 1;
+  }
+
+  return {ingredients, unparsed, lines};
+}
+
 function gpRebuildRecipeLines(text){
   const cleaned = gpNormalizeRecipeText(text);
   if(!cleaned) return [];
 
-  let rawLines = cleaned
+  return cleaned
     .split(/\n+/)
     .map(line => line.trim())
     .filter(Boolean);
-
-  const rebuilt = [];
-
-  rawLines.forEach(line => {
-    gpSplitChaoticBlock(line).forEach(chunk => {
-      if(chunk) rebuilt.push(chunk);
-    });
-  });
-
-  // Second pass: split lines with several strong amount/unit anchors even if
-  // they were caused by collapsed original line breaks.
-  const secondPass = [];
-  rebuilt.forEach(line => {
-    gpSplitChaoticBlock(line).forEach(chunk => secondPass.push(chunk));
-  });
-
-  // Deduplicate exact copy/paste duplicates.
-  const seen = new Set();
-  return secondPass.filter(line => {
-    const key = line.toLowerCase().replace(/\s+/g," ").trim();
-    if(!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }
 
 function gpRecoverIngredientFromNoise(line){
@@ -5475,27 +5594,18 @@ function analyzeImportedRecipe(){
   const recipeName = detectRecipeName(lines);
   const portionsDetected = detectRecipePortions(raw);
 
-  const parsed = [];
-  const uncertain = [];
+  const sequential = gpParseSequentialIngredientLines(raw);
+  const parsed = sequential.ingredients.slice();
+  const uncertain = sequential.unparsed.slice();
 
-  lines.forEach(line => {
-    if(!line) return;
-    if(line === recipeName) return;
-    if(isLikelyHeading(line)) return;
-    if(/\b(portionen|personen|pers\.?)\b/i.test(line) && line.split(/\s+/).length <= 7) return;
-    if(isLikelyInstructionLine(line)) return;
-
-    const item = gpRecoverIngredientFromNoise(line);
-    if(!item) return;
-
-    if(item.confidence === "low" || item.amount === null){
-      uncertain.push(item.original || line);
-    }else{
-      parsed.push(item);
-    }
+  // Remove probable title/portion lines from uncertain review.
+  const filteredUncertain = uncertain.filter(line => {
+    if(line === recipeName) return false;
+    if(/\b(portionen|personen|pers\.?)\b/i.test(line)) return false;
+    return true;
   });
 
-  // Remove likely duplicates after messy copy/paste.
+  // Remove duplicates.
   const seen = new Set();
   const ingredients = parsed.filter(item => {
     const key = (item.name + "|" + item.amount + "|" + item.unit).toLowerCase();
@@ -5525,49 +5635,23 @@ function analyzeImportedRecipe(){
     customForm.style.display = "block";
   }
 
-  let rebuildPreview = document.getElementById("gpRebuildPreview");
-  if(!rebuildPreview){
-    rebuildPreview = document.createElement("div");
-    rebuildPreview.id = "gpRebuildPreview";
-    rebuildPreview.className = "gpRebuildPreview";
-    if(recipeImportStatus && recipeImportStatus.parentNode){
-      recipeImportStatus.parentNode.insertBefore(rebuildPreview, recipeImportStatus);
-    }
-  }
-
-  const visibleRebuiltLines = lines.filter(line =>
-    !isLikelyHeading(line) && !isLikelyInstructionLine(line)
-  );
-
-  rebuildPreview.innerHTML =
-    "<strong>Von GastroPilot neu aufgebaut:</strong>" +
-    visibleRebuiltLines.slice(0,14)
-      .map(line => `<span>${escapeHtml(line)}</span>`)
-      .join("") +
-    (visibleRebuiltLines.length > 14
-      ? `<em>+ ${visibleRebuiltLines.length - 14} weitere Zeilen</em>`
-      : "");
-
-  rebuildPreview.style.display = visibleRebuiltLines.length ? "block" : "none";
-
   if(recipeImportStatus){
     if(ingredients.length === 0){
       recipeImportStatus.textContent =
         "Keine sicheren Zutaten erkannt. Bitte den eingefügten Text prüfen.";
       recipeImportStatus.className = "recipeImportStatus gpImportWarn";
     }else{
-      const uncertainText = uncertain.length
-        ? ` · ${uncertain.length} unklare Zeile${uncertain.length === 1 ? "" : "n"} nicht automatisch übernommen`
+      const uncertainText = filteredUncertain.length
+        ? ` · ${filteredUncertain.length} Zeile${filteredUncertain.length === 1 ? "" : "n"} bitte prüfen`
         : "";
 
       recipeImportStatus.textContent =
         `✓ ${ingredients.length} Zutaten erkannt · ${portionsDetected} Portionen · Kategorie ${categoryDetected}${uncertainText}`;
       recipeImportStatus.className =
-        uncertain.length ? "recipeImportStatus gpImportPartial" : "recipeImportStatus gpImportSuccess";
+        filteredUncertain.length ? "recipeImportStatus gpImportPartial" : "recipeImportStatus gpImportSuccess";
     }
   }
 
-  // Make uncertain lines visible instead of silently misreading them.
   let warningBox = document.getElementById("gpImportUncertain");
   if(!warningBox){
     warningBox = document.createElement("div");
@@ -5578,16 +5662,36 @@ function analyzeImportedRecipe(){
     }
   }
 
-  if(uncertain.length){
+  if(filteredUncertain.length){
     warningBox.innerHTML =
-      "<strong>Bitte prüfen:</strong>" +
-      uncertain.slice(0,8).map(line => `<span>${escapeHtml(line)}</span>`).join("") +
-      (uncertain.length > 8 ? `<em>+ ${uncertain.length - 8} weitere Zeilen</em>` : "");
+      "<strong>Bitte prüfen / ohne sichere Menge:</strong>" +
+      filteredUncertain.slice(0,10).map(line => `<span>${escapeHtml(line)}</span>`).join("") +
+      (filteredUncertain.length > 10 ? `<em>+ ${filteredUncertain.length - 10} weitere Zeilen</em>` : "");
     warningBox.style.display = "block";
   }else{
     warningBox.innerHTML = "";
     warningBox.style.display = "none";
   }
+
+  // Show exactly what GP reconstructed.
+  let preview = document.getElementById("gpRebuildPreview");
+  if(!preview){
+    preview = document.createElement("div");
+    preview.id = "gpRebuildPreview";
+    preview.className = "gpRebuildPreview";
+    if(recipeImportStatus && recipeImportStatus.parentNode){
+      recipeImportStatus.parentNode.insertBefore(preview, recipeImportStatus);
+    }
+  }
+
+  preview.innerHTML =
+    "<strong>Erkannte Zutaten:</strong>" +
+    ingredients.slice(0,14).map(item =>
+      `<span>${escapeHtml(String(item.amount))} ${escapeHtml(item.unit)} ${escapeHtml(item.name)}</span>`
+    ).join("") +
+    (ingredients.length > 14 ? `<em>+ ${ingredients.length - 14} weitere Zutaten</em>` : "");
+
+  preview.style.display = ingredients.length ? "block" : "none";
 
   if(customName){
     setTimeout(() => {
