@@ -2149,6 +2149,38 @@ body.gp-app-ready .appSection.gp-screen-active{
 }
 </style>
 
+
+<style id="gp-rebuild-v53-css">
+#gerichte .gpRebuildPreview{
+  display:none;
+  margin-top:10px;
+  padding:11px 12px;
+  border-radius:13px;
+  border:1px solid #d6e6df;
+  background:#f6fbf9;
+  color:#435b52;
+  font-size:11px;
+  line-height:1.42;
+}
+#gerichte .gpRebuildPreview strong{
+  display:block;
+  margin-bottom:6px;
+  color:#135847;
+  font-size:11px;
+}
+#gerichte .gpRebuildPreview span{
+  display:block;
+  padding:4px 0;
+  border-top:1px solid rgba(19,88,71,.07);
+}
+#gerichte .gpRebuildPreview span:first-of-type{border-top:0}
+#gerichte .gpRebuildPreview em{
+  display:block;
+  margin-top:5px;
+  opacity:.7;
+}
+</style>
+
 </head>
 
 <body>
@@ -5209,33 +5241,209 @@ function detectRecipeName(lines){
   return "Eigenes Gericht";
 }
 
-function splitImportedRecipeText(text){
-  let normalized = String(text || "")
-    .replace(/\r/g,"\n")
-    .replace(/\t/g," ")
-    .replace(/[ ]{2,}/g," ")
-    .replace(/\u00a0/g," ");
 
-  // Preserve line breaks but also split semicolon-heavy / bullet-heavy copy-paste
-  normalized = normalized
-    .replace(/\s*[•▪◦‣]\s*/g,"\n")
-    .replace(/\s*;\s*/g,"\n");
+function gpNormalizeRecipeText(text){
+  let s = String(text || "");
 
-  let lines = normalized
-    .split(/\n+/)
-    .map(s => s.trim())
-    .filter(Boolean);
+  // Normalize Unicode spaces, invisible markers, line separators.
+  s = s
+    .replace(/\r\n?/g,"\n")
+    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g," ")
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g,"")
+    .replace(/[\u2028\u2029]/g,"\n")
+    .replace(/[ \t]+/g," ");
 
-  // If copy-paste arrived nearly as one line, split before amount+unit patterns.
-  if(lines.length <= 2){
-    const units = unitPattern();
-    const amountLead = String.raw`(?:\d+(?:[.,]\d+)?|\d+\s*\/\s*\d+|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])`;
-    const splitter = new RegExp(`\\s+(?=${amountLead}\\s*(?:${units})\\b)`, "ig");
-    normalized = normalized.replace(splitter,"\n");
-    lines = normalized.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  // Common bullets, checkboxes, arrows, stars, dingbats and geometric symbols.
+  s = s.replace(
+    /[•·∙⋅▪▫■□▢▣▤▥▦▧▨▩◼◻◆◇◈◉○●◎◦‣⁃⁌⁍☐☑☒✓✔✕✖✗✘➜➤➔➝➞➟➠→⇒►▸▶❯❱★☆✦✧✳✴✶❖☞☛✹✺✻✼✽✾❋❊]+/g,
+    "\n"
+  );
+
+  // HTML-like leftovers from copied pages.
+  s = s
+    .replace(/&nbsp;|&#160;/gi," ")
+    .replace(/&bull;|&#8226;/gi,"\n")
+    .replace(/<br\s*\/?>/gi,"\n")
+    .replace(/<\/?(?:li|ul|ol|p|div|span)[^>]*>/gi,"\n");
+
+  // Normalize separators.
+  s = s
+    .replace(/\s*[|¦]\s*/g,"\n")
+    .replace(/\s*;\s*/g,"\n")
+    .replace(/\n[ \t]+/g,"\n")
+    .replace(/[ \t]+\n/g,"\n")
+    .replace(/\n{3,}/g,"\n\n");
+
+  return s.trim();
+}
+
+function gpAmountTokenPattern(){
+  return String.raw`(?:\d+(?:[.,]\d+)?(?:\s+\d+\s*\/\s*\d+)?|\d+\s*\/\s*\d+|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])`;
+}
+
+function gpUnitAliasPattern(){
+  return unitPattern();
+}
+
+function gpLooksLikeIngredientStart(text){
+  const amount = gpAmountTokenPattern();
+  const units = gpUnitAliasPattern();
+  return new RegExp(
+    `^(?:ca\\.?\\s*|circa\\s*|etwa\\s*|ungefähr\\s*|ungefaehr\\s*)?${amount}(?:\\s*(?:-|–|—|bis)\\s*${amount})?\\s*(?:(?:${units})\\b|[A-Za-zÄÖÜäöüß])`,
+    "i"
+  ).test(String(text || "").trim());
+}
+
+function gpFindIngredientAnchors(text){
+  const amount = gpAmountTokenPattern();
+  const units = gpUnitAliasPattern();
+
+  // Strong anchor: amount + known unit.
+  const strong = new RegExp(
+    `(?:^|\\s)(?:ca\\.?\\s*|circa\\s*|etwa\\s*|ungefähr\\s*|ungefaehr\\s*)?(${amount})(?:\\s*(?:-|–|—|bis)\\s*(${amount}))?\\s*(${units})\\b`,
+    "ig"
+  );
+
+  const anchors = [];
+  let m;
+  while((m = strong.exec(text)) !== null){
+    let index = m.index;
+    if(/\s/.test(text[index])) index += 1;
+    anchors.push(index);
+    if(strong.lastIndex === m.index) strong.lastIndex++;
   }
 
-  return lines;
+  return [...new Set(anchors)].sort((a,b)=>a-b);
+}
+
+function gpSplitChaoticBlock(block){
+  const text = String(block || "").trim();
+  if(!text) return [];
+
+  const anchors = gpFindIngredientAnchors(text);
+
+  if(anchors.length >= 2){
+    const out = [];
+
+    // Preserve meaningful prefix such as recipe title.
+    if(anchors[0] > 0){
+      const prefix = text.slice(0, anchors[0]).trim();
+      if(prefix) out.push(prefix);
+    }
+
+    for(let i=0;i<anchors.length;i++){
+      const chunk = text.slice(anchors[i], anchors[i+1] ?? text.length).trim();
+      if(chunk) out.push(chunk);
+    }
+    return out;
+  }
+
+  return [text];
+}
+
+function gpRebuildRecipeLines(text){
+  const cleaned = gpNormalizeRecipeText(text);
+  if(!cleaned) return [];
+
+  let rawLines = cleaned
+    .split(/\n+/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const rebuilt = [];
+
+  rawLines.forEach(line => {
+    gpSplitChaoticBlock(line).forEach(chunk => {
+      if(chunk) rebuilt.push(chunk);
+    });
+  });
+
+  // Second pass: split lines with several strong amount/unit anchors even if
+  // they were caused by collapsed original line breaks.
+  const secondPass = [];
+  rebuilt.forEach(line => {
+    gpSplitChaoticBlock(line).forEach(chunk => secondPass.push(chunk));
+  });
+
+  // Deduplicate exact copy/paste duplicates.
+  const seen = new Set();
+  return secondPass.filter(line => {
+    const key = line.toLowerCase().replace(/\s+/g," ").trim();
+    if(!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function gpRecoverIngredientFromNoise(line){
+  let text = cleanImportedIngredientName(line);
+  if(!text || isLikelyHeading(text) || isLikelyInstructionLine(text)) return null;
+
+  let direct = parseIngredientLine(text);
+  if(direct && direct.confidence !== "low") return direct;
+
+  const amount = gpAmountTokenPattern();
+  const units = gpUnitAliasPattern();
+
+  // Search amount + unit anywhere, ignoring junk before it.
+  const anywhere = new RegExp(
+    `(${amount})(?:\\s*(?:-|–|—|bis)\\s*(${amount}))?\\s*(${units})\\b`,
+    "i"
+  );
+  const m = text.match(anywhere);
+
+  if(m){
+    const rawAmount = m[2]
+      ? (parseImportedAmountToken(m[1]) + parseImportedAmountToken(m[2])) / 2
+      : parseImportedAmountToken(m[1]);
+    const rawUnit = m[3];
+    const factor = importedUnitFactor(rawUnit);
+    const finalAmount = rawAmount * factor;
+
+    const before = text.slice(0, m.index).trim();
+    const after = text.slice((m.index || 0) + m[0].length).trim();
+
+    // Prefer text after amount/unit as ingredient name.
+    // If empty, use meaningful text before it.
+    let name = cleanImportedIngredientName(after || before);
+
+    // Remove obvious labels still attached after copy/paste.
+    name = name
+      .replace(/^(zutaten?|ingredient(?:s)?|menge|anzahl)\s*[:\-]?\s*/i,"")
+      .trim();
+
+    if(Number.isFinite(finalAmount) && finalAmount > 0 && name){
+      return {
+        name: preserveImportedCountMeaning(name, rawUnit),
+        amount: finalAmount,
+        unit: normalizeImportedUnit(rawUnit),
+        original: line,
+        confidence: "medium"
+      };
+    }
+  }
+
+  // Piece-count fallback: "2 Zwiebeln", "6 Eier", etc.
+  const piece = new RegExp(`^(${amount})\\s+(.+)$`,"i").exec(text);
+  if(piece){
+    const value = parseImportedAmountToken(piece[1]);
+    const name = cleanImportedIngredientName(piece[2]);
+    if(Number.isFinite(value) && value > 0 && name && !isLikelyInstructionLine(name)){
+      return {
+        name,
+        amount:value,
+        unit:"Stk",
+        original:line,
+        confidence:"medium"
+      };
+    }
+  }
+
+  return direct;
+}
+
+function splitImportedRecipeText(text){
+  return gpRebuildRecipeLines(text);
 }
 
 function fillCustomIngredientsFromImport(ingredients){
@@ -5277,7 +5485,7 @@ function analyzeImportedRecipe(){
     if(/\b(portionen|personen|pers\.?)\b/i.test(line) && line.split(/\s+/).length <= 7) return;
     if(isLikelyInstructionLine(line)) return;
 
-    const item = parseIngredientLine(line);
+    const item = gpRecoverIngredientFromNoise(line);
     if(!item) return;
 
     if(item.confidence === "low" || item.amount === null){
@@ -5316,6 +5524,31 @@ function analyzeImportedRecipe(){
   if(customForm){
     customForm.style.display = "block";
   }
+
+  let rebuildPreview = document.getElementById("gpRebuildPreview");
+  if(!rebuildPreview){
+    rebuildPreview = document.createElement("div");
+    rebuildPreview.id = "gpRebuildPreview";
+    rebuildPreview.className = "gpRebuildPreview";
+    if(recipeImportStatus && recipeImportStatus.parentNode){
+      recipeImportStatus.parentNode.insertBefore(rebuildPreview, recipeImportStatus);
+    }
+  }
+
+  const visibleRebuiltLines = lines.filter(line =>
+    !isLikelyHeading(line) && !isLikelyInstructionLine(line)
+  );
+
+  rebuildPreview.innerHTML =
+    "<strong>Von GastroPilot neu aufgebaut:</strong>" +
+    visibleRebuiltLines.slice(0,14)
+      .map(line => `<span>${escapeHtml(line)}</span>`)
+      .join("") +
+    (visibleRebuiltLines.length > 14
+      ? `<em>+ ${visibleRebuiltLines.length - 14} weitere Zeilen</em>`
+      : "");
+
+  rebuildPreview.style.display = visibleRebuiltLines.length ? "block" : "none";
 
   if(recipeImportStatus){
     if(ingredients.length === 0){
@@ -7227,6 +7460,22 @@ document.addEventListener("DOMContentLoaded", function(){
       gpFillUnitSelect(select, select.value || "g");
     }
   });
+});
+</script>
+
+
+<script id="gp-rebuild-v53-clear">
+document.addEventListener("DOMContentLoaded", function(){
+  const clearBtn = document.getElementById("clearRecipeImport");
+  if(clearBtn){
+    clearBtn.addEventListener("click", function(){
+      const preview = document.getElementById("gpRebuildPreview");
+      if(preview){
+        preview.innerHTML = "";
+        preview.style.display = "none";
+      }
+    });
+  }
 });
 </script>
 
