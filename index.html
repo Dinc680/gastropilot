@@ -2130,6 +2130,37 @@ body.gp-app-ready .appSection.gp-screen-active{
 }
 </style>
 
+
+<style id="gp-copyclean-v51">
+#gerichte .gpImportCleanPreview{
+  display:none;
+  margin-top:10px;
+  padding:11px 12px;
+  border-radius:13px;
+  border:1px solid #d8e6e1;
+  background:#f7fbf9;
+  color:#435a52;
+  font-size:11px;
+  line-height:1.4;
+}
+#gerichte .gpImportCleanPreview strong{
+  display:block;
+  margin-bottom:6px;
+  color:#135847;
+}
+#gerichte .gpImportCleanPreview span{
+  display:block;
+  padding:3px 0;
+  border-top:1px solid rgba(19,88,71,.06);
+}
+#gerichte .gpImportCleanPreview span:first-of-type{border-top:0}
+#gerichte .gpImportCleanPreview em{
+  display:block;
+  margin-top:5px;
+  opacity:.7;
+}
+</style>
+
 </head>
 
 <body>
@@ -5148,33 +5179,118 @@ function detectRecipeName(lines){
   return "Eigenes Gericht";
 }
 
-function splitImportedRecipeText(text){
-  let normalized = String(text || "")
-    .replace(/\r/g,"\n")
-    .replace(/\t/g," ")
-    .replace(/[ ]{2,}/g," ")
-    .replace(/\u00a0/g," ");
 
-  // Preserve line breaks but also split semicolon-heavy / bullet-heavy copy-paste
-  normalized = normalized
-    .replace(/\s*[•▪◦‣]\s*/g,"\n")
-    .replace(/\s*;\s*/g,"\n");
+function normalizeRecipeCopyPaste(text){
+  let s = String(text || "");
 
-  let lines = normalized
-    .split(/\n+/)
-    .map(s => s.trim())
-    .filter(Boolean);
+  s = s
+    .replace(/\r\n?/g,"\n")
+    .replace(/\u00a0/g," ")
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g,"")
+    .replace(/[\u2028\u2029]/g,"\n")
+    .replace(/[ \t]+/g," ")
+    .replace(/[ ]*\n[ ]*/g,"\n");
 
-  // If copy-paste arrived nearly as one line, split before amount+unit patterns.
-  if(lines.length <= 2){
-    const units = unitPattern();
-    const amountLead = String.raw`(?:\d+(?:[.,]\d+)?|\d+\s*\/\s*\d+|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])`;
-    const splitter = new RegExp(`\\s+(?=${amountLead}\\s*(?:${units})\\b)`, "ig");
-    normalized = normalized.replace(splitter,"\n");
-    lines = normalized.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  const deco = /[•·▪▫■□◼◻◆◇●○◉◎◦‣⁃⁌⁍☐☑☒✓✔✕✖✗✘➜➤➔→►▸▶❯❱★☆✦✧✳✴✶❖]/g;
+  s = s.replace(deco,"\n");
+
+  s = s
+    .split("\n")
+    .map(line => line
+      .replace(/^[\s\-–—*]+/,"")
+      .replace(/\s+/g," ")
+      .trim())
+    .filter(Boolean)
+    .join("\n");
+
+  return s.replace(/\n{3,}/g,"\n\n").trim();
+}
+
+function recoverIngredientChunks(text){
+  const cleaned = normalizeRecipeCopyPaste(text);
+  if(!cleaned) return [];
+
+  const units = unitPattern();
+  const amountLead = String.raw`(?:\d+(?:[.,]\d+)?|\d+\s+\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])`;
+  const startsIngredient = new RegExp(
+    `^${amountLead}(?:\\s*(?:-|–|—|bis)\\s*${amountLead})?\\s*(?:(?:${units})\\b|[A-Za-zÄÖÜäöüß])`,
+    "i"
+  );
+  const embeddedStart = new RegExp(
+    `\\s+(?=${amountLead}(?:\\s*(?:-|–|—|bis)\\s*${amountLead})?\\s*(?:(?:${units})\\b|[A-Za-zÄÖÜäöüß]))`,
+    "ig"
+  );
+
+  const recovered = [];
+
+  cleaned.split(/\n+/).forEach(line => {
+    line.split(/\s*;\s*/).filter(Boolean).forEach(part => {
+      const pieces = part.split(embeddedStart).map(s => s.trim()).filter(Boolean);
+
+      if(pieces.length > 1){
+        pieces.forEach(piece => recovered.push(piece));
+      }else{
+        recovered.push(part.trim());
+      }
+    });
+  });
+
+  return recovered;
+}
+
+function smartRecoverIngredientLine(line){
+  const direct = parseIngredientLine(line);
+  if(direct && direct.confidence !== "low") return direct;
+
+  let text = cleanImportedIngredientName(line);
+  if(!text || isLikelyHeading(text) || isLikelyInstructionLine(text)) return direct;
+
+  text = text.replace(
+    /^[^0-9½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]*(?=(?:\d|½|⅓|⅔|¼|¾|⅕|⅖|⅗|⅘|⅙|⅚|⅛|⅜|⅝|⅞))/,
+    ""
+  ).trim();
+
+  const retry = parseIngredientLine(text);
+  if(retry && retry.confidence !== "low") return retry;
+
+  const units = unitPattern();
+  const amountToken = String.raw`(?:\d+(?:[.,]\d+)?(?:\s+\d+\s*\/\s*\d+)?|\d+\s*\/\s*\d+|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])`;
+  const re = new RegExp(`(${amountToken})\\s*(${units})\\b`, "i");
+  const m = text.match(re);
+
+  if(m){
+    const amountRaw = parseImportedAmountToken(m[1]);
+    const rawUnit = m[2];
+    const amount = amountRaw * importedUnitFactor(rawUnit);
+
+    const before = text.slice(0,m.index).trim();
+    const after = text.slice((m.index || 0) + m[0].length).trim();
+    let name = cleanImportedIngredientName(after || before);
+
+    if(Number.isFinite(amount) && amount > 0 && name){
+      return {
+        name: preserveImportedCountMeaning(name, rawUnit),
+        amount,
+        unit: normalizeImportedUnit(rawUnit),
+        original: line,
+        confidence:"medium"
+      };
+    }
   }
 
-  return lines;
+  return direct;
+}
+
+function splitImportedRecipeText(text){
+  const recovered = recoverIngredientChunks(text);
+
+  const seen = new Set();
+  return recovered.filter(line => {
+    const key = line.toLowerCase().replace(/\s+/g," ").trim();
+    if(!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function fillCustomIngredientsFromImport(ingredients){
@@ -5216,7 +5332,7 @@ function analyzeImportedRecipe(){
     if(/\b(portionen|personen|pers\.?)\b/i.test(line) && line.split(/\s+/).length <= 7) return;
     if(isLikelyInstructionLine(line)) return;
 
-    const item = parseIngredientLine(line);
+    const item = smartRecoverIngredientLine(line);
     if(!item) return;
 
     if(item.confidence === "low" || item.amount === null){
@@ -5255,6 +5371,27 @@ function analyzeImportedRecipe(){
   if(customForm){
     customForm.style.display = "block";
   }
+
+  let cleanPreview = document.getElementById("gpImportCleanPreview");
+  if(!cleanPreview){
+    cleanPreview = document.createElement("div");
+    cleanPreview.id = "gpImportCleanPreview";
+    cleanPreview.className = "gpImportCleanPreview";
+    if(recipeImportStatus && recipeImportStatus.parentNode){
+      recipeImportStatus.parentNode.insertBefore(cleanPreview, recipeImportStatus);
+    }
+  }
+
+  const cleanedLines = lines.filter(line =>
+    !isLikelyHeading(line) &&
+    !isLikelyInstructionLine(line)
+  );
+
+  cleanPreview.innerHTML =
+    "<strong>Bereinigter Import:</strong>" +
+    cleanedLines.slice(0,12).map(line => `<span>${escapeHtml(line)}</span>`).join("") +
+    (cleanedLines.length > 12 ? `<em>+ ${cleanedLines.length - 12} weitere Zeilen</em>` : "");
+  cleanPreview.style.display = cleanedLines.length ? "block" : "none";
 
   if(recipeImportStatus){
     if(ingredients.length === 0){
