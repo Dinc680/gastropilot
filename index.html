@@ -2181,6 +2181,10 @@ body.gp-app-ready .appSection.gp-screen-active{
 }
 </style>
 
+<style id="gp-v60-import-css">
+.gpImportV6Hint{margin:10px 0 0;font-size:13px;line-height:1.45;color:var(--muted)}
+#gpRebuildPreview small{opacity:.72;font-size:11px}
+</style>
 </head>
 
 <body>
@@ -2481,7 +2485,7 @@ berechnet werden wie die vorhandenen Gerichte.
 </div>
 
 <div class="gpUnitReference">
-  <strong>Unterstützte Mengen · Import-Fix V5.5:</strong>
+  <strong>Unterstützte Mengen · Struktur-Importer V6.0:</strong>
   <span>g · kg · ml · l · Stk · EL · TL · Msp · Prise · Bund · Stängel · Zweig · Zehe · Blatt · Scheibe · Dose · Packung · Becher · Glas · Flasche · Handvoll · Schuss · Spritzer</span>
 </div>
 
@@ -5623,148 +5627,266 @@ function fillCustomIngredientsFromImport(ingredients){
   });
 }
 
-function analyzeImportedRecipe(){
-  const raw = recipeImportText ? String(recipeImportText.value || "").trim() : "";
 
-  if(!raw){
-    if(recipeImportStatus){
-      recipeImportStatus.style.display = "block";
-      recipeImportStatus.textContent = "Bitte zuerst ein Rezept einfügen.";
-      recipeImportStatus.className = "recipeImportStatus gpImportWarn";
+function gpV6Normalize(text){
+  return String(text||"")
+    .replace(/\r\n?/g,"\n")
+    .replace(/&nbsp;|&#160;/gi," ")
+    .replace(/&bull;|&#8226;/gi,"\n")
+    .replace(/<br\s*\/?>/gi,"\n")
+    .replace(/<\/?(?:li|ul|ol|p|div|span|td|th|tr)[^>]*>/gi,"\n")
+    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g," ")
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g,"")
+    .replace(/[\u2028\u2029]/g,"\n")
+    .replace(/[•·∙⋅▪▫■□▢▣▤▥▦▧▨▩◼◻◆◇◈◉○●◎◦‣⁃⁌⁍☐☑☒✓✔✕✖✗✘➜➤➔➝➞➟➠→⇒►▸▶❯❱★☆✦✧✳✴✶❖☞☛✹✺✻✼✽✾❋❊]+/g,"\n")
+    .replace(/[|¦]+/g,"\n")
+    .replace(/\s*;\s*/g,"\n")
+    .replace(/[ \t]+/g," ")
+    .replace(/\n[ \t]+|[ \t]+\n/g,"\n")
+    .replace(/\n{3,}/g,"\n\n")
+    .trim();
+}
+
+function gpV6Amount(text){
+  const t=String(text||"").trim().replace(/^(?:ca\.?|circa|etwa|ungefähr)\s*/i,"");
+  const f={"½":.5,"⅓":1/3,"⅔":2/3,"¼":.25,"¾":.75,"⅕":.2,"⅖":.4,"⅗":.6,"⅘":.8,"⅙":1/6,"⅚":5/6,"⅛":.125,"⅜":.375,"⅝":.625,"⅞":.875};
+  if(Object.prototype.hasOwnProperty.call(f,t)) return f[t];
+  const x=t.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if(x&&Number(x[2])!==0) return Number(x[1])/Number(x[2]);
+  const r=t.match(/^(\d+(?:[.,]\d+)?)\s*[-–]\s*(\d+(?:[.,]\d+)?)$/);
+  if(r) return (Number(r[1].replace(",","."))+Number(r[2].replace(",",".")))/2;
+  if(/^\d+(?:[.,]\d+)?$/.test(t)) return Number(t.replace(",","."));
+  return null;
+}
+
+function gpV6Unit(text){
+  const t=String(text||"").trim().replace(/\.$/,"").toLowerCase();
+  const m={
+    "g":"g","gramm":"g","kg":"kg","kilogramm":"kg","ml":"ml","milliliter":"ml",
+    "l":"l","liter":"l","el":"EL","esslöffel":"EL","essloeffel":"EL",
+    "tl":"TL","teelöffel":"TL","teeloeffel":"TL","msp":"Msp","ms":"Msp",
+    "messerspitze":"Msp","prise":"Prise","prisen":"Prise","bund":"Bund",
+    "stängel":"Stängel","staengel":"Stängel","stiel":"Stängel","stiele":"Stängel",
+    "zweig":"Zweig","zweige":"Zweig","zehe":"Zehe","zehen":"Zehe","blatt":"Blatt",
+    "blätter":"Blatt","blaetter":"Blatt","scheibe":"Scheibe","scheiben":"Scheibe",
+    "dose":"Dose","dosen":"Dose","packung":"Packung","packungen":"Packung",
+    "päckchen":"Packung","paeckchen":"Packung","becher":"Becher","glas":"Glas",
+    "gläser":"Glas","glaeser":"Glas","flasche":"Flasche","flaschen":"Flasche",
+    "handvoll":"Handvoll","schuss":"Schuss","spritzer":"Spritzer","stk":"Stk",
+    "stück":"Stk","stueck":"Stk"
+  };
+  return m[t]||null;
+}
+
+function gpV6Noise(text){
+  const t=String(text||"").trim();
+  return !t || /^(?:zutaten|zubereitung|anleitung|portionen?|personen?|ingredients?|instructions?|methode|method|mehr anzeigen|weniger anzeigen|drucken|teilen|merken|speichern|bewerten|werbung|anzeige)$/i.test(t) || /^https?:\/\//i.test(t);
+}
+
+function gpV6Descriptor(text){
+  const t=String(text||"").trim();
+  if(!t||gpV6Amount(t)!==null||gpV6Unit(t)) return false;
+  return /^\(.+\)$/.test(t) ||
+    /\([^)]*(?:g|kg|ml|l|cm|mm|ca\.?|circa)[^)]*\)/i.test(t) ||
+    /^(?:groß|gross|klein|mittel|rot|grün|gruen|gelb|heiß|heiss|kalt|frisch|geröstet|geroestet|ungesalzen|gesalzen|gehackt|fein|grob|daumengroß|daumengross|geschält|geschaelt|gewürfelt|gewuerfelt|optional)(?:\s|$|\()/i.test(t);
+}
+
+function gpV6Natural(name){
+  const n=String(name||"").trim();
+  if(/^knoblauchzehen?$/i.test(n)) return {unit:"Zehe",name:"Knoblauch"};
+  return {unit:"Stk",name:n};
+}
+
+function gpV6Lex(text){
+  const normalized=gpV6Normalize(text);
+  const lines=normalized.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  const tokens=[];
+  lines.forEach((line,index)=>{
+    if(gpV6Noise(line)){ tokens.push({type:"noise",raw:line,line:index}); return; }
+    const a=gpV6Amount(line);
+    if(a!==null){ tokens.push({type:"amount",value:a,raw:line,line:index}); return; }
+    const u=gpV6Unit(line);
+    if(u){ tokens.push({type:"unit",value:u,raw:line,line:index}); return; }
+
+    const full=line.match(/^(?:ca\.?\s*)?(\d+(?:[.,]\d+)?|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])\s+([A-Za-zÄÖÜäöüß]+)\s+(.+)$/);
+    if(full){
+      const aa=gpV6Amount(full[1]), uu=gpV6Unit(full[2]);
+      if(aa!==null&&uu){
+        tokens.push({type:"amount",value:aa,raw:full[1],line:index});
+        tokens.push({type:"unit",value:uu,raw:full[2],line:index});
+        tokens.push({type:"text",raw:full[3].trim(),line:index});
+        return;
+      }
     }
+
+    const an=line.match(/^(\d+(?:[.,]\d+)?|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])\s+(.+)$/);
+    if(an){
+      const aa=gpV6Amount(an[1]);
+      if(aa!==null){
+        tokens.push({type:"amount",value:aa,raw:an[1],line:index});
+        tokens.push({type:"text",raw:an[2].trim(),line:index});
+        return;
+      }
+    }
+
+    tokens.push({type:gpV6Descriptor(line)?"descriptor":"text",raw:line,line:index});
+  });
+  return {normalized,lines,tokens};
+}
+
+function gpV6Reconstruct(text){
+  const lexed=gpV6Lex(text), tokens=lexed.tokens, used=new Set(), ingredients=[], review=[];
+
+  // Forward: amount -> optional unit -> ingredient. Line breaks are not required.
+  for(let i=0;i<tokens.length;i++){
+    if(tokens[i].type!=="amount"||used.has(i)) continue;
+    let j=i+1;
+    while(j<tokens.length&&tokens[j].type==="noise") j++;
+
+    let unit=null, unitIndex=-1;
+    if(j<tokens.length&&tokens[j].type==="unit"){
+      unit=tokens[j].value; unitIndex=j; j++;
+      while(j<tokens.length&&tokens[j].type==="noise") j++;
+    }
+
+    let nameIndex=-1;
+    for(let k=j;k<Math.min(tokens.length,j+5);k++){
+      if(tokens[k].type==="amount") break;
+      if(tokens[k].type==="text"){ nameIndex=k; break; }
+    }
+    if(nameIndex<0) continue;
+
+    let name=tokens[nameIndex].raw.trim();
+    if(!unit){ const n=gpV6Natural(name); unit=n.unit; name=n.name; }
+
+    let descriptor="";
+    for(let k=nameIndex+1;k<Math.min(tokens.length,nameIndex+3);k++){
+      if(tokens[k].type==="amount"||tokens[k].type==="unit"||tokens[k].type==="text") break;
+      if(tokens[k].type==="descriptor"){ descriptor=tokens[k].raw.trim(); used.add(k); break; }
+    }
+
+    ingredients.push({
+      amount:tokens[i].value, unit:unit||"Stk",
+      name:descriptor?`${name} – ${descriptor}`:name,
+      confidence:unitIndex>=0?"high":"medium"
+    });
+    used.add(i); if(unitIndex>=0) used.add(unitIndex); used.add(nameIndex);
+  }
+
+  // Reverse/table copy: ingredient -> amount -> optional unit.
+  for(let i=0;i<tokens.length;i++){
+    if(used.has(i)||tokens[i].type!=="text") continue;
+    let ai=-1, ui=-1;
+    for(let k=i+1;k<Math.min(tokens.length,i+5);k++){
+      if(used.has(k)) continue;
+      if(tokens[k].type==="amount"){ ai=k; break; }
+      if(tokens[k].type==="text") break;
+    }
+    if(ai<0) continue;
+
+    for(let k=ai+1;k<Math.min(tokens.length,ai+4);k++){
+      if(used.has(k)) continue;
+      if(tokens[k].type==="unit"){ ui=k; break; }
+      if(tokens[k].type==="amount"||tokens[k].type==="text") break;
+    }
+
+    let name=tokens[i].raw.trim(), unit=ui>=0?tokens[ui].value:null;
+    if(!unit){ const n=gpV6Natural(name); unit=n.unit; name=n.name; }
+
+    ingredients.push({
+      amount:tokens[ai].value, unit:unit||"Stk", name,
+      confidence:ui>=0?"medium":"low"
+    });
+    used.add(i); used.add(ai); if(ui>=0) used.add(ui);
+  }
+
+  tokens.forEach((t,i)=>{
+    if(used.has(i)||t.type==="noise"||t.type==="descriptor") return;
+    review.push(t.raw);
+  });
+
+  const seen=new Set();
+  const unique=ingredients.filter(x=>{
+    const key=`${x.amount}|${x.unit}|${x.name}`.toLowerCase();
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+
+  return {ingredients:unique,review:[...new Set(review)],normalized:lexed.normalized,tokens};
+}
+
+function analyzeImportedRecipe(){
+  const raw=recipeImportText?String(recipeImportText.value||"").trim():"";
+  if(!raw){
+    recipeImportStatus.style.display="block";
+    recipeImportStatus.textContent="Bitte zuerst ein Rezept einfügen.";
+    recipeImportStatus.className="recipeImportStatus gpImportWarn";
     return;
   }
 
-  let ingredients = [];
-  let uncertain = [];
-  let parserError = "";
-
-  try{
-    const sequential = gpParseSequentialIngredientLines(raw);
-    ingredients = Array.isArray(sequential.ingredients) ? sequential.ingredients : [];
-    uncertain = Array.isArray(sequential.unparsed) ? sequential.unparsed : [];
-  }catch(error){
-    parserError = error && error.message ? error.message : String(error);
+  let result;
+  try{ result=gpV6Reconstruct(raw); }
+  catch(error){
+    recipeImportStatus.style.display="block";
+    recipeImportStatus.textContent="Importfehler: "+(error?.message||String(error));
+    recipeImportStatus.className="recipeImportStatus gpImportWarn";
+    return;
   }
 
-  // IMPORTANT: populate ingredient rows immediately.
-  // Recipe name/category/portion detection is secondary and must never block this.
+  const ingredients=result.ingredients||[], review=result.review||[];
+  fillCustomIngredientsFromImport(ingredients);
+  if(customForm) customForm.style.display="block";
+
+  let recipeName="Eigenes Gericht", portionsDetected=10, categoryDetected="Vegetarisch";
   try{
-    fillCustomIngredientsFromImport(ingredients);
-  }catch(error){
-    parserError += (parserError ? " | " : "") +
-      "Formular: " + (error && error.message ? error.message : String(error));
-  }
+    recipeName=detectRecipeName((result.normalized||raw).split(/\n+/).map(s=>s.trim()).filter(Boolean))||"Eigenes Gericht";
+  }catch(e){}
+  try{ portionsDetected=detectRecipePortions(raw)||10; }catch(e){}
+  try{ categoryDetected=inferRecipeCategory(recipeName,ingredients.map(x=>x.name))||"Vegetarisch"; }catch(e){}
 
-  if(customForm){
-    customForm.style.display = "block";
-  }
-
-  let recipeName = "Eigenes Gericht";
-  let portionsDetected = 10;
-  let categoryDetected = "Vegetarisch";
-
-  try{
-    const lines = splitImportedRecipeText(raw);
-    recipeName = detectRecipeName(lines) || "Eigenes Gericht";
-  }catch(error){}
-
-  try{
-    portionsDetected = detectRecipePortions(raw) || 10;
-  }catch(error){}
-
-  try{
-    categoryDetected = inferRecipeCategory(
-      recipeName,
-      ingredients.map(item => item.name)
-    ) || "Vegetarisch";
-  }catch(error){}
-
-  if(customName) customName.value = recipeName;
-  if(customBase) customBase.value = portionsDetected;
-
+  if(customName) customName.value=recipeName;
+  if(customBase) customBase.value=portionsDetected;
   if(customCategory){
-    const values = Array.from(customCategory.options).map(o => o.value);
-    if(values.includes(categoryDetected)) customCategory.value = categoryDetected;
+    const values=[...customCategory.options].map(o=>o.value);
+    if(values.includes(categoryDetected)) customCategory.value=categoryDetected;
   }
 
-  // Remove obvious title / portions from review list.
-  const filteredUncertain = uncertain.filter(line => {
-    if(!line) return false;
-    if(line === recipeName) return false;
-    if(/\b(portionen|personen|pers\.?)\b/i.test(line)) return false;
-    return true;
-  });
-
-  if(recipeImportStatus){
-    recipeImportStatus.style.display = "block";
-
-    if(parserError){
-      recipeImportStatus.textContent =
-        ingredients.length
-          ? `✓ ${ingredients.length} Zutaten erkannt. Hinweis: ${parserError}`
-          : `Importfehler: ${parserError}`;
-      recipeImportStatus.className =
-        ingredients.length ? "recipeImportStatus gpImportPartial" : "recipeImportStatus gpImportWarn";
-    }else if(ingredients.length){
-      recipeImportStatus.textContent =
-        `✓ ${ingredients.length} Zutaten erkannt und ins Formular übernommen.` +
-        (filteredUncertain.length ? ` ${filteredUncertain.length} Zeile(n) bitte prüfen.` : "");
-      recipeImportStatus.className =
-        filteredUncertain.length ? "recipeImportStatus gpImportPartial" : "recipeImportStatus gpImportSuccess";
-    }else{
-      recipeImportStatus.textContent =
-        "Keine Zutaten erkannt. Der Originaltext bleibt unverändert – bitte prüfen.";
-      recipeImportStatus.className = "recipeImportStatus gpImportWarn";
-    }
-  }
-
-  let warningBox = document.getElementById("gpImportUncertain");
-  if(!warningBox){
-    warningBox = document.createElement("div");
-    warningBox.id = "gpImportUncertain";
-    warningBox.className = "gpImportUncertain";
-    if(recipeImportStatus && recipeImportStatus.parentNode){
-      recipeImportStatus.parentNode.insertBefore(warningBox, recipeImportStatus.nextSibling);
-    }
-  }
-
-  if(filteredUncertain.length){
-    warningBox.innerHTML =
-      "<strong>Bitte prüfen / ohne sichere Menge:</strong>" +
-      filteredUncertain.slice(0,12)
-        .map(line => `<span>${escapeHtml(line)}</span>`)
-        .join("") +
-      (filteredUncertain.length > 12
-        ? `<em>+ ${filteredUncertain.length - 12} weitere Zeilen</em>`
-        : "");
-    warningBox.style.display = "block";
-  }else{
-    warningBox.innerHTML = "";
-    warningBox.style.display = "none";
-  }
-
-  let preview = document.getElementById("gpRebuildPreview");
-  if(!preview){
-    preview = document.createElement("div");
-    preview.id = "gpRebuildPreview";
-    preview.className = "gpRebuildPreview";
-    if(recipeImportStatus && recipeImportStatus.parentNode){
-      recipeImportStatus.parentNode.insertBefore(preview, recipeImportStatus);
-    }
-  }
-
+  recipeImportStatus.style.display="block";
   if(ingredients.length){
-    preview.innerHTML =
-      "<strong>Von GastroPilot erkannt:</strong>" +
-      ingredients.map(item =>
-        `<span>${escapeHtml(String(item.amount))} ${escapeHtml(item.unit)} ${escapeHtml(item.name)}</span>`
-      ).join("");
-    preview.style.display = "block";
+    recipeImportStatus.textContent=`✓ ${ingredients.length} Zutaten rekonstruiert`+
+      (review.length?` · ${review.length} Einträge bitte prüfen`:"");
+    recipeImportStatus.className=review.length?"recipeImportStatus gpImportPartial":"recipeImportStatus gpImportSuccess";
   }else{
-    preview.innerHTML = "";
-    preview.style.display = "none";
+    recipeImportStatus.textContent="Keine sichere Zuordnung möglich. GastroPilot hat nichts geraten.";
+    recipeImportStatus.className="recipeImportStatus gpImportWarn";
   }
+
+  let preview=document.getElementById("gpRebuildPreview");
+  if(!preview){
+    preview=document.createElement("div");
+    preview.id="gpRebuildPreview";
+    preview.className="gpRebuildPreview";
+    recipeImportStatus.parentNode.insertBefore(preview,recipeImportStatus);
+  }
+  preview.innerHTML=ingredients.length?
+    "<strong>Rekonstruiert:</strong>"+
+    ingredients.map(x=>`<span>${escapeHtml(String(x.amount))} ${escapeHtml(x.unit)} ${escapeHtml(x.name)} <small>(${x.confidence==="high"?"sicher":x.confidence==="medium"?"wahrscheinlich":"prüfen"})</small></span>`).join("")
+    :"";
+  preview.style.display=ingredients.length?"block":"none";
+
+  let warning=document.getElementById("gpImportUncertain");
+  if(!warning){
+    warning=document.createElement("div");
+    warning.id="gpImportUncertain";
+    warning.className="gpImportUncertain";
+    recipeImportStatus.parentNode.insertBefore(warning,recipeImportStatus.nextSibling);
+  }
+  warning.innerHTML=review.length?
+    "<strong>Nicht automatisch zugeordnet:</strong>"+
+    review.slice(0,16).map(x=>`<span>${escapeHtml(x)}</span>`).join("")+
+    (review.length>16?`<em>+ ${review.length-16} weitere</em>`:"")
+    :"";
+  warning.style.display=review.length?"block":"none";
 }
 
 analyzeRecipeText.addEventListener("click", analyzeImportedRecipe);
