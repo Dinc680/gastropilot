@@ -4444,7 +4444,8 @@ function updatePriceCalculation(){
    BERECHNUNG
 ===================================================== */
 
-function renderResult(){
+function renderResult(options){
+  const shouldScroll = !(options && options.scroll === false);
 
   const selected =
   allRecipes().find(
@@ -4567,10 +4568,12 @@ function renderResult(){
   updatePriceCalculation();
 
 
-  result.scrollIntoView({
-    behavior:"smooth",
-    block:"start"
-  });
+  if(shouldScroll){
+    result.scrollIntoView({
+      behavior:"smooth",
+      block:"start"
+    });
+  }
 
 }/* =====================================================
    ZUTATENZEILEN EIGENES GERICHT
@@ -6688,7 +6691,7 @@ try{
     }
 
     if(d && d.value && typeof renderResult==='function'){
-      renderResult();
+      renderResult({scroll:false});
     }
 
     refreshPortionUI();
@@ -6729,7 +6732,7 @@ try{
         var d=document.getElementById('dish');
         var r=document.getElementById('result');
         if(d && d.value && r && getComputedStyle(r).display!=='none' && typeof renderResult==='function'){
-          renderResult();
+          renderResult({scroll:false});
         }
       });
     }
