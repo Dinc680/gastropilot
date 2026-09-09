@@ -2439,6 +2439,7 @@ body.gp-app-ready .appSection.gp-screen-active{
 <option value="Handvoll">Handvoll</option>
 <option value="Schuss">Schuss</option>
 <option value="Spritzer">Spritzer</option>
+<option value="Kästchen">Kästchen</option>
 </select>
 
       </div>
@@ -2485,7 +2486,7 @@ berechnet werden wie die vorhandenen Gerichte.
 </div>
 
 <div class="gpUnitReference">
-  <strong>Unterstützte Mengen · Struktur-Importer V6.0:</strong>
+  <strong>Unterstützte Mengen · Realtest-Importer V6.1:</strong>
   <span>g · kg · ml · l · Stk · EL · TL · Msp · Prise · Bund · Stängel · Zweig · Zehe · Blatt · Scheibe · Dose · Packung · Becher · Glas · Flasche · Handvoll · Schuss · Spritzer</span>
 </div>
 
@@ -2694,7 +2695,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 
 
 <script id="gp-units-v52">
-const gpKitchenUnits = ["g","kg","ml","l","Stk","EL","TL","Msp","Prise","Bund","Stängel","Zweig","Zehe","Blatt","Scheibe","Dose","Packung","Becher","Glas","Flasche","Handvoll","Schuss","Spritzer"];
+const gpKitchenUnits = ["g","kg","ml","l","Stk","EL","TL","Msp","Prise","Bund","Stängel","Zweig","Zehe","Blatt","Scheibe","Dose","Packung","Becher","Glas","Flasche","Handvoll","Schuss","Spritzer","Kästchen"];
 function gpFillUnitSelect(select, selected){
   if(!select) return;
   const wanted = selected || select.value || "g";
@@ -4800,6 +4801,7 @@ function createIngredientRow(){
 <option value="Handvoll">Handvoll</option>
 <option value="Schuss">Schuss</option>
 <option value="Spritzer">Spritzer</option>
+<option value="Kästchen">Kästchen</option>
 </select>
 
     <button
@@ -5577,52 +5579,28 @@ function splitImportedRecipeText(text){
 }
 
 function fillCustomIngredientsFromImport(ingredients){
-  if(!customIngredients) return;
+  if(!customIngredients)return;
+  customIngredients.innerHTML="";
+  if(!Array.isArray(ingredients)||ingredients.length===0){createIngredientRow();return;}
 
-  customIngredients.innerHTML = "";
-
-  if(!Array.isArray(ingredients) || ingredients.length === 0){
+  ingredients.forEach(item=>{
     createIngredientRow();
-    return;
-  }
+    const row=customIngredients.lastElementChild;
+    if(!row)return;
+    const nameInput=row.querySelector(".ingredientName");
+    const amountInput=row.querySelector(".ingredientAmount");
+    const unitSelect=row.querySelector(".ingredientUnit");
 
-  ingredients.forEach(item => {
-    createIngredientRow();
-
-    const row = customIngredients.lastElementChild;
-    if(!row) return;
-
-    const nameInput = row.querySelector(".ingredientName");
-    const amountInput = row.querySelector(".ingredientAmount");
-    const unitSelect = row.querySelector(".ingredientUnit");
-
-    if(unitSelect && typeof gpFillUnitSelect === "function"){
-      gpFillUnitSelect(unitSelect, item.unit || "g");
-    }
-
-    if(nameInput){
-      nameInput.value = item.name || "";
-      nameInput.dispatchEvent(new Event("input",{bubbles:true}));
-    }
-
-    if(amountInput){
-      amountInput.value = Number.isFinite(Number(item.amount)) ? item.amount : "";
-      amountInput.dispatchEvent(new Event("input",{bubbles:true}));
-    }
+    if(unitSelect&&typeof gpFillUnitSelect==="function")gpFillUnitSelect(unitSelect,item.unit||"Stk");
+    if(nameInput)nameInput.value=item.name||"";
+    if(amountInput)amountInput.value=(item.amount===null||item.amount===undefined)?"":item.amount;
 
     if(unitSelect){
-      const wanted = item.unit || "g";
-      const exists = Array.from(unitSelect.options).some(option => option.value === wanted);
-
-      if(!exists){
-        const option = document.createElement("option");
-        option.value = wanted;
-        option.textContent = wanted;
-        unitSelect.appendChild(option);
+      const wanted=item.unit||"Stk";
+      if(![...unitSelect.options].some(o=>o.value===wanted)){
+        const o=document.createElement("option");o.value=wanted;o.textContent=wanted;unitSelect.appendChild(o);
       }
-
-      unitSelect.value = wanted;
-      unitSelect.dispatchEvent(new Event("change",{bubbles:true}));
+      unitSelect.value=wanted;
     }
   });
 }
@@ -5660,20 +5638,22 @@ function gpV6Amount(text){
 }
 
 function gpV6Unit(text){
-  const t=String(text||"").trim().replace(/\.$/,"").toLowerCase();
+  let t=String(text||"").trim().replace(/\.$/,"").toLowerCase();
+  t=t.replace(/\/e$/,"").replace(/\(e\)$/,"").replace(/\(n\)$/,"");
   const m={
     "g":"g","gramm":"g","kg":"kg","kilogramm":"kg","ml":"ml","milliliter":"ml",
     "l":"l","liter":"l","el":"EL","esslöffel":"EL","essloeffel":"EL",
     "tl":"TL","teelöffel":"TL","teeloeffel":"TL","msp":"Msp","ms":"Msp",
     "messerspitze":"Msp","prise":"Prise","prisen":"Prise","bund":"Bund",
     "stängel":"Stängel","staengel":"Stängel","stiel":"Stängel","stiele":"Stängel",
-    "zweig":"Zweig","zweige":"Zweig","zehe":"Zehe","zehen":"Zehe","blatt":"Blatt",
-    "blätter":"Blatt","blaetter":"Blatt","scheibe":"Scheibe","scheiben":"Scheibe",
-    "dose":"Dose","dosen":"Dose","packung":"Packung","packungen":"Packung",
-    "päckchen":"Packung","paeckchen":"Packung","becher":"Becher","glas":"Glas",
-    "gläser":"Glas","glaeser":"Glas","flasche":"Flasche","flaschen":"Flasche",
-    "handvoll":"Handvoll","schuss":"Schuss","spritzer":"Spritzer","stk":"Stk",
-    "stück":"Stk","stueck":"Stk"
+    "zweig":"Zweig","zweige":"Zweig","zehe":"Zehe","zehen":"Zehe",
+    "blatt":"Blatt","blätter":"Blatt","blaetter":"Blatt","scheibe":"Scheibe",
+    "scheiben":"Scheibe","dose":"Dose","dosen":"Dose","packung":"Packung",
+    "packungen":"Packung","päckchen":"Packung","paeckchen":"Packung",
+    "becher":"Becher","glas":"Glas","gläser":"Glas","glaeser":"Glas",
+    "flasche":"Flasche","flaschen":"Flasche","handvoll":"Handvoll",
+    "schuss":"Schuss","spritzer":"Spritzer","stk":"Stk","stück":"Stk",
+    "stueck":"Stk","kästchen":"Kästchen","kaestchen":"Kästchen"
   };
   return m[t]||null;
 }
@@ -5687,13 +5667,14 @@ function gpV6Descriptor(text){
   const t=String(text||"").trim();
   if(!t||gpV6Amount(t)!==null||gpV6Unit(t)) return false;
   return /^\(.+\)$/.test(t) ||
-    /\([^)]*(?:g|kg|ml|l|cm|mm|ca\.?|circa)[^)]*\)/i.test(t) ||
-    /^(?:groß|gross|klein|mittel|rot|grün|gruen|gelb|heiß|heiss|kalt|frisch|geröstet|geroestet|ungesalzen|gesalzen|gehackt|fein|grob|daumengroß|daumengross|geschält|geschaelt|gewürfelt|gewuerfelt|optional)(?:\s|$|\()/i.test(t);
+    /\([^)]*(?:g|kg|ml|l|cm|mm|ca\.?|circa|tk)[^)]*\)/i.test(t) ||
+    /^(?:groß|gross|klein|mittel|rot|grün|gruen|gelb|heiß|heiss|kalt|frisch|frische|geröstet|geroestet|ungesalzen|gesalzen|gehackt|fein|grob|daumengroß|daumengross|geschält|geschaelt|gewürfelt|gewuerfelt|optional|glatt|weich|dicke|breite|prinzess|ziegengouda|zum\s|in\s)(?:\s|$|\()/i.test(t);
 }
 
 function gpV6Natural(name){
-  const n=String(name||"").trim();
-  if(/^knoblauchzehen?$/i.test(n)) return {unit:"Zehe",name:"Knoblauch"};
+  let n=String(name||"").trim();
+  n=n.replace(/\(e\)$/i,"").replace(/\(n\)$/i,"").trim();
+  if(/^knoblauchzehe$/i.test(n)) return {unit:"Zehe",name:"Knoblauch"};
   return {unit:"Stk",name:n};
 }
 
@@ -5701,33 +5682,38 @@ function gpV6Lex(text){
   const normalized=gpV6Normalize(text);
   const lines=normalized.split(/\n+/).map(s=>s.trim()).filter(Boolean);
   const tokens=[];
-  lines.forEach((line,index)=>{
-    if(gpV6Noise(line)){ tokens.push({type:"noise",raw:line,line:index}); return; }
-    const a=gpV6Amount(line);
-    if(a!==null){ tokens.push({type:"amount",value:a,raw:line,line:index}); return; }
-    const u=gpV6Unit(line);
-    if(u){ tokens.push({type:"unit",value:u,raw:line,line:index}); return; }
 
-    const full=line.match(/^(?:ca\.?\s*)?(\d+(?:[.,]\d+)?|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])\s+([A-Za-zÄÖÜäöüß]+)\s+(.+)$/);
+  lines.forEach((line,index)=>{
+    if(gpV6Noise(line)){tokens.push({type:"noise",raw:line,line:index});return;}
+
+    // amount + unit only: "150 g", "4 Zweig/e", "1 Kästchen"
+    const au=line.match(/^(?:ca\.?\s*)?(\d+(?:[.,]\d+)?|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])\s+(.+?)$/);
+    if(au){
+      const amount=gpV6Amount(au[1]);
+      const unit=gpV6Unit(au[2]);
+      if(amount!==null && unit){
+        tokens.push({type:"amount",value:amount,raw:au[1],line:index});
+        tokens.push({type:"unit",value:unit,raw:au[2],line:index});
+        return;
+      }
+    }
+
+    // amount + unit + ingredient on one line
+    const full=line.match(/^(?:ca\.?\s*)?(\d+(?:[.,]\d+)?|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])\s+(\S+)\s+(.+)$/);
     if(full){
-      const aa=gpV6Amount(full[1]), uu=gpV6Unit(full[2]);
-      if(aa!==null&&uu){
-        tokens.push({type:"amount",value:aa,raw:full[1],line:index});
-        tokens.push({type:"unit",value:uu,raw:full[2],line:index});
+      const amount=gpV6Amount(full[1]), unit=gpV6Unit(full[2]);
+      if(amount!==null && unit){
+        tokens.push({type:"amount",value:amount,raw:full[1],line:index});
+        tokens.push({type:"unit",value:unit,raw:full[2],line:index});
         tokens.push({type:"text",raw:full[3].trim(),line:index});
         return;
       }
     }
 
-    const an=line.match(/^(\d+(?:[.,]\d+)?|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])\s+(.+)$/);
-    if(an){
-      const aa=gpV6Amount(an[1]);
-      if(aa!==null){
-        tokens.push({type:"amount",value:aa,raw:an[1],line:index});
-        tokens.push({type:"text",raw:an[2].trim(),line:index});
-        return;
-      }
-    }
+    const amount=gpV6Amount(line);
+    if(amount!==null){tokens.push({type:"amount",value:amount,raw:line,line:index});return;}
+    const unit=gpV6Unit(line);
+    if(unit){tokens.push({type:"unit",value:unit,raw:line,line:index});return;}
 
     tokens.push({type:gpV6Descriptor(line)?"descriptor":"text",raw:line,line:index});
   });
@@ -5737,81 +5723,70 @@ function gpV6Lex(text){
 function gpV6Reconstruct(text){
   const lexed=gpV6Lex(text), tokens=lexed.tokens, used=new Set(), ingredients=[], review=[];
 
-  // Forward: amount -> optional unit -> ingredient. Line breaks are not required.
   for(let i=0;i<tokens.length;i++){
     if(tokens[i].type!=="amount"||used.has(i)) continue;
     let j=i+1;
     while(j<tokens.length&&tokens[j].type==="noise") j++;
 
-    let unit=null, unitIndex=-1;
+    let unit=null, ui=-1;
     if(j<tokens.length&&tokens[j].type==="unit"){
-      unit=tokens[j].value; unitIndex=j; j++;
+      unit=tokens[j].value; ui=j; j++;
       while(j<tokens.length&&tokens[j].type==="noise") j++;
     }
 
-    let nameIndex=-1;
-    for(let k=j;k<Math.min(tokens.length,j+5);k++){
+    let ni=-1;
+    for(let k=j;k<Math.min(tokens.length,j+4);k++){
       if(tokens[k].type==="amount") break;
-      if(tokens[k].type==="text"){ nameIndex=k; break; }
+      if(tokens[k].type==="text"){ni=k;break;}
     }
-    if(nameIndex<0) continue;
+    if(ni<0) continue;
 
-    let name=tokens[nameIndex].raw.trim();
-    if(!unit){ const n=gpV6Natural(name); unit=n.unit; name=n.name; }
+    let name=tokens[ni].raw.trim();
+    if(!unit){const n=gpV6Natural(name);unit=n.unit;name=n.name;}
+    else{name=name.replace(/\(e\)$/i,"").replace(/\(n\)$/i,"").trim();}
 
     let descriptor="";
-    for(let k=nameIndex+1;k<Math.min(tokens.length,nameIndex+3);k++){
-      if(tokens[k].type==="amount"||tokens[k].type==="unit"||tokens[k].type==="text") break;
-      if(tokens[k].type==="descriptor"){ descriptor=tokens[k].raw.trim(); used.add(k); break; }
+    const di=ni+1;
+    if(di<tokens.length && tokens[di].type==="descriptor" && !used.has(di)){
+      descriptor=tokens[di].raw.trim(); used.add(di);
     }
 
     ingredients.push({
-      amount:tokens[i].value, unit:unit||"Stk",
+      amount:tokens[i].value,unit:unit||"Stk",
       name:descriptor?`${name} – ${descriptor}`:name,
-      confidence:unitIndex>=0?"high":"medium"
+      confidence:ui>=0?"high":"medium"
     });
-    used.add(i); if(unitIndex>=0) used.add(unitIndex); used.add(nameIndex);
+    used.add(i); if(ui>=0)used.add(ui); used.add(ni);
   }
 
-  // Reverse/table copy: ingredient -> amount -> optional unit.
+  // Remaining plain text is valuable: keep it as a quantityless ingredient.
+  // A descriptor is attached only when our descriptor classifier is confident.
   for(let i=0;i<tokens.length;i++){
-    if(used.has(i)||tokens[i].type!=="text") continue;
-    let ai=-1, ui=-1;
-    for(let k=i+1;k<Math.min(tokens.length,i+5);k++){
-      if(used.has(k)) continue;
-      if(tokens[k].type==="amount"){ ai=k; break; }
-      if(tokens[k].type==="text") break;
+    if(used.has(i)||tokens[i].type==="noise") continue;
+    if(tokens[i].type==="descriptor"){review.push(tokens[i].raw);continue;}
+    if(tokens[i].type==="text"){
+      let name=tokens[i].raw.trim();
+      let descriptor="";
+      if(i+1<tokens.length && !used.has(i+1) && tokens[i+1].type==="descriptor"){
+        descriptor=tokens[i+1].raw.trim(); used.add(i+1);
+      }
+      ingredients.push({
+        amount:null,unit:"Stk",
+        name:descriptor?`${name} – ${descriptor}`:name,
+        confidence:"review"
+      });
+      used.add(i);
+    }else{
+      review.push(tokens[i].raw);
     }
-    if(ai<0) continue;
-
-    for(let k=ai+1;k<Math.min(tokens.length,ai+4);k++){
-      if(used.has(k)) continue;
-      if(tokens[k].type==="unit"){ ui=k; break; }
-      if(tokens[k].type==="amount"||tokens[k].type==="text") break;
-    }
-
-    let name=tokens[i].raw.trim(), unit=ui>=0?tokens[ui].value:null;
-    if(!unit){ const n=gpV6Natural(name); unit=n.unit; name=n.name; }
-
-    ingredients.push({
-      amount:tokens[ai].value, unit:unit||"Stk", name,
-      confidence:ui>=0?"medium":"low"
-    });
-    used.add(i); used.add(ai); if(ui>=0) used.add(ui);
   }
-
-  tokens.forEach((t,i)=>{
-    if(used.has(i)||t.type==="noise"||t.type==="descriptor") return;
-    review.push(t.raw);
-  });
 
   const seen=new Set();
   const unique=ingredients.filter(x=>{
-    const key=`${x.amount}|${x.unit}|${x.name}`.toLowerCase();
-    if(seen.has(key)) return false;
-    seen.add(key); return true;
+    const key=`${x.amount===null?"":x.amount}|${x.unit}|${x.name}`.toLowerCase();
+    if(seen.has(key))return false;
+    seen.add(key);return true;
   });
-
   return {ingredients:unique,review:[...new Set(review)],normalized:lexed.normalized,tokens};
 }
 
@@ -5870,7 +5845,7 @@ function analyzeImportedRecipe(){
   }
   preview.innerHTML=ingredients.length?
     "<strong>Rekonstruiert:</strong>"+
-    ingredients.map(x=>`<span>${escapeHtml(String(x.amount))} ${escapeHtml(x.unit)} ${escapeHtml(x.name)} <small>(${x.confidence==="high"?"sicher":x.confidence==="medium"?"wahrscheinlich":"prüfen"})</small></span>`).join("")
+    ingredients.map(x=>`<span>${x.amount===null?"":escapeHtml(String(x.amount))+" "+escapeHtml(x.unit)+" "}${escapeHtml(x.name)} <small>(${x.confidence==="high"?"sicher":x.confidence==="medium"?"wahrscheinlich":"prüfen"})</small></span>`).join("")
     :"";
   preview.style.display=ingredients.length?"block":"none";
 
