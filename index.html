@@ -2188,6 +2188,14 @@ body.gp-app-ready .appSection.gp-screen-active{
 <style id="gp-haccp-v62-css">
 .gpHaccpHead,.gpHaccpHistoryHead,.gpHaccpEntryTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.gpHaccpHead h2{margin:3px 0}.gpHaccpHead>b{background:var(--green);color:#fff;padding:6px 10px;border-radius:999px}.gpHaccpForm{display:grid;gap:14px}.gpHaccpForm label{display:grid;gap:6px;font-weight:700}.gpHaccpGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.gpEval{padding:12px;border-radius:12px;background:#eef1f0;font-weight:800}.gpEval.ok{background:#e6f5ed}.gpEval.warn{background:#fff0df}.gpHaccpHistoryHead{margin:28px 0 12px;align-items:end}.gpHaccpHistoryHead h3{margin:0}.gpHaccpEntry{border:1px solid var(--border);border-radius:14px;padding:13px;background:#fff;margin-bottom:10px}.gpHaccpEntryTitle{font-weight:800}.gpHaccpTemp{font-size:20px;font-weight:900}.gpHaccpMeta,.gpHaccpAction{font-size:13px;color:var(--muted);margin-top:5px}.gpHaccpStatus{display:inline-block;margin-top:9px;padding:5px 8px;border-radius:999px;font-size:12px;font-weight:800}.gpHaccpStatus.ok{background:#e6f5ed}.gpHaccpStatus.warn{background:#fff0df}.gpHaccpDelete{margin-top:10px}
 </style>
+
+<style id="gp-haccp-navfix-v621">
+#gpAppNav button{min-width:0}
+#gpAppNav button span:last-child{font-size:11px}
+.quickNavInner{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.quickNavInner .gpTopNavButton{flex:0 0 auto}
+</style>
+
 </head>
 
 <body>
@@ -2211,6 +2219,7 @@ body.gp-app-ready .appSection.gp-screen-active{
     <button type="button" class="gpTopNavButton" data-screen="gerichte" data-label="Gericht anlegen">➕ Gericht</button>
     <button type="button" class="gpTopNavButton" data-screen="weekPlannerCard" data-label="Wochenplan">📅 Wochenplan</button>
     <button type="button" class="gpTopNavButton" data-screen="shoppingCard" data-label="Einkaufsliste">🛒 Einkauf</button>
+    <button type="button" class="gpTopNavButton" data-screen="haccpCard" data-label="HACCP">✅ HACCP</button>
   </div>
 </nav>
 
@@ -7561,6 +7570,7 @@ try{
   <button type="button" data-screen="gerichte" data-label="Gericht anlegen"><span class="ico">➕</span><span>Gericht</span></button>
   <button type="button" data-screen="weekPlannerCard" data-label="Wochenplan"><span class="ico">📅</span><span>Woche</span></button>
   <button type="button" data-screen="shoppingCard" data-label="Einkaufsliste"><span class="ico">🛒</span><span>Einkauf</span></button>
+  <button type="button" data-screen="haccpCard" data-label="HACCP"><span class="ico">✅</span><span>HACCP</span></button>
 </nav>
 <script id="gp-appmode-v3-js">
 (function(){
@@ -7595,7 +7605,8 @@ try{
         mengenrechner:'⚖️',
         gerichte:'➕',
         weekPlannerCard:'📅',
-        shoppingCard:'🛒'
+        shoppingCard:'🛒',
+        haccpCard:'✅'
       };
       screenIcon.textContent=icons[id]||'•';
     }
