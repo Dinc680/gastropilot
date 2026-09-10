@@ -2185,6 +2185,9 @@ body.gp-app-ready .appSection.gp-screen-active{
 .gpImportV6Hint{margin:10px 0 0;font-size:13px;line-height:1.45;color:var(--muted)}
 #gpRebuildPreview small{opacity:.72;font-size:11px}
 </style>
+<style id="gp-haccp-v62-css">
+.gpHaccpHead,.gpHaccpHistoryHead,.gpHaccpEntryTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.gpHaccpHead h2{margin:3px 0}.gpHaccpHead>b{background:var(--green);color:#fff;padding:6px 10px;border-radius:999px}.gpHaccpForm{display:grid;gap:14px}.gpHaccpForm label{display:grid;gap:6px;font-weight:700}.gpHaccpGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.gpEval{padding:12px;border-radius:12px;background:#eef1f0;font-weight:800}.gpEval.ok{background:#e6f5ed}.gpEval.warn{background:#fff0df}.gpHaccpHistoryHead{margin:28px 0 12px;align-items:end}.gpHaccpHistoryHead h3{margin:0}.gpHaccpEntry{border:1px solid var(--border);border-radius:14px;padding:13px;background:#fff;margin-bottom:10px}.gpHaccpEntryTitle{font-weight:800}.gpHaccpTemp{font-size:20px;font-weight:900}.gpHaccpMeta,.gpHaccpAction{font-size:13px;color:var(--muted);margin-top:5px}.gpHaccpStatus{display:inline-block;margin-top:9px;padding:5px 8px;border-radius:999px;font-size:12px;font-weight:800}.gpHaccpStatus.ok{background:#e6f5ed}.gpHaccpStatus.warn{background:#fff0df}.gpHaccpDelete{margin-top:10px}
+</style>
 </head>
 
 <body>
@@ -2691,6 +2694,21 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 
 </section>
 
+<section class="card appSection" id="haccpCard">
+<div class="gpHaccpHead"><div><div class="eyebrow">HACCP</div><h2>Temperaturkontrolle</h2><p class="muted">Messungen dokumentieren und Abweichungen nachvollziehbar festhalten.</p></div><b>V1</b></div>
+<div class="gpHaccpForm">
+<label>Kontrollart<select id="haccpType"><option>Kühlung</option><option>Tiefkühlung</option><option>Speisentemperatur</option></select></label>
+<label>Messstelle / Speise<input id="haccpLocation" placeholder="z. B. Kühlschrank 1"></label>
+<div class="gpHaccpGrid"><label>Soll min. °C<input id="haccpMin" type="number" step="0.1" value="2"></label><label>Soll max. °C<input id="haccpMax" type="number" step="0.1" value="7"></label></div>
+<label>Gemessene Temperatur °C<input id="haccpActual" type="number" step="0.1" inputmode="decimal" placeholder="z. B. 5,2"></label>
+<div id="haccpEvaluation" class="gpEval">Temperatur eingeben – GP bewertet automatisch.</div>
+<label id="haccpActionWrap" hidden>Ergriffene Maßnahme<textarea id="haccpAction" rows="3" placeholder="z. B. Ware umgelagert, Kühlung geprüft"></textarea></label>
+<label>Mitarbeiter / Kürzel<input id="haccpEmployee" placeholder="Name oder Kürzel"></label>
+<button id="haccpSave" class="primary" type="button">Messung speichern</button><div id="haccpNotice" class="saveSuccess"></div>
+</div>
+<div class="gpHaccpHistoryHead"><div><h3>HACCP-Verlauf</h3><span id="haccpCount" class="muted">0 Einträge</span></div><button id="haccpClear" class="secondary danger" type="button">Verlauf leeren</button></div>
+<div id="haccpEmpty" class="muted">Noch keine Temperaturmessung gespeichert.</div><div id="haccpHistory"></div>
+</section>
 </main>
 
 
@@ -7546,7 +7564,7 @@ try{
 </nav>
 <script id="gp-appmode-v3-js">
 (function(){
-  var screenIds=['mengenrechner','gerichte','weekPlannerCard','shoppingCard'];
+  var screenIds=['mengenrechner','gerichte','weekPlannerCard','shoppingCard','haccpCard'];
   function showScreen(id,label){
     if(screenIds.indexOf(id)<0 || !document.getElementById(id)){
       id='mengenrechner';
@@ -7745,6 +7763,24 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 </script>
 
+<script id="gp-haccp-v62-js">
+(function(){
+const K="gastropilot_haccp_temperature_v1",$=x=>document.getElementById(x),type=$("haccpType"),loc=$("haccpLocation"),mn=$("haccpMin"),mx=$("haccpMax"),act=$("haccpActual"),ev=$("haccpEvaluation"),aw=$("haccpActionWrap"),action=$("haccpAction"),emp=$("haccpEmployee"),notice=$("haccpNotice"),hist=$("haccpHistory"),empty=$("haccpEmpty"),count=$("haccpCount");
+if(!type)return;
+const preset={Kühlung:[2,7,"z. B. Kühlschrank 1"],Tiefkühlung:[-24,-18,"z. B. Tiefkühler 1"],Speisentemperatur:[65,100,"z. B. Rindergulasch"]};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const load=()=>{try{let a=JSON.parse(localStorage.getItem(K)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}},store=a=>localStorage.setItem(K,JSON.stringify(a));
+const num=e=>{let v=String(e.value||"").replace(",",".");return v===""?null:Number(v)};
+function state(){let a=num(act),lo=num(mn),hi=num(mx);if([a,lo,hi].some(v=>v===null||!Number.isFinite(v)))return null;return{a,lo,hi,ok:a>=Math.min(lo,hi)&&a<=Math.max(lo,hi)}}
+function evaluate(){let s=state();ev.className="gpEval"+(!s?"":s.ok?" ok":" warn");ev.textContent=!s?"Temperatur eingeben – GP bewertet automatisch.":s.ok?"✅ In Ordnung · innerhalb des Sollbereichs":"⚠️ Abweichung · außerhalb des Sollbereichs";aw.hidden=!s||s.ok}
+function render(){let a=load();count.textContent=a.length+" "+(a.length===1?"Eintrag":"Einträge");empty.style.display=a.length?"none":"block";hist.innerHTML=a.map(r=>`<div class="gpHaccpEntry"><div class="gpHaccpEntryTop"><div><div class="gpHaccpEntryTitle">${esc(r.type)} · ${esc(r.location)}</div><div class="gpHaccpMeta">${esc(r.date)} · ${esc(r.employee||"ohne Kürzel")} · Soll ${r.min} bis ${r.max} °C</div></div><div class="gpHaccpTemp">${r.actual} °C</div></div><span class="gpHaccpStatus ${r.ok?"ok":"warn"}">${r.ok?"✅ In Ordnung":"⚠️ Abweichung"}</span>${r.action?`<div class="gpHaccpAction"><strong>Maßnahme:</strong> ${esc(r.action)}</div>`:""}<button type="button" class="secondary gpHaccpDelete" data-haccp-id="${esc(r.id)}">Eintrag löschen</button></div>`).join("")}
+type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];evaluate()});[mn,mx,act].forEach(e=>e.addEventListener("input",evaluate));
+$("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim();if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();a.unshift({id:String(Date.now()),type:type.value,location:place,min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE")});store(a);act.value="";action.value="";notice.textContent="✓ Messung gespeichert.";evaluate();render()});
+hist.addEventListener("click",e=>{let b=e.target.closest("[data-haccp-id]");if(!b)return;store(load().filter(r=>r.id!==b.dataset.haccpId));render()});
+$("haccpClear").addEventListener("click",()=>{if(load().length&&confirm("Gesamten HACCP-Verlauf wirklich löschen?")){localStorage.removeItem(K);render()}});
+evaluate();render();
+})();
+</script>
 </body>
 </html>
   
