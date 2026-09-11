@@ -2258,7 +2258,9 @@ body.gp-app-ready .appSection.gp-screen-active{
 .gpCheckDone{color:#176a4f!important}
 </style>
 
-</head>
+<style id="gp-haccp-components-v65-css">
+.gpHaccpComponents{margin:10px 0;padding:13px;border:2px solid var(--green);border-radius:14px;background:#f8faf9}.gpCompTitle{font-weight:900}.gpCompHint{font-size:12px;margin:3px 0 10px}.gpCompRow{display:grid;grid-template-columns:minmax(0,1fr) 42px;gap:8px;margin-bottom:8px}.gpCompRemove{padding:0!important;min-height:42px;font-size:20px}.gpCompProgress{margin-top:10px;font-weight:900}
+</style></head>
 
 <body>
 
@@ -2776,9 +2778,13 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
     </select>
   </label>
   <div id="haccpMenuHint" class="muted gpHaccpMenuHint"></div>
-</div>
+</div><div id="haccpComponentWrap" class="gpHaccpComponents" hidden>
+<div class="gpCompTitle">Komponenten dieses Gerichts</div><div class="muted gpCompHint">2–5 Komponenten anlegen. Jede Komponente wird einzeln gemessen.</div>
+<div id="haccpComponentList"></div><button id="haccpAddComponent" type="button" class="secondary">+ Komponente</button>
+<div id="haccpComponentProgress" class="gpCompProgress"></div></div>
 <label>Messstelle / Speise<input id="haccpLocation" placeholder="z. B. Kühlschrank 1"></label>
 <div class="gpHaccpGrid"><label>Soll min. °C<input id="haccpMin" type="text" inputmode="decimal" step="0.1" value="2"></label><label>Soll max. °C<input id="haccpMax" type="text" inputmode="decimal" step="0.1" value="7"></label></div>
+<label id="haccpMeasureComponentWrap" hidden>Zu messende Komponente<select id="haccpMeasureComponent"><option value="">Komponente auswählen</option></select></label>
 <label>Gemessene Temperatur °C<input id="haccpActual" type="text" inputmode="decimal" step="0.1"  placeholder="z. B. 5,2"></label>
 <div id="haccpEvaluation" class="gpEval">Temperatur eingeben – GP bewertet automatisch.</div>
 <label id="haccpActionWrap" hidden>Ergriffene Maßnahme<textarea id="haccpAction" rows="3" placeholder="z. B. Ware umgelagert, Kühlung geprüft"></textarea></label>
@@ -7857,10 +7863,30 @@ document.addEventListener("DOMContentLoaded", function(){
 
 <script id="gp-haccp-v62-js">
 (function(){
-const K="gastropilot_haccp_temperature_v1",$=x=>document.getElementById(x),type=$("haccpType"),loc=$("haccpLocation"),mn=$("haccpMin"),mx=$("haccpMax"),act=$("haccpActual"),ev=$("haccpEvaluation"),aw=$("haccpActionWrap"),action=$("haccpAction"),emp=$("haccpEmployee"),notice=$("haccpNotice"),hist=$("haccpHistory"),empty=$("haccpEmpty"),count=$("haccpCount"),menuWrap=$("haccpMenuPickWrap"),menuPick=$("haccpMenuPick"),menuHint=$("haccpMenuHint"),archiveDay=$("haccpArchiveDay"),printDay=$("haccpPrintDay"),todayChecks=$("haccpTodayChecks"),archiveCount=$("haccpArchiveCount");
+const K="gastropilot_haccp_temperature_v1",$=x=>document.getElementById(x),type=$("haccpType"),loc=$("haccpLocation"),mn=$("haccpMin"),mx=$("haccpMax"),act=$("haccpActual"),ev=$("haccpEvaluation"),aw=$("haccpActionWrap"),action=$("haccpAction"),emp=$("haccpEmployee"),notice=$("haccpNotice"),hist=$("haccpHistory"),empty=$("haccpEmpty"),count=$("haccpCount"),menuWrap=$("haccpMenuPickWrap"),menuPick=$("haccpMenuPick"),menuHint=$("haccpMenuHint"),archiveDay=$("haccpArchiveDay"),printDay=$("haccpPrintDay"),todayChecks=$("haccpTodayChecks"),archiveCount=$("haccpArchiveCount"),compWrap=$("haccpComponentWrap"),compList=$("haccpComponentList"),addComp=$("haccpAddComponent"),compProgress=$("haccpComponentProgress"),measureCompWrap=$("haccpMeasureComponentWrap"),measureComp=$("haccpMeasureComponent");
 if(!type)return;
 const preset={Kühlung:[2,7,"z. B. Kühlschrank 1"],Tiefkühlung:[-24,-18,"z. B. Tiefkühler 1"],Speisentemperatur:[65,100,"z. B. Rindergulasch"]};
 const WEEK_KEY="gastropilot_week_plan";
+const COMP_KEY="gastropilot_haccp_components_v1";
+function gpNormName(s){return String(s||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ")}
+function gpLoadComponents(){try{let x=JSON.parse(localStorage.getItem(COMP_KEY)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}}
+function gpSaveComponents(x){localStorage.setItem(COMP_KEY,JSON.stringify(x))}
+function gpComponentsForDish(d){let x=gpLoadComponents(),a=x[gpNormName(d)];return Array.isArray(a)?a:[]}
+function gpSetComponentsForDish(d,a){if(!d)return;let x=gpLoadComponents();x[gpNormName(d)]=a.map(v=>String(v||"").trim()).filter(Boolean).slice(0,5);gpSaveComponents(x)}
+function gpMeasuredComponents(d){
+ const today=gpTodayKey();return new Set(load().filter(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur"&&gpNormName(r.dish||r.location)===gpNormName(d)).map(r=>gpNormName(r.component||r.location)))
+}
+function gpRenderComponents(){
+ if(!compWrap||!compList)return;let dish=menuPick&&menuPick.value?menuPick.value:"",active=type.value==="Speisentemperatur"&&!!dish;compWrap.hidden=!active;
+ if(!active){if(measureCompWrap)measureCompWrap.hidden=true;return}
+ let saved=gpComponentsForDish(dish),display=saved.length?saved:["","",""],measured=gpMeasuredComponents(dish);
+ compList.innerHTML=display.map((c,i)=>`<div class="gpCompRow"><input class="gpCompInput" value="${esc(c)}" placeholder="Komponente ${i+1}, z. B. Fleisch"><button type="button" class="secondary gpCompRemove" data-remove="${i}">×</button></div>`).join("");
+ let real=saved,done=real.filter(c=>measured.has(gpNormName(c))).length;
+ compProgress.textContent=real.length?`${done===real.length?"✅":"🟡"} ${done}/${real.length} Komponenten gemessen`:"Komponenten eintragen.";
+ if(measureCompWrap&&measureComp){measureCompWrap.hidden=!real.length;measureComp.innerHTML='<option value="">Komponente auswählen</option>'+real.map(c=>`<option value="${esc(c)}">${esc(c)}${measured.has(gpNormName(c))?" ✓":""}</option>`).join("")}
+}
+function gpCommitComponents(){if(!menuPick||!menuPick.value)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim()).filter(Boolean);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(load())}
+
 const gpDayNames=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
 
 function gpLoadWeekPlan(){
@@ -7964,13 +7990,10 @@ function gpSelectedRows(rows){
   return rows.filter(r=>gpDateKeyFromRecord(r)===archiveDay.value);
 }
 function gpRenderTodayChecks(rows){
-  if(!todayChecks)return;
-  const info=gpTodayPlanDishes();
-  if(!info.dishes.length){todayChecks.innerHTML="";return}
-  const today=gpTodayKey();
-  const norm=s=>String(s||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");
-  const checked=new Set(rows.filter(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur").map(r=>norm(r.location)));
-  todayChecks.innerHTML=`<strong>Heutige Speisentemperaturen</strong>`+info.dishes.map(d=>{const done=checked.has(norm(d));return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${done?"gpCheckDone":"gpCheckOpen"}">${done?"✅ kontrolliert":"○ noch offen"}</span></div>`}).join("");
+ if(!todayChecks)return;const info=gpTodayPlanDishes();if(!info.dishes.length){todayChecks.innerHTML="";return}
+ const today=gpTodayKey();todayChecks.innerHTML=`<strong>Heutige Speisentemperaturen</strong>`+info.dishes.map(d=>{let comps=gpComponentsForDish(d),measured=new Set(rows.filter(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur"&&gpNormName(r.dish||r.location)===gpNormName(d)).map(r=>gpNormName(r.component||r.location)));
+ if(comps.length){let done=comps.filter(c=>measured.has(gpNormName(c))).length,ok=done===comps.length;return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":`🟡 ${done}/${comps.length} gemessen`}</span></div>`}
+ let ok=rows.some(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur"&&gpNormName(r.location)===gpNormName(d));return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":"○ noch offen"}</span></div>`}).join("")
 }
 function render(){
   const all=load();
@@ -7982,9 +8005,11 @@ function render(){
   empty.textContent=all.length?"Für diesen Tag sind keine Messungen gespeichert.":"Noch keine Temperaturmessung gespeichert.";
   hist.innerHTML=a.map(r=>`<div class="gpHaccpEntry"><div class="gpHaccpEntryTop"><div><div class="gpHaccpEntryTitle">${esc(r.type)} · ${esc(r.location)}</div><div class="gpHaccpMeta">${esc(r.date)} · ${esc(r.employee||"ohne Kürzel")} · Soll ${r.min} bis ${r.max} °C</div></div><div class="gpHaccpTemp">${r.actual} °C</div></div><span class="gpHaccpStatus ${r.ok?"ok":"warn"}">${r.ok?"✅ In Ordnung":"⚠️ Abweichung"}</span>${r.action?`<div class="gpHaccpAction"><strong>Maßnahme:</strong> ${esc(r.action)}</div>`:""}<button type="button" class="secondary gpHaccpDelete" data-haccp-id="${esc(r.id)}">Eintrag löschen</button></div>`).join("");
 }
-type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];gpRefreshMenuPick();evaluate()});if(menuPick){menuPick.addEventListener("change",()=>{if(menuPick.value){loc.value=menuPick.value;loc.dispatchEvent(new Event("input",{bubbles:true}));}});}
+type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];gpRefreshMenuPick();evaluate()});if(menuPick){menuPick.addEventListener("change",()=>{if(menuPick.value){loc.value=menuPick.value;loc.dispatchEvent(new Event("input",{bubbles:true}));}gpRenderComponents()});}
+if(addComp)addComp.addEventListener("click",()=>{if(!menuPick||!menuPick.value)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());if(vals.length<5){vals.push("");compList.innerHTML=vals.map((c,i)=>`<div class="gpCompRow"><input class="gpCompInput" value="${esc(c)}" placeholder="Komponente ${i+1}"><button type="button" class="secondary gpCompRemove" data-remove="${i}">×</button></div>`).join("")}});
+if(compList){compList.addEventListener("change",e=>{if(e.target.classList.contains("gpCompInput"))gpCommitComponents()});compList.addEventListener("click",e=>{let b=e.target.closest("[data-remove]");if(!b)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());vals.splice(Number(b.dataset.remove),1);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(load())})}
 [mn,mx,act].forEach(e=>e.addEventListener("input",evaluate));
-$("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim();if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();a.unshift({id:String(Date.now()),type:type.value,location:place,min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()});store(a);act.value="";action.value="";notice.textContent="✓ Messung gespeichert.";evaluate();render()});
+$("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim(),dish=(type.value==="Speisentemperatur"&&menuPick?menuPick.value:""),component=(dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();a.unshift({id:String(Date.now()),type:type.value,location:(component||place),dish:(dish||""),component:(component||""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()});store(a);act.value="";action.value="";notice.textContent="✓ Messung gespeichert.";if(measureComp)measureComp.value="";evaluate();render();gpRenderComponents()});
 if(archiveDay)archiveDay.addEventListener("change",render);
 if(printDay)printDay.addEventListener("click",()=>{
   const rows=gpSelectedRows(load());
@@ -8017,7 +8042,7 @@ $("haccpClear").addEventListener("click",()=>{
   evaluate();
   loc.focus();
 });
-gpRefreshMenuPick();evaluate();render();
+gpRefreshMenuPick();gpRenderComponents();evaluate();render();
 })();
 </script>
 
