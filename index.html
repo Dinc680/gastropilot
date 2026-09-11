@@ -2224,6 +2224,9 @@ body.gp-app-ready .appSection.gp-screen-active{
 }
 </style>
 
+<style id="gp-haccp-v624-css">
+.gpHaccpSavedHint{font-size:12px;color:var(--muted);margin-top:3px}
+</style>
 </head>
 
 <body>
@@ -2743,7 +2746,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <label>Mitarbeiter / Kürzel<input id="haccpEmployee" placeholder="Name oder Kürzel"></label>
 <button id="haccpSave" class="primary" type="button">Messung speichern</button><div id="haccpNotice" class="saveSuccess"></div>
 </div>
-<div class="gpHaccpHistoryHead"><div><h3>HACCP-Verlauf</h3><span id="haccpCount" class="muted">0 Einträge</span></div><button id="haccpClear" class="secondary danger" type="button">Verlauf leeren</button></div>
+<div class="gpHaccpHistoryHead"><div><h3>HACCP-Verlauf</h3><span id="haccpCount" class="muted">0 Einträge</span><div class="gpHaccpSavedHint">Gespeicherte Messungen bleiben erhalten.</div></div><button id="haccpClear" class="secondary" type="button">Neue Messung</button></div>
 <div id="haccpEmpty" class="muted">Noch keine Temperaturmessung gespeichert.</div><div id="haccpHistory"></div>
 </section>
 </main>
@@ -7816,7 +7819,20 @@ function render(){let a=load();count.textContent=a.length+" "+(a.length===1?"Ein
 type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];evaluate()});[mn,mx,act].forEach(e=>e.addEventListener("input",evaluate));
 $("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim();if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();a.unshift({id:String(Date.now()),type:type.value,location:place,min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE")});store(a);act.value="";action.value="";notice.textContent="✓ Messung gespeichert.";evaluate();render()});
 hist.addEventListener("click",e=>{let b=e.target.closest("[data-haccp-id]");if(!b)return;store(load().filter(r=>r.id!==b.dataset.haccpId));render()});
-$("haccpClear").addEventListener("click",()=>{if(load().length&&confirm("Gesamten HACCP-Verlauf wirklich löschen?")){localStorage.removeItem(K);render()}});
+$("haccpClear").addEventListener("click",()=>{
+  act.value="";
+  action.value="";
+  notice.textContent="";
+  const p=preset[type.value];
+  if(p){
+    mn.value=p[0];
+    mx.value=p[1];
+    loc.placeholder=p[2];
+  }
+  loc.value="";
+  evaluate();
+  loc.focus();
+});
 evaluate();render();
 })();
 </script>
