@@ -2260,7 +2260,12 @@ body.gp-app-ready .appSection.gp-screen-active{
 
 <style id="gp-haccp-components-v65-css">
 .gpHaccpComponents{margin:10px 0;padding:13px;border:2px solid var(--green);border-radius:14px;background:#f8faf9}.gpCompTitle{font-weight:900}.gpCompHint{font-size:12px;margin:3px 0 10px}.gpCompRow{display:grid;grid-template-columns:minmax(0,1fr) 42px;gap:8px;margin-bottom:8px}.gpCompRemove{padding:0!important;min-height:42px;font-size:20px}.gpCompProgress{margin-top:10px;font-weight:900}
-</style></head>
+</style><style id="gp-haccp-archive-protect-v651-css">
+.gpDayDocBar{display:grid;gap:9px;margin:12px 0 18px;padding:13px;border:1px solid var(--border);border-radius:14px;background:#fff}
+.gpDayDocBar strong{font-size:17px}
+.gpDayDocBar button{width:100%}
+</style>
+</head>
 
 <body>
 
@@ -2793,12 +2798,25 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <div class="gpArchiveBanner">✅ HACCP-Tagesarchiv aktiv</div>
 <div class="gpArchiveBar">
   <div>
-    <strong>📁 Tagesarchiv</strong><div id="haccpArchiveCount" class="gpArchiveCount"></div>
-    <div class="muted gpArchiveHint">Gespeicherte Messungen werden automatisch nach Tagen gruppiert.</div>
+    <strong>📁 Tagesarchiv</strong>
+    <div id="haccpArchiveCount" class="gpArchiveCount"></div>
+    <div class="muted gpArchiveHint">Archivierte Messungen bleiben erhalten, auch wenn ein Eintrag aus dem aktuellen Verlauf gelöscht wird.</div>
   </div>
   <select id="haccpArchiveDay" aria-label="Archivtag auswählen"></select>
   <button id="haccpPrintDay" class="secondary" type="button">Tagesprotokoll / PDF</button>
+  <button id="haccpDeleteArchiveDay" class="secondary danger" type="button">Archivtag löschen</button>
 </div>
+
+<div class="gpDayDocBar">
+  <div>
+    <strong>📄 Tagesdokumentation</strong>
+    <div id="haccpDayDocStatus" class="muted gpArchiveHint">Noch keine Tagesdokumentation gesichert.</div>
+  </div>
+  <button id="haccpSaveDayDoc" class="secondary" type="button">Tagesdokumentation sichern</button>
+  <button id="haccpOpenDayDoc" class="secondary" type="button">Gesicherte Dokumentation / PDF</button>
+  <button id="haccpDeleteDayDoc" class="secondary danger" type="button">Tagesdokumentation löschen</button>
+</div>
+
 <div id="haccpTodayChecks" class="gpTodayChecks"></div>
 </div>
 <div class="gpHaccpHistoryHead"><div><h3>HACCP-Verlauf</h3><span id="haccpCount" class="muted">0 Einträge</span><div class="gpHaccpSavedHint">Gespeicherte Messungen bleiben erhalten.</div></div><button id="haccpClear" class="secondary" type="button">Neue Messung</button></div>
@@ -7863,11 +7881,30 @@ document.addEventListener("DOMContentLoaded", function(){
 
 <script id="gp-haccp-v62-js">
 (function(){
-const K="gastropilot_haccp_temperature_v1",$=x=>document.getElementById(x),type=$("haccpType"),loc=$("haccpLocation"),mn=$("haccpMin"),mx=$("haccpMax"),act=$("haccpActual"),ev=$("haccpEvaluation"),aw=$("haccpActionWrap"),action=$("haccpAction"),emp=$("haccpEmployee"),notice=$("haccpNotice"),hist=$("haccpHistory"),empty=$("haccpEmpty"),count=$("haccpCount"),menuWrap=$("haccpMenuPickWrap"),menuPick=$("haccpMenuPick"),menuHint=$("haccpMenuHint"),archiveDay=$("haccpArchiveDay"),printDay=$("haccpPrintDay"),todayChecks=$("haccpTodayChecks"),archiveCount=$("haccpArchiveCount"),compWrap=$("haccpComponentWrap"),compList=$("haccpComponentList"),addComp=$("haccpAddComponent"),compProgress=$("haccpComponentProgress"),measureCompWrap=$("haccpMeasureComponentWrap"),measureComp=$("haccpMeasureComponent");
+const K="gastropilot_haccp_temperature_v1",$=x=>document.getElementById(x),type=$("haccpType"),loc=$("haccpLocation"),mn=$("haccpMin"),mx=$("haccpMax"),act=$("haccpActual"),ev=$("haccpEvaluation"),aw=$("haccpActionWrap"),action=$("haccpAction"),emp=$("haccpEmployee"),notice=$("haccpNotice"),hist=$("haccpHistory"),empty=$("haccpEmpty"),count=$("haccpCount"),menuWrap=$("haccpMenuPickWrap"),menuPick=$("haccpMenuPick"),menuHint=$("haccpMenuHint"),archiveDay=$("haccpArchiveDay"),printDay=$("haccpPrintDay"),todayChecks=$("haccpTodayChecks"),archiveCount=$("haccpArchiveCount"),deleteArchiveDay=$("haccpDeleteArchiveDay"),saveDayDoc=$("haccpSaveDayDoc"),openDayDoc=$("haccpOpenDayDoc"),deleteDayDoc=$("haccpDeleteDayDoc"),dayDocStatus=$("haccpDayDocStatus"),compWrap=$("haccpComponentWrap"),compList=$("haccpComponentList"),addComp=$("haccpAddComponent"),compProgress=$("haccpComponentProgress"),measureCompWrap=$("haccpMeasureComponentWrap"),measureComp=$("haccpMeasureComponent");
 if(!type)return;
 const preset={Kühlung:[2,7,"z. B. Kühlschrank 1"],Tiefkühlung:[-24,-18,"z. B. Tiefkühler 1"],Speisentemperatur:[65,100,"z. B. Rindergulasch"]};
 const WEEK_KEY="gastropilot_week_plan";
 const COMP_KEY="gastropilot_haccp_components_v1";
+const ARCHIVE_KEY="gastropilot_haccp_archive_v1";
+const DAYDOC_KEY="gastropilot_haccp_daydocs_v1";
+
+function gpLoadArchive(){try{let x=JSON.parse(localStorage.getItem(ARCHIVE_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}}
+function gpSaveArchive(x){localStorage.setItem(ARCHIVE_KEY,JSON.stringify(x))}
+function gpLoadDayDocs(){try{let x=JSON.parse(localStorage.getItem(DAYDOC_KEY)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}}
+function gpSaveDayDocs(x){localStorage.setItem(DAYDOC_KEY,JSON.stringify(x))}
+
+function gpArchiveRecord(r){
+  let a=gpLoadArchive();
+  if(!a.some(x=>x.id===r.id)) a.unshift(JSON.parse(JSON.stringify(r)));
+  gpSaveArchive(a);
+}
+function gpMigrateCurrentToArchive(){
+  let a=gpLoadArchive(), changed=false;
+  load().forEach(r=>{if(!a.some(x=>x.id===r.id)){a.push(JSON.parse(JSON.stringify(r)));changed=true}});
+  if(changed)gpSaveArchive(a);
+}
+
 function gpNormName(s){return String(s||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ")}
 function gpLoadComponents(){try{let x=JSON.parse(localStorage.getItem(COMP_KEY)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}}
 function gpSaveComponents(x){localStorage.setItem(COMP_KEY,JSON.stringify(x))}
@@ -7977,9 +8014,10 @@ function gpPrettyDate(key){
   const p=String(key).split("-");
   return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:key;
 }
-function gpRenderArchiveOptions(rows){
+function gpRenderArchiveOptions(){
   if(!archiveDay)return;
   const current=archiveDay.value;
+  const rows=gpLoadArchive();
   const days=[...new Set(rows.map(gpDateKeyFromRecord).filter(Boolean))].sort().reverse();
   archiveDay.innerHTML=days.length?days.map(d=>`<option value="${d}">${gpPrettyDate(d)}</option>`).join(""):'<option value="">Noch kein Archiv</option>';
   if(days.includes(current))archiveDay.value=current;
@@ -7995,36 +8033,83 @@ function gpRenderTodayChecks(rows){
  if(comps.length){let done=comps.filter(c=>measured.has(gpNormName(c))).length,ok=done===comps.length;return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":`🟡 ${done}/${comps.length} gemessen`}</span></div>`}
  let ok=rows.some(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur"&&gpNormName(r.location)===gpNormName(d));return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":"○ noch offen"}</span></div>`}).join("")
 }
+function gpRenderDayDocStatus(){
+  if(!dayDocStatus)return;
+  const key=archiveDay&&archiveDay.value?archiveDay.value:gpTodayKey();
+  const docs=gpLoadDayDocs();
+  dayDocStatus.textContent=docs[key] ? `Gesichert: ${gpPrettyDate(key)} · ${docs[key].rows.length} Einträge` : "Für diesen Tag ist noch keine Tagesdokumentation gesichert.";
+}
 function render(){
   const all=load();
-  gpRenderArchiveOptions(all);
+  gpRenderArchiveOptions();
   gpRenderTodayChecks(all);
-  const a=gpSelectedRows(all);
-  count.textContent=all.length+" "+(all.length===1?"Eintrag":"Einträge")+" gespeichert";
-  empty.style.display=a.length?"none":"block";
-  empty.textContent=all.length?"Für diesen Tag sind keine Messungen gespeichert.":"Noch keine Temperaturmessung gespeichert.";
-  hist.innerHTML=a.map(r=>`<div class="gpHaccpEntry"><div class="gpHaccpEntryTop"><div><div class="gpHaccpEntryTitle">${esc(r.type)} · ${esc(r.location)}</div><div class="gpHaccpMeta">${esc(r.date)} · ${esc(r.employee||"ohne Kürzel")} · Soll ${r.min} bis ${r.max} °C</div></div><div class="gpHaccpTemp">${r.actual} °C</div></div><span class="gpHaccpStatus ${r.ok?"ok":"warn"}">${r.ok?"✅ In Ordnung":"⚠️ Abweichung"}</span>${r.action?`<div class="gpHaccpAction"><strong>Maßnahme:</strong> ${esc(r.action)}</div>`:""}<button type="button" class="secondary gpHaccpDelete" data-haccp-id="${esc(r.id)}">Eintrag löschen</button></div>`).join("");
+  gpRenderDayDocStatus();
+  count.textContent=all.length+" "+(all.length===1?"Eintrag":"Einträge")+" im aktuellen Verlauf";
+  empty.style.display=all.length?"none":"block";
+  empty.textContent="Noch keine Temperaturmessung im aktuellen Verlauf.";
+  hist.innerHTML=all.map(r=>`<div class="gpHaccpEntry"><div class="gpHaccpEntryTop"><div><div class="gpHaccpEntryTitle">${esc(r.dish?`${r.dish} – ${r.component||r.location}`:r.type+" · "+r.location)}</div><div class="gpHaccpMeta">${esc(r.date)} · ${esc(r.employee||"ohne Kürzel")} · Soll ${r.min} bis ${r.max} °C</div></div><div class="gpHaccpTemp">${r.actual} °C</div></div><span class="gpHaccpStatus ${r.ok?"ok":"warn"}">${r.ok?"✅ In Ordnung":"⚠️ Abweichung"}</span>${r.action?`<div class="gpHaccpAction"><strong>Maßnahme:</strong> ${esc(r.action)}</div>`:""}<button type="button" class="secondary gpHaccpDelete" data-haccp-id="${esc(r.id)}">Eintrag aus aktuellem Verlauf löschen</button></div>`).join("");
 }
 type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];gpRefreshMenuPick();evaluate()});if(menuPick){menuPick.addEventListener("change",()=>{if(menuPick.value){loc.value=menuPick.value;loc.dispatchEvent(new Event("input",{bubbles:true}));}gpRenderComponents()});}
 if(addComp)addComp.addEventListener("click",()=>{if(!menuPick||!menuPick.value)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());if(vals.length<5){vals.push("");compList.innerHTML=vals.map((c,i)=>`<div class="gpCompRow"><input class="gpCompInput" value="${esc(c)}" placeholder="Komponente ${i+1}"><button type="button" class="secondary gpCompRemove" data-remove="${i}">×</button></div>`).join("")}});
 if(compList){compList.addEventListener("change",e=>{if(e.target.classList.contains("gpCompInput"))gpCommitComponents()});compList.addEventListener("click",e=>{let b=e.target.closest("[data-remove]");if(!b)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());vals.splice(Number(b.dataset.remove),1);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(load())})}
 [mn,mx,act].forEach(e=>e.addEventListener("input",evaluate));
-$("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim(),dish=(type.value==="Speisentemperatur"&&menuPick?menuPick.value:""),component=(dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();a.unshift({id:String(Date.now()),type:type.value,location:(component||place),dish:(dish||""),component:(component||""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()});store(a);act.value="";action.value="";notice.textContent="✓ Messung gespeichert.";if(measureComp)measureComp.value="";evaluate();render();gpRenderComponents()});
+$("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim(),dish=(type.value==="Speisentemperatur"&&menuPick?menuPick.value:""),component=(dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();let rec={id:String(Date.now()),type:type.value,location:(component||place),dish:(dish||""),component:(component||""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()};a.unshift(rec);store(a);gpArchiveRecord(rec);act.value="";action.value="";notice.textContent="✓ Messung gespeichert.";if(measureComp)measureComp.value="";evaluate();render();gpRenderComponents()});
 if(archiveDay)archiveDay.addEventListener("change",render);
-if(printDay)printDay.addEventListener("click",()=>{
-  const rows=gpSelectedRows(load());
-  if(!rows.length){notice.textContent="Für diesen Tag gibt es noch keine Messungen.";return}
-  const key=archiveDay.value||gpDateKeyFromRecord(rows[0]);
+function gpPrintRows(rows,key,title){
+  if(!rows.length){notice.textContent="Für diesen Tag gibt es keine gespeicherten Daten.";return}
   const old=document.getElementById("gpPrintSheet");if(old)old.remove();
   const sheet=document.createElement("section");sheet.id="gpPrintSheet";
-  sheet.innerHTML=`<h1>GastroPilot – HACCP Tagesprotokoll</h1><h2>${esc(gpPrettyDate(key))}</h2>
+  sheet.innerHTML=`<h1>GastroPilot – ${esc(title)}</h1><h2>${esc(gpPrettyDate(key))}</h2>
   <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;border-bottom:1px solid #000;padding:6px">Zeit / Art</th><th style="text-align:left;border-bottom:1px solid #000;padding:6px">Messstelle / Speise</th><th style="text-align:left;border-bottom:1px solid #000;padding:6px">Soll</th><th style="text-align:left;border-bottom:1px solid #000;padding:6px">Ist</th><th style="text-align:left;border-bottom:1px solid #000;padding:6px">Status / Maßnahme</th><th style="text-align:left;border-bottom:1px solid #000;padding:6px">Mitarbeiter</th></tr></thead>
-  <tbody>${rows.map(r=>`<tr><td style="padding:6px;border-bottom:1px solid #ccc">${esc(r.date)}<br>${esc(r.type)}</td><td style="padding:6px;border-bottom:1px solid #ccc">${esc(r.location)}</td><td style="padding:6px;border-bottom:1px solid #ccc">${r.min}–${r.max} °C</td><td style="padding:6px;border-bottom:1px solid #ccc">${r.actual} °C</td><td style="padding:6px;border-bottom:1px solid #ccc">${r.ok?"In Ordnung":"Abweichung"}${r.action?`<br>Maßnahme: ${esc(r.action)}`:""}</td><td style="padding:6px;border-bottom:1px solid #ccc">${esc(r.employee||"")}</td></tr>`).join("")}</tbody></table>
+  <tbody>${rows.map(r=>`<tr><td style="padding:6px;border-bottom:1px solid #ccc">${esc(r.date)}<br>${esc(r.type)}</td><td style="padding:6px;border-bottom:1px solid #ccc">${esc(r.dish?`${r.dish} – ${r.component||r.location}`:r.location)}</td><td style="padding:6px;border-bottom:1px solid #ccc">${r.min}–${r.max} °C</td><td style="padding:6px;border-bottom:1px solid #ccc">${r.actual} °C</td><td style="padding:6px;border-bottom:1px solid #ccc">${r.ok?"In Ordnung":"Abweichung"}${r.action?`<br>Maßnahme: ${esc(r.action)}`:""}</td><td style="padding:6px;border-bottom:1px solid #ccc">${esc(r.employee||"")}</td></tr>`).join("")}</tbody></table>
   <p style="margin-top:24px;font-size:11px">Erstellt mit GastroPilot · HACCP-Dokumentation</p>`;
-  document.body.appendChild(sheet);
-  window.print();
-  setTimeout(()=>sheet.remove(),1000);
+  document.body.appendChild(sheet);window.print();setTimeout(()=>sheet.remove(),1000);
+}
+if(archiveDay)archiveDay.addEventListener("change",()=>{gpRenderDayDocStatus()});
+
+if(printDay)printDay.addEventListener("click",()=>{
+  const key=archiveDay.value;
+  const rows=gpLoadArchive().filter(r=>gpDateKeyFromRecord(r)===key);
+  gpPrintRows(rows,key,"HACCP Tagesprotokoll");
 });
+
+if(saveDayDoc)saveDayDoc.addEventListener("click",()=>{
+  const key=archiveDay.value;
+  if(!key){notice.textContent="Bitte zuerst einen Archivtag auswählen.";return}
+  const rows=gpLoadArchive().filter(r=>gpDateKeyFromRecord(r)===key);
+  if(!rows.length){notice.textContent="Für diesen Tag gibt es keine Archivdaten.";return}
+  const docs=gpLoadDayDocs();
+  docs[key]={savedAt:new Date().toLocaleString("de-DE"),rows:JSON.parse(JSON.stringify(rows))};
+  gpSaveDayDocs(docs);notice.textContent="✓ Tagesdokumentation dauerhaft gesichert.";gpRenderDayDocStatus();
+});
+
+if(openDayDoc)openDayDoc.addEventListener("click",()=>{
+  const key=archiveDay.value;
+  const docs=gpLoadDayDocs(),doc=docs[key];
+  if(!doc){notice.textContent="Für diesen Tag ist keine Tagesdokumentation gesichert.";return}
+  gpPrintRows(doc.rows,key,"Gesicherte HACCP Tagesdokumentation");
+});
+
+if(deleteArchiveDay)deleteArchiveDay.addEventListener("click",()=>{
+  const key=archiveDay.value;
+  if(!key)return;
+  if(confirm("Nur den ausgewählten Archivtag löschen? Die separat gesicherte Tagesdokumentation bleibt erhalten.")){
+    gpSaveArchive(gpLoadArchive().filter(r=>gpDateKeyFromRecord(r)!==key));
+    notice.textContent="Archivtag gelöscht. Tagesdokumentation blieb erhalten.";
+    render();
+  }
+});
+
+if(deleteDayDoc)deleteDayDoc.addEventListener("click",()=>{
+  const key=archiveDay.value,docs=gpLoadDayDocs();
+  if(!key||!docs[key])return;
+  if(confirm("Nur die gesicherte Tagesdokumentation dieses Tages löschen? Das Tagesarchiv bleibt erhalten.")){
+    delete docs[key];gpSaveDayDocs(docs);
+    notice.textContent="Tagesdokumentation gelöscht. Archiv blieb erhalten.";
+    gpRenderDayDocStatus();
+  }
+});
+
 hist.addEventListener("click",e=>{let b=e.target.closest("[data-haccp-id]");if(!b)return;store(load().filter(r=>r.id!==b.dataset.haccpId));render()});
 $("haccpClear").addEventListener("click",()=>{
   act.value="";
@@ -8042,7 +8127,7 @@ $("haccpClear").addEventListener("click",()=>{
   evaluate();
   loc.focus();
 });
-gpRefreshMenuPick();gpRenderComponents();evaluate();render();
+gpMigrateCurrentToArchive();gpRefreshMenuPick();gpRenderComponents();evaluate();render();
 })();
 </script>
 
