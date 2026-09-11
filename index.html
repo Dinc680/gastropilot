@@ -7839,7 +7839,7 @@ function gpExtractDishName(slot){
   if(!slot) return "";
   if(typeof slot==="string") return slot.trim();
   if(typeof slot==="object"){
-    return String(slot.dish||slot.recipe||slot.name||slot.title||"").trim();
+    return String(slot.recipeName||slot.dish||slot.recipe||slot.name||slot.title||"").trim();
   }
   return "";
 }
@@ -7981,6 +7981,21 @@ gpRefreshMenuPick();evaluate();render();
       input.focus();
     });
   });
+})();
+</script>
+
+
+<script id="gp-haccp-week-refresh-v631-js">
+(function(){
+  const oldShowScreen=window.showScreen;
+  if(typeof oldShowScreen!=="function") return;
+  window.showScreen=function(screenId){
+    const result=oldShowScreen.apply(this,arguments);
+    if(screenId==="haccpCard" && typeof gpRefreshMenuPick==="function"){
+      try{ gpRefreshMenuPick(); }catch(e){ console.error(e); }
+    }
+    return result;
+  };
 })();
 </script>
 
