@@ -2292,6 +2292,38 @@ body.gp-app-ready .appSection.gp-screen-active{
 .gpDeviceCheckRow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
 .gpDeviceCheckRow:last-child{border-bottom:0}
 </style>
+<style id="gp-haccp-calm-v69-css">
+.gpHaccpModeNav{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+  margin:8px 0 16px;padding:5px;border-radius:14px;background:#edf3f0;
+  position:sticky;top:8px;z-index:35
+}
+.gpHaccpModeBtn{
+  min-height:46px!important;padding:8px 5px!important;border:0!important;
+  border-radius:10px!important;background:transparent!important;color:#56645f!important;
+  box-shadow:none!important;font-size:13px!important
+}
+.gpHaccpModeBtn.gpActive{
+  background:#fff!important;color:var(--green)!important;
+  box-shadow:0 2px 8px rgba(20,54,44,.10)!important
+}
+.gpHaccpPane{display:none}
+.gpHaccpPane.gpActive{display:block}
+#haccpCard:not(.gpHaccpDocsMode) .gpHaccpDocsOnly{display:none!important}
+#haccpCard.gpHaccpDocsMode .gpHaccpDocsOnly{display:block}
+#haccpCard .gpHaccpHead p{margin-bottom:0}
+#gpHaccpPaneMeasure .gpArchiveBanner{display:none}
+@media(max-width:700px){
+  .quickNav{display:none!important}
+  #haccpCard{padding-top:20px!important}
+  #haccpCard .gpHaccpHead{margin-bottom:8px!important}
+  #haccpCard .gpHaccpHead h2{margin-bottom:6px!important}
+  .gpHaccpModeNav{top:6px}
+  #gpHaccpPaneMeasure label{margin-bottom:10px!important}
+  #gpHaccpPaneMeasure input,#gpHaccpPaneMeasure select{min-height:48px!important}
+  #gpHaccpPaneMeasure .gpDeviceWrap,#gpHaccpPaneMeasure .gpHaccpComponents{margin:8px 0!important}
+}
+</style>
 </head>
 
 <body>
@@ -2801,7 +2833,13 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 
 <section class="card appSection" id="haccpCard">
 <div class="gpHaccpHead"><div><div class="eyebrow">HACCP</div><h2>Temperaturkontrolle</h2><p class="muted">Messungen dokumentieren und Abweichungen nachvollziehbar festhalten.</p></div><b>V1</b></div>
+<div class="gpHaccpModeNav" id="gpHaccpModeNav">
+  <button type="button" class="gpHaccpModeBtn gpActive" data-haccp-mode="measure">🌡 Messen</button>
+  <button type="button" class="gpHaccpModeBtn" data-haccp-mode="today">📋 Heute</button>
+  <button type="button" class="gpHaccpModeBtn" data-haccp-mode="docs">📁 Dokumentation</button>
+</div>
 <div class="gpHaccpForm">
+<div id="gpHaccpPaneMeasure" class="gpHaccpPane gpActive">
 <label>Kontrollart<select id="haccpType"><option>Kühlung</option><option>Tiefkühlung</option><option>Speisentemperatur</option></select></label>
 <div id="haccpMenuPickWrap" class="gpHaccpMenuPick" hidden>
   <label>Speise aus dem heutigen Wochenplan
@@ -2853,6 +2891,8 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <label id="haccpActionWrap" hidden>Ergriffene Maßnahme<textarea id="haccpAction" rows="3" placeholder="z. B. Ware umgelagert, Kühlung geprüft"></textarea></label>
 <label>Mitarbeiter / Kürzel<input id="haccpEmployee" placeholder="Name oder Kürzel"></label>
 <button id="haccpSave" class="primary" type="button">Messung speichern</button><div id="haccpNotice" class="saveSuccess"></div>
+</div>
+<div id="gpHaccpPaneDocs" class="gpHaccpPane">
 <div class="gpArchiveBanner">✅ HACCP-Tagesarchiv aktiv</div>
 <div class="gpArchiveBar">
   <div>
@@ -2882,11 +2922,12 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   </div>
   <div id="haccpReportViewerBody"></div>
 </div>
-<div class="gpSimpleTodayTitle">📋 Heute</div><div id="haccpTodayChecks" class="gpTodayChecks"></div>
 </div>
-<div class="gpHaccpHistoryHead"><div><h3>HACCP-Verlauf</h3><span id="haccpCount" class="muted">0 Einträge</span><div class="gpHaccpSavedHint">Gespeicherte Messungen bleiben erhalten.</div></div><button id="haccpClear" class="secondary" type="button">Neue Messung</button></div>
+<div id="gpHaccpPaneToday" class="gpHaccpPane"><div class="gpSimpleTodayTitle">📋 Heute</div><div id="haccpTodayChecks" class="gpTodayChecks"></div></div>
+</div>
+<div class="gpHaccpHistoryHead gpHaccpDocsOnly"><div><h3>HACCP-Verlauf</h3><span id="haccpCount" class="muted">0 Einträge</span><div class="gpHaccpSavedHint">Gespeicherte Messungen bleiben erhalten.</div></div><button id="haccpClear" class="secondary" type="button">Neue Messung</button></div>
 
-<div id="haccpEmpty" class="muted">Noch keine Temperaturmessung gespeichert.</div><div id="haccpHistory"></div>
+<div id="haccpEmpty" class="muted gpHaccpDocsOnly">Noch keine Temperaturmessung gespeichert.</div><div id="haccpHistory" class="gpHaccpDocsOnly"></div>
 </section>
 </main>
 
@@ -8200,6 +8241,24 @@ function render(){
 }
 type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];gpRefreshMenuPick();gpRenderDevicePicker();gpRenderComponents();evaluate()});if(menuPick){menuPick.addEventListener("change",()=>{if(menuPick.value){loc.value=menuPick.value;loc.dispatchEvent(new Event("input",{bubbles:true}));}gpRenderComponents()});}
 
+
+const gpHaccpModeButtons=[...document.querySelectorAll("[data-haccp-mode]")];
+const gpHaccpPanes={
+  measure:$("gpHaccpPaneMeasure"),
+  today:$("gpHaccpPaneToday"),
+  docs:$("gpHaccpPaneDocs")
+};
+function gpSetHaccpMode(mode){
+  if(!gpHaccpPanes[mode])mode="measure";
+  Object.entries(gpHaccpPanes).forEach(([k,p])=>{if(p)p.classList.toggle("gpActive",k===mode)});
+  gpHaccpModeButtons.forEach(b=>b.classList.toggle("gpActive",b.dataset.haccpMode===mode));
+  haccpCard.classList.toggle("gpHaccpDocsMode",mode==="docs");
+  localStorage.setItem("gastropilot_haccp_view_v1",mode);
+  if(mode==="today")gpRenderTodayChecks(gpLoadArchive());
+  if(mode==="docs"){gpRenderArchiveOptions();gpRenderDayDocStatus()}
+}
+gpHaccpModeButtons.forEach(b=>b.addEventListener("click",()=>gpSetHaccpMode(b.dataset.haccpMode)));
+
 if(devicePick)devicePick.addEventListener("change",()=>{if(devicePick.value)gpApplyDevice(devicePick.value);gpFillDeviceForm(devicePick.value)});
 if(toggleDeviceForm)toggleDeviceForm.addEventListener("click",()=>{
   deviceForm.hidden=!deviceForm.hidden;
@@ -8243,7 +8302,7 @@ if(deleteDevice)deleteDevice.addEventListener("click",()=>{
 if(addComp)addComp.addEventListener("click",()=>{if(!menuPick||!menuPick.value)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());if(vals.length<5){vals.push("");compList.innerHTML=vals.map((c,i)=>`<div class="gpCompRow"><input class="gpCompInput" value="${esc(c)}" placeholder="Komponente ${i+1}"><button type="button" class="secondary gpCompRemove" data-remove="${i}">×</button></div>`).join("")}});
 if(compList){compList.addEventListener("change",e=>{if(e.target.classList.contains("gpCompInput"))gpCommitComponents()});compList.addEventListener("click",e=>{let b=e.target.closest("[data-remove]");if(!b)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());vals.splice(Number(b.dataset.remove),1);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(load())})}
 [mn,mx,act].forEach(e=>e.addEventListener("input",evaluate));
-$("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim(),dish=(type.value==="Speisentemperatur"&&menuPick?menuPick.value:""),component=(dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();let rec={id:String(Date.now()),type:type.value,location:(component||place),dish:(dish||""),component:(component||""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()};a.unshift(rec);store(a);gpArchiveRecord(rec);act.value="";action.value="";notice.textContent="✓ Messung gespeichert.";if(measureComp)measureComp.value="";evaluate();render();gpRenderComponents()});
+$("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim(),dish=(type.value==="Speisentemperatur"&&menuPick?menuPick.value:""),component=(dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();let rec={id:String(Date.now()),type:type.value,location:(component||place),dish:(dish||""),component:(component||""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()};a.unshift(rec);store(a);gpArchiveRecord(rec);act.value="";action.value="";notice.textContent="✓ Messung gespeichert.";if(measureComp)measureComp.value="";evaluate();render();gpRenderComponents();gpSetHaccpMode("measure")});
 if(archiveDay)archiveDay.addEventListener("change",render);
 
 function gpReportHtml(rows,key,title){
@@ -8372,7 +8431,7 @@ $("haccpClear").addEventListener("click",()=>{
   evaluate();
   loc.focus();
 });
-gpInitDevices();gpMigrateCurrentToArchive();gpRefreshMenuPick();gpRenderDevicePicker();gpRenderComponents();evaluate();render();
+gpInitDevices();gpMigrateCurrentToArchive();gpRefreshMenuPick();gpRenderDevicePicker();gpRenderComponents();evaluate();render();gpSetHaccpMode(localStorage.getItem("gastropilot_haccp_view_v1")||"measure");
 })();
 </script>
 
