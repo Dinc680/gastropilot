@@ -8317,7 +8317,7 @@ if(deviceType)deviceType.addEventListener("change",()=>{
 });
 
 if(saveDevice)saveDevice.addEventListener("click",()=>{
-  const name=deviceName.value.trim(),lo=num(deviceMin.value),hi=num(deviceMax.value);
+  const name=deviceName.value.trim(),lo=num(deviceMin),hi=num(deviceMax);
   if(!name){deviceNotice.textContent="Bitte Gerätenamen eintragen.";return}
   if(lo===null||hi===null){deviceNotice.textContent="Bitte gültige Solltemperaturen eintragen.";return}
 
