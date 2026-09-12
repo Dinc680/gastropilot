@@ -2324,6 +2324,29 @@ body.gp-app-ready .appSection.gp-screen-active{
   #gpHaccpPaneMeasure .gpDeviceWrap,#gpHaccpPaneMeasure .gpHaccpComponents{margin:8px 0!important}
 }
 </style>
+<style id="gp-devicefix-mininav-v691-css">
+.gpDeviceQuickActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:700px){
+  body{padding-bottom:62px!important}
+  #gpAppNav{
+    left:50%!important;right:auto!important;bottom:6px!important;
+    transform:translateX(-50%)!important;
+    width:min(300px,calc(100% - 28px))!important;
+    grid-template-columns:repeat(5,1fr)!important;
+    gap:2px!important;padding:4px!important;border-radius:15px!important;
+    background:rgba(255,255,255,.94)!important;
+  }
+  #gpAppNav button{
+    min-height:42px!important;height:42px!important;
+    padding:3px 1px!important;border-radius:10px!important;
+    gap:0!important;font-size:0!important;
+  }
+  #gpAppNav button span:not(.ico){display:none!important}
+  #gpAppNav .ico{font-size:18px!important;line-height:1!important}
+  #gpAppNav button.gp-nav-active{background:var(--gp-soft)!important}
+  .gpDeviceQuickActions{grid-template-columns:1fr}
+}
+</style>
 </head>
 
 <body>
@@ -2343,11 +2366,11 @@ body.gp-app-ready .appSection.gp-screen-active{
 </header>
 <nav class="quickNav" aria-label="GastroPilot Navigation">
   <div class="quickNavInner">
-    <button type="button" class="gpTopNavButton gp-top-active" data-screen="mengenrechner" data-label="Mengenrechner">⚖️ Mengen</button>
-    <button type="button" class="gpTopNavButton" data-screen="gerichte" data-label="Gericht anlegen">➕ Gericht</button>
-    <button type="button" class="gpTopNavButton" data-screen="weekPlannerCard" data-label="Wochenplan">📅 Wochenplan</button>
-    <button type="button" class="gpTopNavButton" data-screen="shoppingCard" data-label="Einkaufsliste">🛒 Einkauf</button>
-    <button type="button" class="gpTopNavButton" data-screen="haccpCard" data-label="HACCP">✅ HACCP</button>
+    <button type="button" class="gpTopNavButton gp-top-active" data-screen="mengenrechner" data-label="Mengenrechner" title="Mengenrechner">⚖️ Mengen</button>
+    <button type="button" class="gpTopNavButton" data-screen="gerichte" data-label="Gericht anlegen" title="Gericht anlegen">➕ Gericht</button>
+    <button type="button" class="gpTopNavButton" data-screen="weekPlannerCard" data-label="Wochenplan" title="Wochenplan">📅 Wochenplan</button>
+    <button type="button" class="gpTopNavButton" data-screen="shoppingCard" data-label="Einkaufsliste" title="Einkaufsliste">🛒 Einkauf</button>
+    <button type="button" class="gpTopNavButton" data-screen="haccpCard" data-label="HACCP" title="HACCP">✅ HACCP</button>
   </div>
 </nav>
 
@@ -2859,7 +2882,10 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
     </select>
   </label>
   <div id="haccpDeviceStatus" class="muted gpDeviceHint"></div>
-  <button id="haccpToggleDeviceForm" class="secondary" type="button">+ Gerät anlegen</button>
+  <div class="gpDeviceQuickActions">
+  <button id="haccpToggleDeviceForm" class="secondary" type="button">+ Neues Gerät</button>
+  <button id="haccpEditDevice" class="secondary" type="button">✏️ Gerät bearbeiten</button>
+</div>
 
   <div id="haccpDeviceForm" class="gpDeviceForm" hidden>
     <label>Gerätename
@@ -7777,11 +7803,11 @@ try{
 </script>
 <div id="gpScreenLabel">Mengenrechner</div>
 <nav id="gpAppNav" aria-label="GastroPilot Hauptnavigation">
-  <button type="button" class="gp-nav-active" data-screen="mengenrechner" data-label="Mengenrechner"><span class="ico">⚖️</span><span>Mengen</span></button>
-  <button type="button" data-screen="gerichte" data-label="Gericht anlegen"><span class="ico">➕</span><span>Gericht</span></button>
-  <button type="button" data-screen="weekPlannerCard" data-label="Wochenplan"><span class="ico">📅</span><span>Woche</span></button>
-  <button type="button" data-screen="shoppingCard" data-label="Einkaufsliste"><span class="ico">🛒</span><span>Einkauf</span></button>
-  <button type="button" data-screen="haccpCard" data-label="HACCP"><span class="ico">✅</span><span>HACCP</span></button>
+  <button type="button" class="gp-nav-active" data-screen="mengenrechner" data-label="Mengenrechner" title="Mengenrechner"><span class="ico">⚖️</span><span>Mengen</span></button>
+  <button type="button" data-screen="gerichte" data-label="Gericht anlegen" title="Gericht anlegen"><span class="ico">➕</span><span>Gericht</span></button>
+  <button type="button" data-screen="weekPlannerCard" data-label="Wochenplan" title="Wochenplan"><span class="ico">📅</span><span>Woche</span></button>
+  <button type="button" data-screen="shoppingCard" data-label="Einkaufsliste" title="Einkaufsliste"><span class="ico">🛒</span><span>Einkauf</span></button>
+  <button type="button" data-screen="haccpCard" data-label="HACCP" title="HACCP"><span class="ico">✅</span><span>HACCP</span></button>
 </nav>
 <script id="gp-appmode-v3-js">
 (function(){
@@ -7989,7 +8015,7 @@ document.addEventListener("DOMContentLoaded", function(){
 (function(){
 const K="gastropilot_haccp_temperature_v1",$=x=>document.getElementById(x),type=$("haccpType"),loc=$("haccpLocation"),mn=$("haccpMin"),mx=$("haccpMax"),act=$("haccpActual"),ev=$("haccpEvaluation"),aw=$("haccpActionWrap"),action=$("haccpAction"),emp=$("haccpEmployee"),notice=$("haccpNotice"),hist=$("haccpHistory"),empty=$("haccpEmpty"),count=$("haccpCount"),menuWrap=$("haccpMenuPickWrap"),menuPick=$("haccpMenuPick"),menuHint=$("haccpMenuHint"),archiveDay=$("haccpArchiveDay"),printDay=$("haccpPrintDay"),todayChecks=$("haccpTodayChecks"),archiveCount=$("haccpArchiveCount"),deleteArchiveDay=$("haccpDeleteArchiveDay"),manageArchive=$("gpManageArchive"),manageDayDoc=$("gpManageDayDoc"),saveDayDoc=$("haccpSaveDayDoc"),openDayDoc=$("haccpOpenDayDoc"),exportDayDoc=$("haccpExportDayDoc"),deleteDayDoc=$("haccpDeleteDayDoc"),dayDocStatus=$("haccpDayDocStatus"),reportViewer=$("haccpReportViewer"),reportViewerBody=$("haccpReportViewerBody"),closeReport=$("haccpCloseReport"),compWrap=$("haccpComponentWrap"),compList=$("haccpComponentList"),addComp=$("haccpAddComponent"),compProgress=$("haccpComponentProgress"),measureCompWrap=$("haccpMeasureComponentWrap"),measureComp=$("haccpMeasureComponent"),
 deviceWrap=$("haccpDeviceWrap"),devicePick=$("haccpDevicePick"),deviceStatus=$("haccpDeviceStatus"),
-toggleDeviceForm=$("haccpToggleDeviceForm"),deviceForm=$("haccpDeviceForm"),deviceName=$("haccpDeviceName"),
+toggleDeviceForm=$("haccpToggleDeviceForm"),editDevice=$("haccpEditDevice"),deviceForm=$("haccpDeviceForm"),deviceName=$("haccpDeviceName"),
 deviceType=$("haccpDeviceType"),deviceMin=$("haccpDeviceMin"),deviceMax=$("haccpDeviceMax"),
 saveDevice=$("haccpSaveDevice"),deleteDevice=$("haccpDeleteDevice"),deviceNotice=$("haccpDeviceNotice");
 if(!type)return;
@@ -8000,6 +8026,7 @@ const ARCHIVE_KEY="gastropilot_haccp_archive_v1";
 const DAYDOC_KEY="gastropilot_haccp_daydocs_v1";
 const DEVICE_KEY="gastropilot_haccp_devices_v1";
 const DEVICE_INIT_KEY="gastropilot_haccp_devices_initialized_v1";
+let gpDeviceEditId="";
 const GP_DEFAULT_DEVICES=[
   {id:"gp-dev-kuehlhaus-1",name:"Kühlhaus 1",type:"Kühlung",min:2,max:7},
   {id:"gp-dev-kuehlschrank-vorbereitung",name:"Kühlschrank Vorbereitung",type:"Kühlung",min:2,max:7},
@@ -8259,33 +8286,66 @@ function gpSetHaccpMode(mode){
 }
 gpHaccpModeButtons.forEach(b=>b.addEventListener("click",()=>gpSetHaccpMode(b.dataset.haccpMode)));
 
-if(devicePick)devicePick.addEventListener("change",()=>{if(devicePick.value)gpApplyDevice(devicePick.value);gpFillDeviceForm(devicePick.value)});
+if(devicePick)devicePick.addEventListener("change",()=>{
+  if(devicePick.value)gpApplyDevice(devicePick.value);
+  if(editDevice)editDevice.disabled=!devicePick.value;
+});
+
 if(toggleDeviceForm)toggleDeviceForm.addEventListener("click",()=>{
-  deviceForm.hidden=!deviceForm.hidden;
-  toggleDeviceForm.textContent=deviceForm.hidden?"+ Gerät anlegen":"Geräteverwaltung schließen";
-  if(!deviceForm.hidden)gpFillDeviceForm(devicePick.value);
+  gpDeviceEditId="";
+  devicePick.value="";
+  gpFillDeviceForm("");
+  deviceForm.hidden=false;
+  toggleDeviceForm.textContent="+ Neues Gerät";
+  deviceNotice.textContent="";
+  deviceName.focus();
 });
+
+if(editDevice)editDevice.addEventListener("click",()=>{
+  if(!devicePick.value){deviceNotice.textContent="Bitte zuerst ein Gerät auswählen.";return}
+  gpDeviceEditId=devicePick.value;
+  gpFillDeviceForm(gpDeviceEditId);
+  deviceForm.hidden=false;
+  deviceNotice.textContent="";
+  deviceName.focus();
+});
+
 if(deviceType)deviceType.addEventListener("change",()=>{
-  const p=preset[deviceType.value];deviceMin.value=String(p[0]).replace(".",",");deviceMax.value=String(p[1]).replace(".",",");
+  const p=preset[deviceType.value];
+  deviceMin.value=String(p[0]).replace(".",",");
+  deviceMax.value=String(p[1]).replace(".",",");
 });
+
 if(saveDevice)saveDevice.addEventListener("click",()=>{
   const name=deviceName.value.trim(),lo=num(deviceMin.value),hi=num(deviceMax.value);
   if(!name){deviceNotice.textContent="Bitte Gerätenamen eintragen.";return}
   if(lo===null||hi===null){deviceNotice.textContent="Bitte gültige Solltemperaturen eintragen.";return}
-  let list=gpLoadDevices(),id=devicePick.value;
+
+  let list=gpLoadDevices();
+  let id=gpDeviceEditId;
+
   if(id){
     const idx=list.findIndex(d=>d.id===id);
-    if(idx>=0)list[idx]={...list[idx],name,type:deviceType.value,min:lo,max:hi};
-  }else{
+    if(idx>=0){
+      list[idx]={...list[idx],name,type:deviceType.value,min:lo,max:hi};
+    }else{
+      id="";
+    }
+  }
+
+  if(!id){
     id="gp-dev-"+Date.now();
     list.push({id,name,type:deviceType.value,min:lo,max:hi});
   }
+
   gpSaveDevices(list);
   type.value=deviceType.value;
   gpRenderDevicePicker();
   devicePick.value=id;
+  gpDeviceEditId=id;
   gpApplyDevice(id);
   gpFillDeviceForm(id);
+  if(editDevice)editDevice.disabled=false;
   deviceNotice.textContent="✓ Gerät gespeichert.";
   gpRenderTodayChecks(gpLoadArchive());
 });
@@ -8293,7 +8353,11 @@ if(deleteDevice)deleteDevice.addEventListener("click",()=>{
   const id=devicePick.value,d=gpDeviceById(id);if(!id||!d)return;
   if(confirm(`Gerät „${d.name}“ aus der Geräteliste löschen? Bereits gespeicherte HACCP-Messungen bleiben erhalten.`)){
     gpSaveDevices(gpLoadDevices().filter(x=>x.id!==id));
-    devicePick.value="";gpRenderDevicePicker();gpFillDeviceForm("");
+    gpDeviceEditId="";
+    devicePick.value="";
+    gpRenderDevicePicker();
+    gpFillDeviceForm("");
+    if(editDevice)editDevice.disabled=true;
     deviceNotice.textContent="Gerät aus der Liste gelöscht. Alte Messungen bleiben erhalten.";
     gpRenderTodayChecks(gpLoadArchive());
   }
@@ -8431,7 +8495,7 @@ $("haccpClear").addEventListener("click",()=>{
   evaluate();
   loc.focus();
 });
-gpInitDevices();gpMigrateCurrentToArchive();gpRefreshMenuPick();gpRenderDevicePicker();gpRenderComponents();evaluate();render();gpSetHaccpMode(localStorage.getItem("gastropilot_haccp_view_v1")||"measure");
+gpInitDevices();gpMigrateCurrentToArchive();gpRefreshMenuPick();gpRenderDevicePicker();if(editDevice)editDevice.disabled=!devicePick.value;gpRenderComponents();evaluate();render();gpSetHaccpMode(localStorage.getItem("gastropilot_haccp_view_v1")||"measure");
 })();
 </script>
 
