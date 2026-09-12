@@ -2282,6 +2282,16 @@ body.gp-app-ready .appSection.gp-screen-active{
 .gpReportTitle{font-size:18px;font-weight:900;margin-bottom:4px}
 .gpReportMeta{font-size:12px;color:var(--muted);margin-bottom:12px}
 </style>
+<style id="gp-haccp-devices-v68-css">
+.gpDeviceWrap{margin:10px 0;padding:13px;border:1px solid var(--border);border-radius:14px;background:#fff}
+.gpDeviceWrap>label{margin-bottom:8px}
+.gpDeviceHint{font-size:12px;margin:4px 0 9px}
+.gpDeviceForm{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.gpDeviceActions{display:grid;gap:8px;margin-top:8px}
+.gpTodayDeviceTitle{display:block;margin:14px 0 7px;font-size:16px;font-weight:900}
+.gpDeviceCheckRow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.gpDeviceCheckRow:last-child{border-bottom:0}
+</style>
 </head>
 
 <body>
@@ -2804,6 +2814,37 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <div class="gpCompTitle">Komponenten dieses Gerichts</div><div class="muted gpCompHint">2–5 Komponenten anlegen. Jede Komponente wird einzeln gemessen.</div>
 <div id="haccpComponentList"></div><button id="haccpAddComponent" type="button" class="secondary">+ Komponente</button>
 <div id="haccpComponentProgress" class="gpCompProgress"></div></div>
+<div id="haccpDeviceWrap" class="gpDeviceWrap">
+  <label>Gerät auswählen
+    <select id="haccpDevicePick">
+      <option value="">Gerät auswählen</option>
+    </select>
+  </label>
+  <div id="haccpDeviceStatus" class="muted gpDeviceHint"></div>
+  <button id="haccpToggleDeviceForm" class="secondary" type="button">+ Gerät anlegen</button>
+
+  <div id="haccpDeviceForm" class="gpDeviceForm" hidden>
+    <label>Gerätename
+      <input id="haccpDeviceName" placeholder="z. B. Kühlschrank Vorbereitung">
+    </label>
+    <label>Kontrollart
+      <select id="haccpDeviceType">
+        <option>Kühlung</option>
+        <option>Tiefkühlung</option>
+      </select>
+    </label>
+    <div class="gpHaccpGrid">
+      <label>Soll min. °C<input id="haccpDeviceMin" type="text" inputmode="decimal" value="2"></label>
+      <label>Soll max. °C<input id="haccpDeviceMax" type="text" inputmode="decimal" value="7"></label>
+    </div>
+    <div class="gpDeviceActions">
+      <button id="haccpSaveDevice" class="primary" type="button">Gerät speichern</button>
+      <button id="haccpDeleteDevice" class="secondary danger" type="button">Ausgewähltes Gerät löschen</button>
+    </div>
+    <div id="haccpDeviceNotice" class="saveSuccess"></div>
+  </div>
+</div>
+
 <label>Messstelle / Speise<input id="haccpLocation" placeholder="z. B. Kühlschrank 1"></label>
 <div class="gpHaccpGrid"><label>Soll min. °C<input id="haccpMin" type="text" inputmode="decimal" step="0.1" value="2"></label><label>Soll max. °C<input id="haccpMax" type="text" inputmode="decimal" step="0.1" value="7"></label></div>
 <label id="haccpMeasureComponentWrap" hidden>Zu messende Komponente<select id="haccpMeasureComponent"><option value="">Komponente auswählen</option></select></label>
@@ -7905,13 +7946,84 @@ document.addEventListener("DOMContentLoaded", function(){
 
 <script id="gp-haccp-v62-js">
 (function(){
-const K="gastropilot_haccp_temperature_v1",$=x=>document.getElementById(x),type=$("haccpType"),loc=$("haccpLocation"),mn=$("haccpMin"),mx=$("haccpMax"),act=$("haccpActual"),ev=$("haccpEvaluation"),aw=$("haccpActionWrap"),action=$("haccpAction"),emp=$("haccpEmployee"),notice=$("haccpNotice"),hist=$("haccpHistory"),empty=$("haccpEmpty"),count=$("haccpCount"),menuWrap=$("haccpMenuPickWrap"),menuPick=$("haccpMenuPick"),menuHint=$("haccpMenuHint"),archiveDay=$("haccpArchiveDay"),printDay=$("haccpPrintDay"),todayChecks=$("haccpTodayChecks"),archiveCount=$("haccpArchiveCount"),deleteArchiveDay=$("haccpDeleteArchiveDay"),manageArchive=$("gpManageArchive"),manageDayDoc=$("gpManageDayDoc"),saveDayDoc=$("haccpSaveDayDoc"),openDayDoc=$("haccpOpenDayDoc"),exportDayDoc=$("haccpExportDayDoc"),deleteDayDoc=$("haccpDeleteDayDoc"),dayDocStatus=$("haccpDayDocStatus"),reportViewer=$("haccpReportViewer"),reportViewerBody=$("haccpReportViewerBody"),closeReport=$("haccpCloseReport"),compWrap=$("haccpComponentWrap"),compList=$("haccpComponentList"),addComp=$("haccpAddComponent"),compProgress=$("haccpComponentProgress"),measureCompWrap=$("haccpMeasureComponentWrap"),measureComp=$("haccpMeasureComponent");
+const K="gastropilot_haccp_temperature_v1",$=x=>document.getElementById(x),type=$("haccpType"),loc=$("haccpLocation"),mn=$("haccpMin"),mx=$("haccpMax"),act=$("haccpActual"),ev=$("haccpEvaluation"),aw=$("haccpActionWrap"),action=$("haccpAction"),emp=$("haccpEmployee"),notice=$("haccpNotice"),hist=$("haccpHistory"),empty=$("haccpEmpty"),count=$("haccpCount"),menuWrap=$("haccpMenuPickWrap"),menuPick=$("haccpMenuPick"),menuHint=$("haccpMenuHint"),archiveDay=$("haccpArchiveDay"),printDay=$("haccpPrintDay"),todayChecks=$("haccpTodayChecks"),archiveCount=$("haccpArchiveCount"),deleteArchiveDay=$("haccpDeleteArchiveDay"),manageArchive=$("gpManageArchive"),manageDayDoc=$("gpManageDayDoc"),saveDayDoc=$("haccpSaveDayDoc"),openDayDoc=$("haccpOpenDayDoc"),exportDayDoc=$("haccpExportDayDoc"),deleteDayDoc=$("haccpDeleteDayDoc"),dayDocStatus=$("haccpDayDocStatus"),reportViewer=$("haccpReportViewer"),reportViewerBody=$("haccpReportViewerBody"),closeReport=$("haccpCloseReport"),compWrap=$("haccpComponentWrap"),compList=$("haccpComponentList"),addComp=$("haccpAddComponent"),compProgress=$("haccpComponentProgress"),measureCompWrap=$("haccpMeasureComponentWrap"),measureComp=$("haccpMeasureComponent"),
+deviceWrap=$("haccpDeviceWrap"),devicePick=$("haccpDevicePick"),deviceStatus=$("haccpDeviceStatus"),
+toggleDeviceForm=$("haccpToggleDeviceForm"),deviceForm=$("haccpDeviceForm"),deviceName=$("haccpDeviceName"),
+deviceType=$("haccpDeviceType"),deviceMin=$("haccpDeviceMin"),deviceMax=$("haccpDeviceMax"),
+saveDevice=$("haccpSaveDevice"),deleteDevice=$("haccpDeleteDevice"),deviceNotice=$("haccpDeviceNotice");
 if(!type)return;
 const preset={Kühlung:[2,7,"z. B. Kühlschrank 1"],Tiefkühlung:[-24,-18,"z. B. Tiefkühler 1"],Speisentemperatur:[65,100,"z. B. Rindergulasch"]};
 const WEEK_KEY="gastropilot_week_plan";
 const COMP_KEY="gastropilot_haccp_components_v1";
 const ARCHIVE_KEY="gastropilot_haccp_archive_v1";
 const DAYDOC_KEY="gastropilot_haccp_daydocs_v1";
+const DEVICE_KEY="gastropilot_haccp_devices_v1";
+const DEVICE_INIT_KEY="gastropilot_haccp_devices_initialized_v1";
+const GP_DEFAULT_DEVICES=[
+  {id:"gp-dev-kuehlhaus-1",name:"Kühlhaus 1",type:"Kühlung",min:2,max:7},
+  {id:"gp-dev-kuehlschrank-vorbereitung",name:"Kühlschrank Vorbereitung",type:"Kühlung",min:2,max:7},
+  {id:"gp-dev-kuehlschrank-dessert",name:"Kühlschrank Dessert",type:"Kühlung",min:2,max:7},
+  {id:"gp-dev-kuehltresen-ausgabe",name:"Kühltresen Ausgabe",type:"Kühlung",min:2,max:7},
+  {id:"gp-dev-tiefkuehler-1",name:"Tiefkühler 1",type:"Tiefkühlung",min:-24,max:-18},
+  {id:"gp-dev-tiefkuehltruhe",name:"Tiefkühltruhe",type:"Tiefkühlung",min:-24,max:-18}
+];
+function gpLoadDevices(){
+  try{
+    let x=JSON.parse(localStorage.getItem(DEVICE_KEY)||"[]");
+    return Array.isArray(x)?x:[];
+  }catch(e){return[]}
+}
+function gpSaveDevices(x){localStorage.setItem(DEVICE_KEY,JSON.stringify(x))}
+function gpInitDevices(){
+  if(localStorage.getItem(DEVICE_INIT_KEY))return;
+  if(!gpLoadDevices().length)gpSaveDevices(GP_DEFAULT_DEVICES);
+  localStorage.setItem(DEVICE_INIT_KEY,"1");
+}
+function gpDeviceById(id){return gpLoadDevices().find(d=>d.id===id)||null}
+function gpRenderDevicePicker(){
+  if(!deviceWrap||!devicePick)return;
+  const isDevice=type.value==="Kühlung"||type.value==="Tiefkühlung";
+  deviceWrap.hidden=!isDevice;
+  if(!isDevice)return;
+  const current=devicePick.value;
+  const list=gpLoadDevices().filter(d=>d.type===type.value);
+  devicePick.innerHTML='<option value="">Gerät auswählen</option>'+list.map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join("");
+  if(list.some(d=>d.id===current))devicePick.value=current;
+  deviceStatus.textContent=list.length?`${list.length} Gerät${list.length===1?"":"e"} für ${type.value}`:"Noch kein Gerät für diese Kontrollart angelegt.";
+}
+function gpApplyDevice(id){
+  const d=gpDeviceById(id);
+  if(!d)return;
+  loc.value=d.name;
+  mn.value=String(d.min).replace(".",",");
+  mx.value=String(d.max).replace(".",",");
+  evaluate();
+}
+function gpFillDeviceForm(id){
+  const d=gpDeviceById(id);
+  if(d){
+    deviceName.value=d.name;deviceType.value=d.type;
+    deviceMin.value=String(d.min).replace(".",",");deviceMax.value=String(d.max).replace(".",",");
+    deleteDevice.hidden=false;
+  }else{
+    deviceName.value="";deviceType.value=type.value==="Tiefkühlung"?"Tiefkühlung":"Kühlung";
+    const p=preset[deviceType.value];
+    deviceMin.value=String(p[0]).replace(".",",");deviceMax.value=String(p[1]).replace(".",",");
+    deleteDevice.hidden=true;
+  }
+}
+function gpDeviceChecksHtml(rows){
+  const devices=gpLoadDevices();
+  if(!devices.length)return "";
+  const today=gpTodayKey();
+  const todayRows=rows.filter(r=>gpDateKeyFromRecord(r)===today);
+  return `<span class="gpTodayDeviceTitle">Gerätekontrollen</span>`+
+    devices.map(d=>{
+      const hit=todayRows.some(r=>(r.type==="Kühlung"||r.type==="Tiefkühlung")&&gpNormName(r.location)===gpNormName(d.name));
+      return `<div class="gpDeviceCheckRow"><span>${esc(d.name)}</span><span class="${hit?"gpCheckDone":"gpCheckOpen"}">${hit?"✅ kontrolliert":"○ noch offen"}</span></div>`;
+    }).join("");
+}
+
 
 function gpLoadArchive(){try{let x=JSON.parse(localStorage.getItem(ARCHIVE_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}}
 function gpSaveArchive(x){localStorage.setItem(ARCHIVE_KEY,JSON.stringify(x))}
@@ -8052,10 +8164,23 @@ function gpSelectedRows(rows){
   return rows.filter(r=>gpDateKeyFromRecord(r)===archiveDay.value);
 }
 function gpRenderTodayChecks(rows){
- if(!todayChecks)return;const info=gpTodayPlanDishes();if(!info.dishes.length){todayChecks.innerHTML="";return}
- const today=gpTodayKey();todayChecks.innerHTML=`<strong>Heutige Speisentemperaturen</strong>`+info.dishes.map(d=>{let comps=gpComponentsForDish(d),measured=new Set(rows.filter(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur"&&gpNormName(r.dish||r.location)===gpNormName(d)).map(r=>gpNormName(r.component||r.location)));
- if(comps.length){let done=comps.filter(c=>measured.has(gpNormName(c))).length,ok=done===comps.length;return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":`🟡 ${done}/${comps.length} gemessen`}</span></div>`}
- let ok=rows.some(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur"&&gpNormName(r.location)===gpNormName(d));return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":"○ noch offen"}</span></div>`}).join("")
+ if(!todayChecks)return;
+ const info=gpTodayPlanDishes();
+ const today=gpTodayKey();
+ let foodHtml="";
+ if(info.dishes.length){
+   foodHtml=`<strong>Heutige Speisentemperaturen</strong>`+info.dishes.map(d=>{
+     let comps=gpComponentsForDish(d),
+         measured=new Set(rows.filter(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur"&&gpNormName(r.dish||r.location)===gpNormName(d)).map(r=>gpNormName(r.component||r.location)));
+     if(comps.length){
+       let done=comps.filter(c=>measured.has(gpNormName(c))).length,ok=done===comps.length;
+       return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":`🟡 ${done}/${comps.length} gemessen`}</span></div>`;
+     }
+     let ok=rows.some(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur"&&gpNormName(r.location)===gpNormName(d));
+     return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":"○ noch offen"}</span></div>`;
+   }).join("");
+ }
+ todayChecks.innerHTML=foodHtml+gpDeviceChecksHtml(rows);
 }
 function gpRenderDayDocStatus(){
   if(!dayDocStatus)return;
@@ -8066,14 +8191,55 @@ function gpRenderDayDocStatus(){
 function render(){
   const all=load();
   gpRenderArchiveOptions();
-  gpRenderTodayChecks(all);
+  gpRenderTodayChecks(gpLoadArchive());
   gpRenderDayDocStatus();
   count.textContent=all.length+" "+(all.length===1?"Eintrag":"Einträge")+" im aktuellen Verlauf";
   empty.style.display=all.length?"none":"block";
   empty.textContent="Noch keine Temperaturmessung im aktuellen Verlauf.";
   hist.innerHTML=all.map(r=>`<div class="gpHaccpEntry"><div class="gpHaccpEntryTop"><div><div class="gpHaccpEntryTitle">${esc(r.dish?`${r.dish} – ${r.component||r.location}`:r.type+" · "+r.location)}</div><div class="gpHaccpMeta">${esc(r.date)} · ${esc(r.employee||"ohne Kürzel")} · Soll ${r.min} bis ${r.max} °C</div></div><div class="gpHaccpTemp">${r.actual} °C</div></div><span class="gpHaccpStatus ${r.ok?"ok":"warn"}">${r.ok?"✅ In Ordnung":"⚠️ Abweichung"}</span>${r.action?`<div class="gpHaccpAction"><strong>Maßnahme:</strong> ${esc(r.action)}</div>`:""}<button type="button" class="secondary gpHaccpDelete" data-haccp-id="${esc(r.id)}">Eintrag aus aktuellem Verlauf löschen</button></div>`).join("");
 }
-type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];gpRefreshMenuPick();evaluate()});if(menuPick){menuPick.addEventListener("change",()=>{if(menuPick.value){loc.value=menuPick.value;loc.dispatchEvent(new Event("input",{bubbles:true}));}gpRenderComponents()});}
+type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];gpRefreshMenuPick();gpRenderDevicePicker();gpRenderComponents();evaluate()});if(menuPick){menuPick.addEventListener("change",()=>{if(menuPick.value){loc.value=menuPick.value;loc.dispatchEvent(new Event("input",{bubbles:true}));}gpRenderComponents()});}
+
+if(devicePick)devicePick.addEventListener("change",()=>{if(devicePick.value)gpApplyDevice(devicePick.value);gpFillDeviceForm(devicePick.value)});
+if(toggleDeviceForm)toggleDeviceForm.addEventListener("click",()=>{
+  deviceForm.hidden=!deviceForm.hidden;
+  toggleDeviceForm.textContent=deviceForm.hidden?"+ Gerät anlegen":"Geräteverwaltung schließen";
+  if(!deviceForm.hidden)gpFillDeviceForm(devicePick.value);
+});
+if(deviceType)deviceType.addEventListener("change",()=>{
+  const p=preset[deviceType.value];deviceMin.value=String(p[0]).replace(".",",");deviceMax.value=String(p[1]).replace(".",",");
+});
+if(saveDevice)saveDevice.addEventListener("click",()=>{
+  const name=deviceName.value.trim(),lo=num(deviceMin.value),hi=num(deviceMax.value);
+  if(!name){deviceNotice.textContent="Bitte Gerätenamen eintragen.";return}
+  if(lo===null||hi===null){deviceNotice.textContent="Bitte gültige Solltemperaturen eintragen.";return}
+  let list=gpLoadDevices(),id=devicePick.value;
+  if(id){
+    const idx=list.findIndex(d=>d.id===id);
+    if(idx>=0)list[idx]={...list[idx],name,type:deviceType.value,min:lo,max:hi};
+  }else{
+    id="gp-dev-"+Date.now();
+    list.push({id,name,type:deviceType.value,min:lo,max:hi});
+  }
+  gpSaveDevices(list);
+  type.value=deviceType.value;
+  gpRenderDevicePicker();
+  devicePick.value=id;
+  gpApplyDevice(id);
+  gpFillDeviceForm(id);
+  deviceNotice.textContent="✓ Gerät gespeichert.";
+  gpRenderTodayChecks(gpLoadArchive());
+});
+if(deleteDevice)deleteDevice.addEventListener("click",()=>{
+  const id=devicePick.value,d=gpDeviceById(id);if(!id||!d)return;
+  if(confirm(`Gerät „${d.name}“ aus der Geräteliste löschen? Bereits gespeicherte HACCP-Messungen bleiben erhalten.`)){
+    gpSaveDevices(gpLoadDevices().filter(x=>x.id!==id));
+    devicePick.value="";gpRenderDevicePicker();gpFillDeviceForm("");
+    deviceNotice.textContent="Gerät aus der Liste gelöscht. Alte Messungen bleiben erhalten.";
+    gpRenderTodayChecks(gpLoadArchive());
+  }
+});
+
 if(addComp)addComp.addEventListener("click",()=>{if(!menuPick||!menuPick.value)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());if(vals.length<5){vals.push("");compList.innerHTML=vals.map((c,i)=>`<div class="gpCompRow"><input class="gpCompInput" value="${esc(c)}" placeholder="Komponente ${i+1}"><button type="button" class="secondary gpCompRemove" data-remove="${i}">×</button></div>`).join("")}});
 if(compList){compList.addEventListener("change",e=>{if(e.target.classList.contains("gpCompInput"))gpCommitComponents()});compList.addEventListener("click",e=>{let b=e.target.closest("[data-remove]");if(!b)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());vals.splice(Number(b.dataset.remove),1);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(load())})}
 [mn,mx,act].forEach(e=>e.addEventListener("input",evaluate));
@@ -8139,6 +8305,11 @@ if(saveDayDoc)saveDayDoc.addEventListener("click",()=>{
         comps.forEach(c=>{if(!measured.has(gpNormName(c)))open.push(d+" – "+c)});
       } else if(!rows.some(r=>r.type==="Speisentemperatur"&&gpNormName(r.location)===gpNormName(d))) open.push(d);
     });
+    gpLoadDevices().forEach(d=>{
+      if(!rows.some(r=>(r.type==="Kühlung"||r.type==="Tiefkühlung")&&gpNormName(r.location)===gpNormName(d.name))){
+        open.push("Gerät: "+d.name);
+      }
+    });
     if(open.length && !confirm("Noch "+open.length+" Kontrolle(n) offen:\n\n"+open.slice(0,8).join("\n")+"\n\nTag trotzdem abschließen?"))return;
   }
   const docs=gpLoadDayDocs();
@@ -8201,7 +8372,7 @@ $("haccpClear").addEventListener("click",()=>{
   evaluate();
   loc.focus();
 });
-gpMigrateCurrentToArchive();gpRefreshMenuPick();gpRenderComponents();evaluate();render();
+gpInitDevices();gpMigrateCurrentToArchive();gpRefreshMenuPick();gpRenderDevicePicker();gpRenderComponents();evaluate();render();
 })();
 </script>
 
