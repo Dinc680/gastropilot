@@ -2378,6 +2378,24 @@ body.gp-app-ready .appSection.gp-screen-active{
  #gpAppNav{width:min(330px,calc(100% - 20px))!important;grid-template-columns:repeat(6,1fr)!important}
 }
 </style>
+<style id="gp-samples-v72-css">
+.gpSampleAfterMeasure{margin-top:10px;padding:12px;border:1px solid #cfe0da;border-radius:13px;background:#f3f8f6;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.gpSampleAfterMeasure[hidden],.gpSamplePanel[hidden]{display:none!important}
+.gpSampleAfterMeasure button{width:auto!important;flex:0 0 auto}
+.gpSamplePanel{margin-top:12px;padding:13px;border:1px solid var(--gp-line);border-radius:14px;background:#fff}
+.gpSampleHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.gpSampleHead button{width:auto!important}
+.gpSampleGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.gpSampleInfo{font-size:12px;color:var(--gp-muted);background:#f5f7f6;padding:9px 10px;border-radius:10px;margin:10px 0}
+.gpSampleActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gpSamplePreview{margin-top:12px}
+.gpSampleLabel{width:76mm;min-height:45mm;border:1.5px solid #111;border-radius:2mm;padding:4mm;background:#fff;color:#111;font-family:Arial,sans-serif}
+.gpSampleLabelTitle{font-size:15px;font-weight:900;text-align:center;border-bottom:1px solid #111;padding-bottom:2mm;margin-bottom:2mm}
+.gpSampleLabelDish{font-size:16px;font-weight:900;margin-bottom:1.5mm}
+.gpSampleLabelRow{font-size:11px;line-height:1.45}
+.gpSampleLabelFoot{margin-top:2mm;padding-top:2mm;border-top:1px solid #aaa;font-size:10px;font-weight:700}
+@media(max-width:700px){.gpSampleAfterMeasure{align-items:flex-start;flex-direction:column}.gpSampleAfterMeasure button{width:100%!important}.gpSampleGrid{grid-template-columns:1fr}.gpSampleActions{grid-template-columns:1fr}}
+</style>
 </head>
 
 <body>
@@ -2981,6 +2999,27 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <label id="haccpActionWrap" hidden>Ergriffene Maßnahme<textarea id="haccpAction" rows="3" placeholder="z. B. Ware umgelagert, Kühlung geprüft"></textarea></label>
 <label>Mitarbeiter / Kürzel<input id="haccpEmployee" placeholder="Name oder Kürzel"></label>
 <button id="haccpSave" class="primary" type="button">Messung speichern</button><div id="haccpNotice" class="saveSuccess"></div>
+<div id="gpSampleAfterMeasure" class="gpSampleAfterMeasure" hidden>
+  <div><strong>🏷️ Rückstellprobe</strong><div class="muted">Etikett aus der gespeicherten Speisentemperatur erstellen.</div></div>
+  <button id="gpCreateSampleLabel" type="button" class="secondary">Etikett erstellen</button>
+</div>
+<div id="gpSamplePanel" class="gpSamplePanel" hidden>
+  <div class="gpSampleHead"><strong>🏷️ Rückstellproben-Etikett</strong><button id="gpCloseSample" class="secondary" type="button">Schließen</button></div>
+  <div class="gpSampleGrid">
+    <label>Speise / Gericht<input id="gpSampleDish" type="text"></label>
+    <label>Komponente<input id="gpSampleComponent" type="text"></label>
+    <label>Probenmenge<input id="gpSampleAmount" type="text" value="100 g / ml"></label>
+    <label>Aufbewahren (Tage)<input id="gpSampleDays" type="number" inputmode="numeric" min="1" max="60" value="14"></label>
+    <label>Entnommen von<input id="gpSampleEmployee" type="text"></label>
+    <label>Entnahmezeit<input id="gpSampleTime" type="datetime-local"></label>
+  </div>
+  <div class="gpSampleInfo">Standard in GastroPilot: tiefgefroren bei −18 °C, 14 Tage. Die Werte können an den betrieblichen HACCP-Plan angepasst werden.</div>
+  <div class="gpSampleActions">
+    <button id="gpPreviewSample" class="secondary" type="button">Etikett ansehen</button>
+    <button id="gpPrintSample" class="primary" type="button">Drucken / PDF</button>
+  </div>
+  <div id="gpSamplePreview" class="gpSamplePreview"></div>
+</div>
 </div>
 <div id="gpHaccpPaneDocs" class="gpHaccpPane">
 <div class="gpArchiveBanner">✅ HACCP-Tagesarchiv aktiv</div>
@@ -8363,7 +8402,7 @@ function render(){
   empty.textContent="Noch keine Temperaturmessung im aktuellen Verlauf.";
   hist.innerHTML=all.map(r=>`<div class="gpHaccpEntry"><div class="gpHaccpEntryTop"><div><div class="gpHaccpEntryTitle">${esc(r.dish?`${r.dish} – ${r.component||r.location}`:r.type+" · "+r.location)}</div><div class="gpHaccpMeta">${esc(r.date)} · ${esc(r.employee||"ohne Kürzel")} · Soll ${r.min} bis ${r.max} °C</div></div><div class="gpHaccpTemp">${r.actual} °C</div></div><span class="gpHaccpStatus ${r.ok?"ok":"warn"}">${r.ok?"✅ In Ordnung":"⚠️ Abweichung"}</span>${r.action?`<div class="gpHaccpAction"><strong>Maßnahme:</strong> ${esc(r.action)}</div>`:""}<button type="button" class="secondary gpHaccpDelete" data-haccp-id="${esc(r.id)}">Eintrag aus aktuellem Verlauf löschen</button></div>`).join("");
 }
-type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];gpRefreshMenuPick();gpRenderDevicePicker();gpRenderComponents();evaluate();gpRememberQuickPrefs();gpUpdateQuickSteps()});if(menuPick){menuPick.addEventListener("change",()=>{if(menuPick.value){loc.value=menuPick.value;loc.dispatchEvent(new Event("input",{bubbles:true}));}gpRenderComponents()});}
+type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];gpRefreshMenuPick();gpRenderDevicePicker();gpRenderComponents();if(type.value!=="Speisentemperatur"){gpLastFoodMeasurement=null;if(sampleAfter)sampleAfter.hidden=true;if(samplePanel)samplePanel.hidden=true}evaluate();gpRememberQuickPrefs();gpUpdateQuickSteps()});if(menuPick){menuPick.addEventListener("change",()=>{if(menuPick.value){loc.value=menuPick.value;loc.dispatchEvent(new Event("input",{bubbles:true}));}gpRenderComponents()});}
 
 
 const gpHaccpModeButtons=[...document.querySelectorAll("[data-haccp-mode]")];
@@ -8462,7 +8501,70 @@ if(deleteDevice)deleteDevice.addEventListener("click",()=>{
 if(addComp)addComp.addEventListener("click",()=>{if(!menuPick||!menuPick.value)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());if(vals.length<5){vals.push("");compList.innerHTML=vals.map((c,i)=>`<div class="gpCompRow"><input class="gpCompInput" value="${esc(c)}" placeholder="Komponente ${i+1}"><button type="button" class="secondary gpCompRemove" data-remove="${i}">×</button></div>`).join("")}});
 if(compList){compList.addEventListener("change",e=>{if(e.target.classList.contains("gpCompInput"))gpCommitComponents()});compList.addEventListener("click",e=>{let b=e.target.closest("[data-remove]");if(!b)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());vals.splice(Number(b.dataset.remove),1);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(load())})}
 [mn,mx,act].forEach(e=>e.addEventListener("input",evaluate));
-$("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim(),dish=(type.value==="Speisentemperatur"&&menuPick?menuPick.value:""),component=(dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();let rec={id:String(Date.now()),type:type.value,location:(component||place),dish:(dish||""),component:(component||""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()};a.unshift(rec);store(a);gpArchiveRecord(rec);act.value="";action.value="";notice.textContent="✓ Messung gespeichert.";gpRememberQuickPrefs();if(measureComp)measureComp.value="";act.value="";evaluate();render();gpRenderComponents();gpSetHaccpMode("measure");gpUpdateQuickSteps();setTimeout(()=>{try{act.focus()}catch(e){}},80)});
+
+const SAMPLE_KEY="gastropilot_haccp_samples_v1";
+const sampleAfter=$("gpSampleAfterMeasure"),sampleCreate=$("gpCreateSampleLabel"),samplePanel=$("gpSamplePanel"),sampleClose=$("gpCloseSample"),
+sampleDish=$("gpSampleDish"),sampleComponent=$("gpSampleComponent"),sampleAmount=$("gpSampleAmount"),sampleDays=$("gpSampleDays"),
+sampleEmployee=$("gpSampleEmployee"),sampleTime=$("gpSampleTime"),samplePreview=$("gpSamplePreview"),samplePreviewBtn=$("gpPreviewSample"),samplePrint=$("gpPrintSample");
+let gpLastFoodMeasurement=null;
+
+function gpLocalDateTimeValue(d){
+  const p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function gpSampleExpiry(dt,days){
+  const d=new Date(dt||Date.now());d.setDate(d.getDate()+(parseInt(days,10)||14));return d;
+}
+function gpSampleDate(d){return new Intl.DateTimeFormat("de-DE",{dateStyle:"short",timeStyle:"short"}).format(d)}
+function gpSampleLabelHtml(data){
+  const expiry=gpSampleExpiry(data.time,data.days);
+  return `<div class="gpSampleLabel">
+    <div class="gpSampleLabelTitle">RÜCKSTELLPROBE</div>
+    <div class="gpSampleLabelDish">${esc(data.dish||data.component||"Speise")}</div>
+    ${data.component&&gpNormName(data.component)!==gpNormName(data.dish)?`<div class="gpSampleLabelRow"><b>Komponente:</b> ${esc(data.component)}</div>`:""}
+    <div class="gpSampleLabelRow"><b>Probe:</b> ${esc(data.amount)}</div>
+    <div class="gpSampleLabelRow"><b>Entnahme:</b> ${esc(gpSampleDate(new Date(data.time)))}</div>
+    <div class="gpSampleLabelRow"><b>Entnommen von:</b> ${esc(data.employee||"—")}</div>
+    <div class="gpSampleLabelRow"><b>Lagern:</b> tiefgefroren bei −18 °C</div>
+    <div class="gpSampleLabelFoot">Aufbewahren bis: ${esc(gpSampleDate(expiry).split(",")[0])}</div>
+  </div>`;
+}
+function gpSampleData(){
+  return {id:"sample-"+Date.now(),dish:sampleDish.value.trim(),component:sampleComponent.value.trim(),amount:sampleAmount.value.trim()||"100 g / ml",
+    days:parseInt(sampleDays.value,10)||14,employee:sampleEmployee.value.trim(),time:sampleTime.value||gpLocalDateTimeValue(new Date())};
+}
+function gpStoreSample(data){
+  let a=[];try{a=JSON.parse(localStorage.getItem(SAMPLE_KEY)||"[]");if(!Array.isArray(a))a=[]}catch(e){a=[]}
+  a.unshift(data);localStorage.setItem(SAMPLE_KEY,JSON.stringify(a));
+}
+function gpOpenSampleFromMeasurement(){
+  const r=gpLastFoodMeasurement;if(!r)return;
+  sampleDish.value=r.dish||r.location||"";
+  sampleComponent.value=r.component||r.location||"";
+  sampleEmployee.value=r.employee||emp.value.trim();
+  sampleTime.value=gpLocalDateTimeValue(new Date());
+  samplePanel.hidden=false;samplePreview.innerHTML=gpSampleLabelHtml(gpSampleData());
+  samplePanel.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+if(sampleCreate)sampleCreate.addEventListener("click",gpOpenSampleFromMeasurement);
+if(sampleClose)sampleClose.addEventListener("click",()=>{samplePanel.hidden=true});
+if(samplePreviewBtn)samplePreviewBtn.addEventListener("click",()=>{samplePreview.innerHTML=gpSampleLabelHtml(gpSampleData())});
+if(samplePrint)samplePrint.addEventListener("click",()=>{
+  const data=gpSampleData();gpStoreSample(data);samplePreview.innerHTML=gpSampleLabelHtml(data);
+  const w=window.open("","_blank");
+  if(!w){notice.textContent="Etikett konnte nicht geöffnet werden. Bitte Pop-ups erlauben.";return}
+  const label=gpSampleLabelHtml(data);
+  w.document.open();w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Rückstellprobe – ${esc(data.dish||data.component)}</title><style>
+  @page{size:auto;margin:5mm}body{font-family:Arial,sans-serif;margin:0;color:#111}.actions{margin:0 0 8mm}.actions button{font-size:16px;padding:10px 14px}
+  .gpSampleLabel{box-sizing:border-box;width:76mm;min-height:45mm;border:1.5px solid #111;padding:4mm;background:#fff}.gpSampleLabelTitle{font-size:15px;font-weight:900;text-align:center;border-bottom:1px solid #111;padding-bottom:2mm;margin-bottom:2mm}
+  .gpSampleLabelDish{font-size:16px;font-weight:900;margin-bottom:1.5mm}.gpSampleLabelRow{font-size:11px;line-height:1.45}.gpSampleLabelFoot{margin-top:2mm;padding-top:2mm;border-top:1px solid #aaa;font-size:10px;font-weight:700}
+  @media print{.actions{display:none}}</style></head><body><div class="actions"><button onclick="window.print()">Etikett drucken / PDF</button></div>${label}</body></html>`);
+  w.document.close();notice.textContent="✓ Rückstellprobe dokumentiert. Etikett ist druckbereit.";
+});
+$("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim(),dish=(type.value==="Speisentemperatur"&&menuPick?menuPick.value:""),component=(dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();let rec={id:String(Date.now()),type:type.value,location:(component||place),dish:(dish||""),component:(component||""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()};a.unshift(rec);store(a);gpArchiveRecord(rec);
+if(rec.type==="Speisentemperatur"){gpLastFoodMeasurement=rec;if(sampleAfter)sampleAfter.hidden=false}else{gpLastFoodMeasurement=null;if(sampleAfter)sampleAfter.hidden=true;if(samplePanel)samplePanel.hidden=true}
+act.value="";action.value="";notice.textContent=rec.type==="Speisentemperatur"?"✓ Messung gespeichert. Rückstellproben-Etikett kann jetzt erstellt werden.":"✓ Messung gespeichert.";gpRememberQuickPrefs();if(measureComp)measureComp.value="";act.value="";evaluate();render();gpRenderComponents();gpSetHaccpMode("measure");gpUpdateQuickSteps();setTimeout(()=>{try{act.focus()}catch(e){}},80)});
 if(archiveDay)archiveDay.addEventListener("change",render);
 
 function gpReportHtml(rows,key,title){
