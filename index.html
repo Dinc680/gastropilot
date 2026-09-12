@@ -993,7 +993,7 @@ main{max-width:980px!important;margin:0 auto!important;padding:14px 12px 28px!im
    Vor der Initialisierung bleibt nur der Mengenrechner sichtbar.
    Sobald der App-Modus bereit ist, wird ausschließlich die aktive Seite gezeigt. */
 .appSection{display:none!important}
-body:not(.gp-app-ready) #mengenrechner.appSection{display:block!important}
+body:not(.gp-app-ready) #homeCard.appSection{display:block!important}
 body.gp-app-ready .appSection{display:none!important}
 body.gp-app-ready .appSection.gp-screen-active{
   display:block!important;
@@ -1030,6 +1030,7 @@ button,.btn{min-height:44px;border-radius:12px!important;font-weight:700!importa
 @media print{
  body{padding-bottom:0!important;background:#fff!important}
  #gpAppNav,#gpScreenLabel{display:none!important}
+ #homeCard{display:none!important}
  .appSection{display:block!important}
  .card{box-shadow:none!important}
 }
@@ -2354,6 +2355,29 @@ body.gp-app-ready .appSection.gp-screen-active{
 #gpManualMeasureFields.gpAutoDevice{display:none}.gpTodayProgress{margin:8px 0 12px;padding:11px 12px;border-radius:12px;background:#edf5f2;font-weight:900;color:var(--green)}
 @media(max-width:700px){.gpQuickSteps b{display:none}#gpHaccpPaneMeasure .gpDeviceWrap{padding:10px!important}#haccpActual{font-size:24px!important;font-weight:800}#haccpSave{min-height:52px!important;font-size:17px!important}}
 </style>
+<style id="gp-home-v71-css">
+.gpHome{max-width:760px!important;margin:0 auto!important}
+.gpHomeIntro{text-align:center;padding:6px 4px 12px}
+.gpHomeIntro h2{margin:4px 0 5px!important;font-size:25px!important}
+.gpHomeGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gpHomeTile{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;text-align:left!important;min-height:88px!important;padding:14px!important;border:1px solid var(--gp-line)!important;background:#fff!important;color:var(--gp-text)!important;box-shadow:0 3px 12px rgba(20,54,44,.06)!important}
+.gpHomeTile:active{transform:scale(.985)}
+.gpHomeTileWide{grid-column:1/-1}
+.gpHomeIcon{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:var(--gp-soft);font-size:22px;flex:0 0 auto}
+.gpHomeTile strong{display:block;font-size:16px;color:var(--gp-green)}
+.gpHomeTile small{display:block;margin-top:3px;font-size:12px;color:var(--gp-muted);font-weight:600}
+.gpHomeToday{margin-top:14px;padding:13px;border-radius:14px;background:#f3f7f5}
+.gpHomeTodayTitle{font-weight:900;margin-bottom:7px;color:var(--gp-green)}
+.gpHomeStatus{padding:7px 0;border-bottom:1px solid #dde7e2;font-size:13px}
+.gpHomeStatus:last-child{border-bottom:0}
+@media(max-width:700px){
+ .gpHomeGrid{grid-template-columns:1fr 1fr;gap:8px}
+ .gpHomeTile{min-height:78px!important;padding:11px!important;gap:9px!important}
+ .gpHomeIcon{width:36px;height:36px;font-size:19px}
+ .gpHomeTile strong{font-size:14px}.gpHomeTile small{font-size:10px}
+ #gpAppNav{width:min(330px,calc(100% - 20px))!important;grid-template-columns:repeat(6,1fr)!important}
+}
+</style>
 </head>
 
 <body>
@@ -2373,6 +2397,7 @@ body.gp-app-ready .appSection.gp-screen-active{
 </header>
 <nav class="quickNav" aria-label="GastroPilot Navigation">
   <div class="quickNavInner">
+    <button type="button" class="gpTopNavButton gp-top-active" data-screen="homeCard" data-label="Start" title="Start">🏠 Start</button>
     <button type="button" class="gpTopNavButton gp-top-active" data-screen="mengenrechner" data-label="Mengenrechner" title="Mengenrechner">⚖️ Mengen</button>
     <button type="button" class="gpTopNavButton" data-screen="gerichte" data-label="Gericht anlegen" title="Gericht anlegen">➕ Gericht</button>
     <button type="button" class="gpTopNavButton" data-screen="weekPlannerCard" data-label="Wochenplan" title="Wochenplan">📅 Wochenplan</button>
@@ -2385,12 +2410,44 @@ body.gp-app-ready .appSection.gp-screen-active{
 <div class="gpScreenBar" aria-live="polite">
   <div>
     <div class="gpScreenKicker">GastroPilot</div>
-    <h1 id="gpScreenHeading">Mengenrechner</h1>
+    <h1 id="gpScreenHeading">Start</h1>
   </div>
-  <div class="gpScreenIcon" id="gpScreenIcon" aria-hidden="true">⚖️</div>
+  <div class="gpScreenIcon" id="gpScreenIcon" aria-hidden="true">🏠</div>
 </div>
 
 <main>
+
+<section class="card appSection gpHome" id="homeCard">
+  <div class="gpHomeIntro">
+    <div class="eyebrow">GastroPilot</div>
+    <h2>Was möchtest du machen?</h2>
+    <p class="muted">Direkt zum gewünschten Bereich – ohne Umwege.</p>
+  </div>
+
+  <div class="gpHomeGrid">
+    <button type="button" class="gpHomeTile" data-home-screen="mengenrechner" data-home-label="Mengenrechner">
+      <span class="gpHomeIcon">⚖️</span><span><strong>Mengen</strong><small>Portionen & Kalkulation</small></span>
+    </button>
+    <button type="button" class="gpHomeTile" data-home-screen="gerichte" data-home-label="Gericht anlegen">
+      <span class="gpHomeIcon">➕</span><span><strong>Gerichte</strong><small>Rezepte anlegen</small></span>
+    </button>
+    <button type="button" class="gpHomeTile" data-home-screen="weekPlannerCard" data-home-label="Wochenplan">
+      <span class="gpHomeIcon">📅</span><span><strong>Wochenplan</strong><small>Woche organisieren</small></span>
+    </button>
+    <button type="button" class="gpHomeTile" data-home-screen="shoppingCard" data-home-label="Einkaufsliste">
+      <span class="gpHomeIcon">🛒</span><span><strong>Einkauf</strong><small>Listen & Mengen</small></span>
+    </button>
+    <button type="button" class="gpHomeTile gpHomeTileWide" data-home-screen="haccpCard" data-home-label="HACCP">
+      <span class="gpHomeIcon">✅</span><span><strong>HACCP</strong><small>Kontrollen & Dokumentation</small></span>
+    </button>
+  </div>
+
+  <div class="gpHomeToday">
+    <div class="gpHomeTodayTitle">Heute</div>
+    <div id="gpHomeWeekStatus" class="gpHomeStatus">📅 Wochenplan wird geladen …</div>
+    <div id="gpHomeHaccpStatus" class="gpHomeStatus">✅ HACCP wird geladen …</div>
+  </div>
+</section>
 
 <section class="card appSection" id="mengenrechner">
 
@@ -7810,19 +7867,52 @@ try{
 </script>
 <div id="gpScreenLabel">Mengenrechner</div>
 <nav id="gpAppNav" aria-label="GastroPilot Hauptnavigation">
-  <button type="button" class="gp-nav-active" data-screen="mengenrechner" data-label="Mengenrechner" title="Mengenrechner"><span class="ico">⚖️</span><span>Mengen</span></button>
+  <button type="button" class="gp-nav-active" data-screen="homeCard" data-label="Start" title="Start"><span class="ico">🏠</span><span>Start</span></button>
+  <button type="button" data-screen="mengenrechner" data-label="Mengenrechner" title="Mengenrechner"><span class="ico">⚖️</span><span>Mengen</span></button>
   <button type="button" data-screen="gerichte" data-label="Gericht anlegen" title="Gericht anlegen"><span class="ico">➕</span><span>Gericht</span></button>
   <button type="button" data-screen="weekPlannerCard" data-label="Wochenplan" title="Wochenplan"><span class="ico">📅</span><span>Woche</span></button>
   <button type="button" data-screen="shoppingCard" data-label="Einkaufsliste" title="Einkaufsliste"><span class="ico">🛒</span><span>Einkauf</span></button>
   <button type="button" data-screen="haccpCard" data-label="HACCP" title="HACCP"><span class="ico">✅</span><span>HACCP</span></button>
 </nav>
-<script id="gp-appmode-v3-js">
+<script id="gp-appmode-v71-js">
 (function(){
-  var screenIds=['mengenrechner','gerichte','weekPlannerCard','shoppingCard','haccpCard'];
+  var screenIds=['homeCard','mengenrechner','gerichte','weekPlannerCard','shoppingCard','haccpCard'];
+
+  function updateHomeStatus(){
+    var weekEl=document.getElementById('gpHomeWeekStatus');
+    var haccpEl=document.getElementById('gpHomeHaccpStatus');
+
+    try{
+      var plan=JSON.parse(localStorage.getItem('gastropilot_week_plan')||'{}');
+      var planned=0;
+      Object.values(plan||{}).forEach(function(day){
+        Object.values(day||{}).forEach(function(slot){
+          if(slot && slot.recipeName) planned++;
+        });
+      });
+      if(weekEl) weekEl.textContent=planned?('📅 '+planned+' Gerichte im Wochenplan'): '📅 Noch keine Gerichte im Wochenplan';
+    }catch(e){
+      if(weekEl) weekEl.textContent='📅 Wochenplan';
+    }
+
+    try{
+      var archive=JSON.parse(localStorage.getItem('gastropilot_haccp_archive_v1')||'[]');
+      var d=new Date(),p=function(n){return String(n).padStart(2,'0')};
+      var today=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+      var count=(Array.isArray(archive)?archive:[]).filter(function(r){
+        if(r.isoDate) return r.isoDate===today;
+        var m=String(r.date||'').match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+        return m && (m[3]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0'))===today;
+      }).length;
+      if(haccpEl) haccpEl.textContent=count?('✅ '+count+' HACCP-Kontrollen heute gespeichert'):'✅ Heute noch keine HACCP-Kontrolle gespeichert';
+    }catch(e){
+      if(haccpEl) haccpEl.textContent='✅ HACCP';
+    }
+  }
+
   function showScreen(id,label){
     if(screenIds.indexOf(id)<0 || !document.getElementById(id)){
-      id='mengenrechner';
-      label='Mengenrechner';
+      id='homeCard'; label='Start';
     }
     screenIds.forEach(function(screenId){
       var el=document.getElementById(screenId);
@@ -7834,50 +7924,40 @@ try{
     document.querySelectorAll('.quickNav .gpTopNavButton').forEach(function(btn){
       btn.classList.toggle('gp-top-active',btn.dataset.screen===id);
     });
+
     var l=document.getElementById('gpScreenLabel');
     if(l) l.textContent=label||'';
-
     var currentTitle=document.getElementById('gpCurrentScreenTitle');
     if(currentTitle) currentTitle.textContent=label||'';
-
     var screenHeading=document.getElementById('gpScreenHeading');
     if(screenHeading) screenHeading.textContent=label||'';
 
     var screenIcon=document.getElementById('gpScreenIcon');
     if(screenIcon){
-      var icons={
-        mengenrechner:'⚖️',
-        gerichte:'➕',
-        weekPlannerCard:'📅',
-        shoppingCard:'🛒',
-        haccpCard:'✅'
-      };
+      var icons={homeCard:'🏠',mengenrechner:'⚖️',gerichte:'➕',weekPlannerCard:'📅',shoppingCard:'🛒',haccpCard:'✅'};
       screenIcon.textContent=icons[id]||'•';
     }
-    /* Kein Smooth-Scroll: Bereich wird an derselben App-Position gewechselt. */
+
+    if(id==='homeCard') updateHomeStatus();
     window.scrollTo(0,0);
     try{localStorage.setItem('gastropilot_active_screen',id);}catch(e){}
   }
+
   function init(){
-    var start='mengenrechner';
-    try{
-      var saved=localStorage.getItem('gastropilot_active_screen');
-      if(screenIds.indexOf(saved)>=0) start=saved;
-    }catch(e){}
-
-    document.querySelectorAll('#gpAppNav button').forEach(function(btn){
-      btn.addEventListener('click',function(){showScreen(btn.dataset.screen,btn.dataset.label);});
-    });
-    document.querySelectorAll('.quickNav .gpTopNavButton').forEach(function(btn){
+    document.querySelectorAll('#gpAppNav button,.quickNav .gpTopNavButton').forEach(function(btn){
       btn.addEventListener('click',function(){showScreen(btn.dataset.screen,btn.dataset.label);});
     });
 
-    /* Erst jetzt wird der Ein-Seiten-App-Modus aktiviert. */
+    document.querySelectorAll('[data-home-screen]').forEach(function(btn){
+      btn.addEventListener('click',function(){showScreen(btn.dataset.homeScreen,btn.dataset.homeLabel);});
+    });
+
     document.body.classList.add('gp-app-ready');
 
-    var startBtn=document.querySelector('#gpAppNav button[data-screen="'+start+'"]');
-    showScreen(start,startBtn?startBtn.dataset.label:'Mengenrechner');
+    /* Jeder neue App-/Seitenstart beginnt bewusst auf Home. */
+    showScreen('homeCard','Start');
   }
+
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
 </script>
