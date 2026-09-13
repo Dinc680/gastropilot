@@ -2464,6 +2464,200 @@ body.gp-app-ready .appSection.gp-screen-active{
   #gpHaccpModeNav .gpHaccpModeBtn{min-height:56px;font-size:13px;padding:8px 4px}
 }
 </style>
+<style id="gp-v74-fresh-design">
+/* GastroPilot V7.4 – visuelles Grundsystem. Funktionalität unverändert. */
+:root{
+  --gp-green:#135847;
+  --gp-green-bright:#1f7a63;
+  --gp-green-soft:#e9f4f0;
+  --gp-amber:#e99a2e;
+  --gp-amber-soft:#fff3df;
+  --gp-blue:#3478b9;
+  --gp-blue-soft:#eaf3fb;
+  --gp-success:#21865e;
+  --gp-success-soft:#e8f6ef;
+  --gp-danger:#b84a4a;
+  --gp-surface:#ffffff;
+  --gp-warm:#f6f4ef;
+  --gp-ink:#1d2a26;
+  --gp-muted:#68746f;
+  --gp-line:#dce4e0;
+}
+
+/* warmer, hochwertigerer App-Hintergrund */
+body{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(233,154,46,.10),transparent 28rem),
+    linear-gradient(180deg,#f8faf9 0,#f3f5f3 52%,#f6f4ef 100%);
+  color:var(--gp-ink);
+}
+
+/* Marke etwas lebendiger */
+.gpModernHeader{
+  background:linear-gradient(135deg,#104f40 0%,#176a55 68%,#1b755e 100%)!important;
+  box-shadow:0 8px 24px rgba(19,88,71,.16);
+}
+.gpBrandMark{
+  background:#fff!important;
+  color:var(--gp-green)!important;
+  box-shadow:0 4px 12px rgba(0,0,0,.14);
+}
+.gpBrandClaim{opacity:.88}
+
+/* Karten mit mehr Tiefe, aber nicht verspielt */
+.card{
+  border:1px solid rgba(19,88,71,.10)!important;
+  box-shadow:0 8px 24px rgba(30,55,47,.07)!important;
+}
+.appSection>h2,.gpHaccpHead h2{color:#173f35}
+
+/* Primäre Aktionen: GP-Grün + mehr Energie */
+button.primary,
+.primary{
+  background:linear-gradient(135deg,var(--gp-green) 0%,var(--gp-green-bright) 100%)!important;
+  border-color:transparent!important;
+  box-shadow:0 5px 13px rgba(19,88,71,.18);
+  font-weight:850!important;
+}
+button.primary:active{transform:translateY(1px);box-shadow:0 2px 7px rgba(19,88,71,.16)}
+
+/* Sekundäre Aktionen klarer */
+button.secondary{
+  background:#fff;
+  border-color:#cfdad5;
+  color:#30463e;
+}
+button.secondary:active{background:#f1f5f3}
+
+/* Formfelder freundlicher */
+input,select,textarea{
+  border-color:#cfd9d5!important;
+  background:#fff!important;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--gp-green-bright)!important;
+  box-shadow:0 0 0 3px rgba(31,122,99,.10)!important;
+  outline:none!important;
+}
+
+/* Screenbar / Orientierung */
+.gpScreenBar{
+  background:linear-gradient(90deg,#ffffff 0%,#f8fbf9 100%)!important;
+  border-bottom-color:#dce5e1!important;
+}
+.gpScreenIcon{
+  background:var(--gp-amber-soft)!important;
+  color:#a7610b!important;
+  border:1px solid #f0d3a3;
+}
+
+/* Startseite: Funktionskacheln wie echte Produkt-Einstiege */
+.gpHome [data-home-screen]{
+  border:1px solid #dce5e1!important;
+  box-shadow:0 5px 14px rgba(35,60,51,.06)!important;
+  transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease;
+}
+.gpHome [data-home-screen]:active{transform:scale(.985)}
+.gpHome [data-home-screen]:nth-of-type(1){background:linear-gradient(145deg,#fff,#eef8f4)!important}
+.gpHome [data-home-screen]:nth-of-type(2){background:linear-gradient(145deg,#fff,#fff5e6)!important}
+.gpHome [data-home-screen]:nth-of-type(3){background:linear-gradient(145deg,#fff,#edf5fb)!important}
+.gpHome [data-home-screen]:nth-of-type(4){background:linear-gradient(145deg,#fff,#f1f7ef)!important}
+.gpHome [data-home-screen]:nth-of-type(5){background:linear-gradient(145deg,#fff,#fff4e8)!important}
+
+/* HACCP: Navigation noch klarer als eigener Bereich */
+#gpHaccpModeNav.gpHaccpModeNav{
+  background:linear-gradient(135deg,#e8efec,#f4f6f5)!important;
+  border-color:#cedbd5!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+}
+#gpHaccpModeNav .gpHaccpModeBtn{
+  box-shadow:0 3px 9px rgba(30,55,47,.06)!important;
+}
+#gpHaccpModeNav .gpHaccpModeBtn.gpActive{
+  background:linear-gradient(135deg,var(--gp-green),var(--gp-green-bright))!important;
+  box-shadow:0 6px 15px rgba(19,88,71,.20)!important;
+}
+
+/* HACCP-Sollwert = Information, nicht Formularrauschen */
+.gpTargetGuide{
+  background:var(--gp-blue-soft)!important;
+  border-color:#c9deef!important;
+  color:#264f72!important;
+}
+.gpTargetGuide strong{color:var(--gp-blue)!important}
+
+/* Schnellmessung / Fortschritt */
+.gpQuickMeasureHead{
+  padding:12px 13px!important;
+  border-radius:13px!important;
+  background:linear-gradient(135deg,#f0f7f4,#fff)!important;
+  border:1px solid #d9e6e1!important;
+  margin-bottom:10px!important;
+}
+.gpQuickStep{
+  border-color:#d7dfdc!important;
+  background:#f7f8f7!important;
+}
+.gpQuickStep.gpOn{
+  background:var(--gp-green-soft)!important;
+  border-color:#bcd9cf!important;
+  color:var(--gp-green)!important;
+}
+
+/* Erfolgsmeldungen dürfen sich wie Erfolg anfühlen */
+.saveSuccess:not(:empty){
+  background:var(--gp-success-soft)!important;
+  border:1px solid #bfdfd0!important;
+  color:#176544!important;
+  border-radius:11px;
+  padding:9px 11px;
+  margin-top:9px;
+  font-weight:750;
+}
+
+/* Statusfarben */
+.gpHaccpStatus.ok,.gpCheckDone{color:var(--gp-success)!important}
+.gpHaccpStatus.warn,.gpCheckOpen{color:#b76e10!important}
+
+/* Rückstellproben als eigener ruhiger Arbeitsblock */
+.gpSampleInfo{
+  background:var(--gp-amber-soft)!important;
+  color:#765019!important;
+  border:1px solid #f0d4a7;
+}
+.gpSampleDishTitle{
+  background:linear-gradient(90deg,#edf6f2,#f7faf8)!important;
+}
+
+/* Bottom-Navigation: aktiver Bereich klarer */
+#gpAppNav button.gp-nav-active{
+  color:var(--gp-green)!important;
+  font-weight:900!important;
+}
+#gpAppNav button.gp-nav-active::before{
+  content:"";
+  display:block;
+  width:26px;height:3px;
+  margin:0 auto 4px;
+  border-radius:99px;
+  background:var(--gp-amber);
+}
+
+/* Kleine warme Akzente bei Eyebrows */
+.eyebrow,.gpScreenKicker{
+  color:#b16b13!important;
+  letter-spacing:.08em;
+}
+
+/* Gefahr bleibt bewusst rot und selten */
+button.danger{border-color:#e2c0c0!important;color:var(--gp-danger)!important}
+
+/* Mobile: keine übertriebene Tiefe */
+@media(max-width:700px){
+  .card{box-shadow:0 5px 16px rgba(30,55,47,.06)!important}
+  .gpModernHeader{box-shadow:0 5px 16px rgba(19,88,71,.14)}
+}
+</style>
 </head>
 
 <body>
