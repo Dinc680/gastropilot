@@ -2416,6 +2416,12 @@ body.gp-app-ready .appSection.gp-screen-active{
 .gpDraftSavedHint{font-size:11px;color:var(--gp-muted);margin-top:6px}
 @media(max-width:700px){.gpSamplePreviewItem{display:block;width:100%}}
 </style>
+<style id="gp-v733-css">
+.gpTargetGuide{margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:#eef6f3;border:1px solid #cfdfd9;font-size:13px;line-height:1.35}
+.gpTargetGuide strong{display:block;margin-bottom:2px;color:var(--gp-green)}
+.gpTargetGuide span{font-weight:800}
+#gpMeasureCountBox[hidden]{display:none!important}
+</style>
 </head>
 
 <body>
@@ -2967,6 +2973,10 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <div id="gpHaccpPaneMeasure" class="gpHaccpPane gpActive"><div class="gpQuickMeasureHead"><div><strong>🌡 Schnellmessung</strong><div class="muted">Auswählen → Temperatur → Speichern</div></div><button id="gpDeviceSettingsToggle" class="gpMiniSettings" type="button">⚙️ Geräte</button></div>
 <div class="gpQuickSteps"><span class="gpQuickStep gpOn">1 <b>Auswahl</b></span><span class="gpQuickStep">2 <b>Messen</b></span><span class="gpQuickStep">3 <b>Speichern</b></span></div>
 <label>Kontrollart<select id="haccpType"><option>Kühlung</option><option>Tiefkühlung</option><option>Speisentemperatur</option></select></label>
+<div id="gpTargetGuide" class="gpTargetGuide" aria-live="polite">
+  <strong>Orientierungs-Sollwert:</strong>
+  <span id="gpTargetGuideText">Kühlung: 2 bis 7 °C</span>
+</div>
 <div id="haccpMenuPickWrap" class="gpHaccpMenuPick" hidden>
   <label>Speise aus dem heutigen Wochenplan
     <select id="haccpMenuPick">
@@ -8200,10 +8210,25 @@ document.addEventListener("DOMContentLoaded", function(){
 const K="gastropilot_haccp_temperature_v1",$=x=>document.getElementById(x),type=$("haccpType"),loc=$("haccpLocation"),mn=$("haccpMin"),mx=$("haccpMax"),act=$("haccpActual"),ev=$("haccpEvaluation"),aw=$("haccpActionWrap"),action=$("haccpAction"),emp=$("haccpEmployee"),notice=$("haccpNotice"),hist=$("haccpHistory"),empty=$("haccpEmpty"),count=$("haccpCount"),menuWrap=$("haccpMenuPickWrap"),menuPick=$("haccpMenuPick"),menuHint=$("haccpMenuHint"),manualFoodWrap=$("gpManualFoodWrap"),manualFood=$("gpManualFood"),useManualFood=$("gpUseManualFood"),archiveDay=$("haccpArchiveDay"),printDay=$("haccpPrintDay"),todayChecks=$("haccpTodayChecks"),archiveCount=$("haccpArchiveCount"),deleteArchiveDay=$("haccpDeleteArchiveDay"),manageArchive=$("gpManageArchive"),manageDayDoc=$("gpManageDayDoc"),saveDayDoc=$("haccpSaveDayDoc"),openDayDoc=$("haccpOpenDayDoc"),exportDayDoc=$("haccpExportDayDoc"),deleteDayDoc=$("haccpDeleteDayDoc"),dayDocStatus=$("haccpDayDocStatus"),reportViewer=$("haccpReportViewer"),reportViewerBody=$("haccpReportViewerBody"),closeReport=$("haccpCloseReport"),compWrap=$("haccpComponentWrap"),compList=$("haccpComponentList"),addComp=$("haccpAddComponent"),compProgress=$("haccpComponentProgress"),measureCompWrap=$("haccpMeasureComponentWrap"),measureComp=$("haccpMeasureComponent"),
 deviceWrap=$("haccpDeviceWrap"),devicePick=$("haccpDevicePick"),deviceStatus=$("haccpDeviceStatus"),
 toggleDeviceForm=$("haccpToggleDeviceForm"),editDevice=$("haccpEditDevice"),deviceForm=$("haccpDeviceForm"),deviceName=$("haccpDeviceName"),
-deviceType=$("haccpDeviceType"),deviceMin=$("haccpDeviceMin"),deviceMax=$("haccpDeviceMax"),deviceSettingsToggle=$("gpDeviceSettingsToggle"),deviceAdmin=$("gpDeviceAdmin"),manualMeasureFields=$("gpManualMeasureFields"),todayProgress=$("gpTodayProgress"),
+deviceType=$("haccpDeviceType"),deviceMin=$("haccpDeviceMin"),deviceMax=$("haccpDeviceMax"),deviceSettingsToggle=$("gpDeviceSettingsToggle"),deviceAdmin=$("gpDeviceAdmin"),manualMeasureFields=$("gpManualMeasureFields"),todayProgress=$("gpTodayProgress"),targetGuide=$("gpTargetGuide"),targetGuideText=$("gpTargetGuideText"),measureCountBox=$("gpMeasureCountBox"),
 saveDevice=$("haccpSaveDevice"),deleteDevice=$("haccpDeleteDevice"),deviceNotice=$("haccpDeviceNotice");
 if(!type)return;
 const preset={Kühlung:[2,7,"z. B. Kühlschrank 1"],Tiefkühlung:[-24,-18,"z. B. Tiefkühler 1"],Speisentemperatur:[65,100,"z. B. Rindergulasch"]};
+function gpUpdateTargetGuide(){
+  if(!targetGuideText)return;
+  const fmt=v=>String(v).replace(".",",");
+  if(type.value==="Speisentemperatur"){
+    targetGuideText.textContent=`Warme Speisen: ${fmt(mn.value||65)} bis ${fmt(mx.value||100)} °C · betrieblichen HACCP-Plan beachten`;
+  }else{
+    const d=devicePick&&devicePick.value?gpDeviceById(devicePick.value):null;
+    const lo=d?d.min:(type.value==="Tiefkühlung"?-24:2);
+    const hi=d?d.max:(type.value==="Tiefkühlung"?-18:7);
+    const name=d?d.name+" · ":"";
+    targetGuideText.textContent=`${name}${type.value}: ${fmt(lo)} bis ${fmt(hi)} °C`;
+  }
+  if(measureCountBox)measureCountBox.hidden=type.value!=="Speisentemperatur";
+}
+
 const WEEK_KEY="gastropilot_week_plan";
 const COMP_KEY="gastropilot_haccp_components_v1";
 const ARCHIVE_KEY="gastropilot_haccp_archive_v1";
@@ -8250,35 +8275,55 @@ function gpApplySampleDraftSelection(){
 function gpRestoreHaccpDraft(){
   const d=gpLoadHaccpDraft();if(!d||!Object.keys(d).length)return;
   if(d.type&&[...type.options].some(o=>o.value===d.type))type.value=d.type;
-  gpRefreshMenuPick();gpRenderDevicePicker();
 
-  if(manualFood&&d.manualFood)manualFood.value=d.manualFood;
-  if(menuPick&&d.menuValue){
-    let opt=[...menuPick.options].find(o=>o.value===d.menuValue);
-    if(!opt&&d.menuValue!=="__manual__"){
-      opt=document.createElement("option");opt.value=d.menuValue;opt.textContent=d.menuValue+" (gespeichert)";
-      const manualOpt=[...menuPick.options].find(o=>o.value==="__manual__");
-      menuPick.insertBefore(opt,manualOpt||null);
-    }
-    menuPick.value=d.menuValue;
-    if(manualFoodWrap)manualFoodWrap.hidden=d.menuValue!=="__manual__";
-  }
+  gpRefreshMenuPick();
+  gpRenderDevicePicker();
 
-  if(loc&&d.location!==undefined)loc.value=d.location;
-  if(mn&&d.min!==undefined&&d.min!=="")mn.value=d.min;
-  if(mx&&d.max!==undefined&&d.max!=="")mx.value=d.max;
+  const isFood=type.value==="Speisentemperatur";
+
+  if(emp&&d.employee!==undefined)emp.value=d.employee;
   if(act&&d.actual!==undefined)act.value=d.actual;
   if(action&&d.action!==undefined)action.value=d.action;
-  if(emp&&d.employee!==undefined)emp.value=d.employee;
 
-  gpRenderComponents();
-  if(measureComp&&d.measureComponent&&[...measureComp.options].some(o=>o.value===d.measureComponent))measureComp.value=d.measureComponent;
+  if(isFood){
+    if(manualFood&&d.manualFood)manualFood.value=d.manualFood;
+    if(menuPick&&d.menuValue){
+      let opt=[...menuPick.options].find(o=>o.value===d.menuValue);
+      if(!opt&&d.menuValue!=="__manual__"){
+        opt=document.createElement("option");opt.value=d.menuValue;opt.textContent=d.menuValue+" (gespeichert)";
+        const manualOpt=[...menuPick.options].find(o=>o.value==="__manual__");
+        menuPick.insertBefore(opt,manualOpt||null);
+      }
+      menuPick.value=d.menuValue;
+      if(manualFoodWrap)manualFoodWrap.hidden=d.menuValue!=="__manual__";
+    }
+    if(loc&&d.location!==undefined)loc.value=d.location;
+    if(mn&&d.min!==undefined&&d.min!=="")mn.value=d.min;
+    if(mx&&d.max!==undefined&&d.max!=="")mx.value=d.max;
+    gpRenderComponents();
+    if(measureComp&&d.measureComponent&&[...measureComp.options].some(o=>o.value===d.measureComponent))measureComp.value=d.measureComponent;
+  }else{
+    if(menuPick)menuPick.value="";
+    if(measureComp)measureComp.value="";
+    if(compWrap)compWrap.hidden=true;
+    if(measureCompWrap)measureCompWrap.hidden=true;
+
+    const selectedDevice=devicePick&&devicePick.value?gpDeviceById(devicePick.value):null;
+    if(selectedDevice){
+      gpApplyDevice(selectedDevice.id);
+    }else{
+      if(loc)loc.value=d.location||"";
+      if(mn&&d.min!==undefined&&d.min!=="")mn.value=d.min;
+      if(mx&&d.max!==undefined&&d.max!=="")mx.value=d.max;
+    }
+  }
 
   if(typeof sampleAmount!=="undefined"&&sampleAmount&&d.sampleAmount)sampleAmount.value=d.sampleAmount;
   if(typeof sampleDays!=="undefined"&&sampleDays&&d.sampleDays)sampleDays.value=d.sampleDays;
   if(typeof sampleEmployee!=="undefined"&&sampleEmployee&&d.sampleEmployee!==undefined)sampleEmployee.value=d.sampleEmployee;
   if(typeof sampleTime!=="undefined"&&sampleTime&&d.sampleTime)sampleTime.value=d.sampleTime;
 
+  gpUpdateTargetGuide();
   evaluate();gpUpdateQuickSteps();
 }
 
@@ -8321,6 +8366,7 @@ function gpRenderDevicePicker(){
   else{const p=gpLoadQuickPrefs(),last=p.deviceByType&&p.deviceByType[type.value];if(last&&list.some(d=>d.id===last)){devicePick.value=last;gpApplyDevice(last)}}
   if(manualMeasureFields)manualMeasureFields.classList.toggle("gpAutoDevice",!!devicePick.value);
   deviceStatus.textContent=list.length?`${list.length} Gerät${list.length===1?"":"e"} für ${type.value}`:"Noch kein Gerät für diese Kontrollart angelegt.";
+  gpUpdateTargetGuide();
   gpUpdateQuickSteps();
 }
 function gpApplyDevice(id){
@@ -8329,6 +8375,7 @@ function gpApplyDevice(id){
   loc.value=d.name;
   mn.value=String(d.min).replace(".",",");
   mx.value=String(d.max).replace(".",",");
+  gpUpdateTargetGuide();
   evaluate();
 }
 function gpFillDeviceForm(id){
@@ -8556,7 +8603,27 @@ function render(){
   empty.textContent="Noch keine Temperaturmessung im aktuellen Verlauf.";
   hist.innerHTML=all.map(r=>`<div class="gpHaccpEntry"><div class="gpHaccpEntryTop"><div><div class="gpHaccpEntryTitle">${esc(r.dish?`${r.dish} – ${r.component||r.location}`:r.type+" · "+r.location)}</div><div class="gpHaccpMeta">${esc(r.date)} · ${esc(r.employee||"ohne Kürzel")} · Soll ${r.min} bis ${r.max} °C</div></div><div class="gpHaccpTemp">${r.actual} °C</div></div><span class="gpHaccpStatus ${r.ok?"ok":"warn"}">${r.ok?"✅ In Ordnung":"⚠️ Abweichung"}</span>${r.action?`<div class="gpHaccpAction"><strong>Maßnahme:</strong> ${esc(r.action)}</div>`:""}<button type="button" class="secondary gpHaccpDelete" data-haccp-id="${esc(r.id)}">Eintrag aus aktuellem Verlauf löschen</button></div>`).join("");
 }
-type.addEventListener("change",()=>{let p=preset[type.value];mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];gpRefreshMenuPick();gpRenderDevicePicker();gpRenderComponents();evaluate();gpRememberQuickPrefs();gpUpdateQuickSteps()});if(menuPick){menuPick.addEventListener("change",()=>{
+type.addEventListener("change",()=>{
+  const p=preset[type.value];
+  mn.value=p[0];mx.value=p[1];loc.placeholder=p[2];
+  loc.value="";
+  if(menuPick)menuPick.value="";
+  if(measureComp)measureComp.value="";
+  if(manualFood)manualFood.value="";
+  if(compWrap)compWrap.hidden=true;
+  if(measureCompWrap)measureCompWrap.hidden=true;
+
+  gpRefreshMenuPick();
+  gpRenderDevicePicker();
+
+  if(type.value==="Kühlung"||type.value==="Tiefkühlung"){
+    if(devicePick&&devicePick.value)gpApplyDevice(devicePick.value);
+  }
+
+  gpRenderComponents();
+  gpUpdateTargetGuide();
+  evaluate();gpRememberQuickPrefs();gpSaveHaccpDraft();gpUpdateQuickSteps();
+});if(menuPick){menuPick.addEventListener("change",()=>{
   const manual=menuPick.value==="__manual__";
   if(manualFoodWrap)manualFoodWrap.hidden=!manual;
   if(manual){loc.value="";if(manualFood)setTimeout(()=>{try{manualFood.focus()}catch(e){}},50)}
@@ -8598,7 +8665,7 @@ if(emp)emp.addEventListener("change",gpRememberQuickPrefs);
   el.addEventListener("input",gpSaveHaccpDraft);
   el.addEventListener("change",gpSaveHaccpDraft);
 });
-if(devicePick)devicePick.addEventListener("change",()=>{if(devicePick.value)gpApplyDevice(devicePick.value);if(manualMeasureFields)manualMeasureFields.classList.toggle("gpAutoDevice",!!devicePick.value);if(editDevice)editDevice.disabled=!devicePick.value;gpRememberQuickPrefs();gpUpdateQuickSteps()});
+if(devicePick)devicePick.addEventListener("change",()=>{if(devicePick.value)gpApplyDevice(devicePick.value);else{const p=preset[type.value];loc.value="";mn.value=p[0];mx.value=p[1]}if(manualMeasureFields)manualMeasureFields.classList.toggle("gpAutoDevice",!!devicePick.value);if(editDevice)editDevice.disabled=!devicePick.value;gpUpdateTargetGuide();gpRememberQuickPrefs();gpSaveHaccpDraft();gpUpdateQuickSteps()});
 
 if(toggleDeviceForm)toggleDeviceForm.addEventListener("click",()=>{
   gpDeviceEditId="";
@@ -8783,7 +8850,12 @@ if(samplePrint)samplePrint.addEventListener("click",()=>{
   sampleNotice.textContent="✓ "+items.length+" Rückstellprobe"+(items.length===1?"":"n")+" dokumentiert. Etiketten sind druckbereit.";
 });
 
-$("haccpSave").addEventListener("click",()=>{let s=state(),place=loc.value.trim(),dish=(type.value==="Speisentemperatur"&&menuPick&&menuPick.value!=="__manual__"?menuPick.value:""),component=(dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();let rec={id:String(Date.now()),type:type.value,location:(component||place),dish:(dish||""),component:(component||""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()};a.unshift(rec);store(a);gpArchiveRecord(rec);act.value="";action.value="";
+$("haccpSave").addEventListener("click",()=>{
+let s=state(),isFood=type.value==="Speisentemperatur";
+let selectedDevice=(!isFood&&devicePick&&devicePick.value)?gpDeviceById(devicePick.value):null;
+let place=selectedDevice?selectedDevice.name:loc.value.trim();
+let dish=(isFood&&menuPick&&menuPick.value!=="__manual__"?menuPick.value:"");
+let component=(isFood&&dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();let rec={id:String(Date.now()),type:type.value,location:(isFood?(component||place):place),dish:(isFood?(dish||""):""),component:(isFood?(component||""):""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()};a.unshift(rec);store(a);gpArchiveRecord(rec);act.value="";action.value="";
 if(rec.type==="Speisentemperatur"){
   const n=gpComponentMeasureCount(rec.dish||rec.location,rec.component||rec.location),required=gpRequiredMeasureCount();
   notice.textContent=`✓ Messung gespeichert · ${Math.min(n,required)}/${required} für ${rec.component||rec.location}`;
@@ -8901,7 +8973,7 @@ if(deleteDayDoc)deleteDayDoc.addEventListener("click",()=>{
 });
 
 hist.addEventListener("click",e=>{let b=e.target.closest("[data-haccp-id]");if(!b)return;store(load().filter(r=>r.id!==b.dataset.haccpId));render()});
-gpInitDevices();gpMigrateCurrentToArchive();gpApplyQuickPrefs();gpRefreshMenuPick();gpRenderDevicePicker();if(editDevice)editDevice.disabled=!devicePick.value;gpRestoreHaccpDraft();gpRenderComponents();evaluate();render();gpApplySampleDraftSelection();gpSetHaccpMode(localStorage.getItem("gastropilot_haccp_view_v1")||"measure");gpUpdateQuickSteps();
+gpInitDevices();gpMigrateCurrentToArchive();gpApplyQuickPrefs();gpRefreshMenuPick();gpRenderDevicePicker();if(editDevice)editDevice.disabled=!devicePick.value;gpRestoreHaccpDraft();gpRenderComponents();gpUpdateTargetGuide();evaluate();render();gpApplySampleDraftSelection();gpSetHaccpMode(localStorage.getItem("gastropilot_haccp_view_v1")||"measure");gpUpdateQuickSteps();
 window.addEventListener("beforeunload",gpSaveHaccpDraft);
 })();
 </script>
