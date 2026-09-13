@@ -2404,6 +2404,18 @@ body.gp-app-ready .appSection.gp-screen-active{
 .gpSampleLabelDish{font-size:16px;font-weight:900;margin-bottom:1.5mm}.gpSampleLabelRow{font-size:11px;line-height:1.45}.gpSampleLabelFoot{margin-top:2mm;padding-top:2mm;border-top:1px solid #aaa;font-size:10px;font-weight:700}
 @media(max-width:700px){.gpMeasureCountBox{align-items:flex-start;flex-direction:column}.gpMeasureCountBox label{width:100%}.gpSampleCommon,.gpSampleActions{grid-template-columns:1fr}.gpSamplePreview{display:block}.gpSampleLabel{max-width:100%;margin-bottom:8px}}
 </style>
+<style id="gp-v731-css">
+.gpSamplePreviewItem{position:relative;display:inline-block;max-width:100%}
+.gpSamplePreviewRemove{
+  position:absolute!important;top:5px;right:5px;z-index:3;
+  width:30px!important;height:30px!important;min-height:30px!important;
+  padding:0!important;border-radius:50%!important;
+  background:#fff!important;color:#a52f2f!important;border:1px solid #d8bcbc!important;
+  box-shadow:0 2px 8px rgba(0,0,0,.10)!important;font-size:18px!important;line-height:1!important
+}
+.gpDraftSavedHint{font-size:11px;color:var(--gp-muted);margin-top:6px}
+@media(max-width:700px){.gpSamplePreviewItem{display:block;width:100%}}
+</style>
 </head>
 
 <body>
@@ -3025,6 +3037,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
     </select>
   </label>
 </div>
+<div class="gpDraftSavedHint">Eingaben werden automatisch auf diesem Gerät zwischengespeichert.</div>
 </div>
 <div id="gpHaccpPaneDocs" class="gpHaccpPane">
 <div class="gpArchiveBanner">✅ HACCP-Tagesarchiv aktiv</div>
@@ -3083,7 +3096,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   </div>
 </div>
 </div>
-<div class="gpHaccpHistoryHead gpHaccpDocsOnly"><div><h3>HACCP-Verlauf</h3><span id="haccpCount" class="muted">0 Einträge</span><div class="gpHaccpSavedHint">Gespeicherte Messungen bleiben erhalten.</div></div><button id="haccpClear" class="secondary" type="button">Neue Messung</button></div>
+<div class="gpHaccpHistoryHead gpHaccpDocsOnly"><div><h3>HACCP-Verlauf</h3><span id="haccpCount" class="muted">0 Einträge</span><div class="gpHaccpSavedHint">Gespeicherte Messungen bleiben erhalten.</div></div></div>
 
 <div id="haccpEmpty" class="muted gpHaccpDocsOnly">Noch keine Temperaturmessung gespeichert.</div><div id="haccpHistory" class="gpHaccpDocsOnly"></div>
 </section>
@@ -8186,6 +8199,73 @@ const HACCP_PREF_KEY="gastropilot_haccp_quickprefs_v1";
 const MEASURE_COUNT_KEY="gastropilot_haccp_measure_count_v1";
 function gpRequiredMeasureCount(){const n=parseInt(localStorage.getItem(MEASURE_COUNT_KEY)||"3",10);return n===2?2:3}
 
+const HACCP_DRAFT_KEY="gastropilot_haccp_draft_v1";
+function gpLoadHaccpDraft(){try{return JSON.parse(localStorage.getItem(HACCP_DRAFT_KEY)||"{}")||{}}catch(e){return{}}}
+function gpSelectedSampleKeys(){
+  return [...document.querySelectorAll(".gpSampleCheck:checked")].map(cb=>gpNormName(cb.dataset.dish)+"|"+gpNormName(cb.dataset.component));
+}
+function gpSaveHaccpDraft(){
+  const d={
+    type:type?type.value:"",
+    location:loc?loc.value:"",
+    min:mn?mn.value:"",
+    max:mx?mx.value:"",
+    actual:act?act.value:"",
+    action:action?action.value:"",
+    employee:emp?emp.value:"",
+    menuValue:menuPick?menuPick.value:"",
+    manualFood:manualFood?manualFood.value:"",
+    measureComponent:measureComp?measureComp.value:"",
+    sampleAmount:(typeof sampleAmount!=="undefined"&&sampleAmount)?sampleAmount.value:"",
+    sampleDays:(typeof sampleDays!=="undefined"&&sampleDays)?sampleDays.value:"",
+    sampleEmployee:(typeof sampleEmployee!=="undefined"&&sampleEmployee)?sampleEmployee.value:"",
+    sampleTime:(typeof sampleTime!=="undefined"&&sampleTime)?sampleTime.value:"",
+    sampleSelected:gpSelectedSampleKeys()
+  };
+  localStorage.setItem(HACCP_DRAFT_KEY,JSON.stringify(d));
+}
+function gpApplySampleDraftSelection(){
+  const d=gpLoadHaccpDraft(),keys=new Set(Array.isArray(d.sampleSelected)?d.sampleSelected:[]);
+  document.querySelectorAll(".gpSampleCheck").forEach(cb=>{
+    const k=gpNormName(cb.dataset.dish)+"|"+gpNormName(cb.dataset.component);
+    cb.checked=keys.has(k);
+  });
+}
+function gpRestoreHaccpDraft(){
+  const d=gpLoadHaccpDraft();if(!d||!Object.keys(d).length)return;
+  if(d.type&&[...type.options].some(o=>o.value===d.type))type.value=d.type;
+  gpRefreshMenuPick();gpRenderDevicePicker();
+
+  if(manualFood&&d.manualFood)manualFood.value=d.manualFood;
+  if(menuPick&&d.menuValue){
+    let opt=[...menuPick.options].find(o=>o.value===d.menuValue);
+    if(!opt&&d.menuValue!=="__manual__"){
+      opt=document.createElement("option");opt.value=d.menuValue;opt.textContent=d.menuValue+" (gespeichert)";
+      const manualOpt=[...menuPick.options].find(o=>o.value==="__manual__");
+      menuPick.insertBefore(opt,manualOpt||null);
+    }
+    menuPick.value=d.menuValue;
+    if(manualFoodWrap)manualFoodWrap.hidden=d.menuValue!=="__manual__";
+  }
+
+  if(loc&&d.location!==undefined)loc.value=d.location;
+  if(mn&&d.min!==undefined&&d.min!=="")mn.value=d.min;
+  if(mx&&d.max!==undefined&&d.max!=="")mx.value=d.max;
+  if(act&&d.actual!==undefined)act.value=d.actual;
+  if(action&&d.action!==undefined)action.value=d.action;
+  if(emp&&d.employee!==undefined)emp.value=d.employee;
+
+  gpRenderComponents();
+  if(measureComp&&d.measureComponent&&[...measureComp.options].some(o=>o.value===d.measureComponent))measureComp.value=d.measureComponent;
+
+  if(typeof sampleAmount!=="undefined"&&sampleAmount&&d.sampleAmount)sampleAmount.value=d.sampleAmount;
+  if(typeof sampleDays!=="undefined"&&sampleDays&&d.sampleDays)sampleDays.value=d.sampleDays;
+  if(typeof sampleEmployee!=="undefined"&&sampleEmployee&&d.sampleEmployee!==undefined)sampleEmployee.value=d.sampleEmployee;
+  if(typeof sampleTime!=="undefined"&&sampleTime&&d.sampleTime)sampleTime.value=d.sampleTime;
+
+  evaluate();gpUpdateQuickSteps();
+}
+
 function gpLoadQuickPrefs(){try{return JSON.parse(localStorage.getItem(HACCP_PREF_KEY)||"{}")||{}}catch(e){return{}}}
 function gpSaveQuickPrefs(p){localStorage.setItem(HACCP_PREF_KEY,JSON.stringify(p))}
 function gpRememberQuickPrefs(){const p=gpLoadQuickPrefs();p.type=type.value;if(devicePick&&devicePick.value)p.deviceByType={...(p.deviceByType||{}),[type.value]:devicePick.value};if(emp&&emp.value.trim())p.employee=emp.value.trim();gpSaveQuickPrefs(p)}
@@ -8498,6 +8578,10 @@ gpHaccpModeButtons.forEach(b=>b.addEventListener("click",()=>gpSetHaccpMode(b.da
 
 if(deviceSettingsToggle)deviceSettingsToggle.addEventListener("click",()=>{deviceAdmin.hidden=!deviceAdmin.hidden;deviceSettingsToggle.textContent=deviceAdmin.hidden?"⚙️ Geräte":"✕ Schließen";if(deviceAdmin.hidden)deviceForm.hidden=true});
 if(emp)emp.addEventListener("change",gpRememberQuickPrefs);
+[type,loc,mn,mx,act,action,emp,manualFood,menuPick,measureComp].filter(Boolean).forEach(el=>{
+  el.addEventListener("input",gpSaveHaccpDraft);
+  el.addEventListener("change",gpSaveHaccpDraft);
+});
 if(devicePick)devicePick.addEventListener("change",()=>{if(devicePick.value)gpApplyDevice(devicePick.value);if(manualMeasureFields)manualMeasureFields.classList.toggle("gpAutoDevice",!!devicePick.value);if(editDevice)editDevice.disabled=!devicePick.value;gpRememberQuickPrefs();gpUpdateQuickSteps()});
 
 if(toggleDeviceForm)toggleDeviceForm.addEventListener("click",()=>{
@@ -8625,6 +8709,7 @@ function gpRenderSampleCandidates(rows){
       <span class="gpSampleChoiceMain"><span class="gpSampleChoiceName">${esc(x.component)}</span><span class="gpSampleChoiceMeta">${x.count} Messung${x.count===1?"":"en"}${x.count>=required?" · Kontrolle vollständig":" · Kontrolle noch nicht vollständig"}</span></span>
     </label>`).join("")}
   </div>`).join("");
+  gpApplySampleDraftSelection();
 }
 function gpSelectedSampleData(){
   const time=sampleTime.value||gpLocalDateTimeValue(new Date()),days=parseInt(sampleDays.value,10)||14,amount=sampleAmount.value.trim()||"100 g / ml";
@@ -8635,9 +8720,22 @@ function gpSelectedSampleData(){
 }
 function gpRenderSelectedLabels(){
   const items=gpSelectedSampleData();
-  samplePreview.innerHTML=items.length?items.map(gpSampleLabelHtml).join(""):'<div class="muted">Bitte mindestens eine Komponente auswählen.</div>';
+  samplePreview.innerHTML=items.length?items.map((item,i)=>`<div class="gpSamplePreviewItem" data-preview-index="${i}">
+    <button type="button" class="gpSamplePreviewRemove" data-remove-sample="${i}" aria-label="Etikett entfernen" title="Etikett entfernen">×</button>
+    ${gpSampleLabelHtml(item)}
+  </div>`).join(""):'<div class="muted">Bitte mindestens eine Komponente auswählen.</div>';
+  gpSaveHaccpDraft();
   return items;
 }
+if(samplePreview)samplePreview.addEventListener("click",e=>{
+  const b=e.target.closest("[data-remove-sample]");if(!b)return;
+  const idx=parseInt(b.dataset.removeSample,10);
+  const checked=[...document.querySelectorAll(".gpSampleCheck:checked")];
+  if(checked[idx])checked[idx].checked=false;
+  gpSaveHaccpDraft();
+  const left=gpRenderSelectedLabels();
+  if(sampleNotice)sampleNotice.textContent=left.length?left.length+" Etikett"+(left.length===1?"":"en")+" vorbereitet.":"Keine Etiketten mehr ausgewählt.";
+});
 if(requiredMeasures){
   requiredMeasures.value=String(gpRequiredMeasureCount());
   requiredMeasures.addEventListener("change",()=>{
@@ -8648,6 +8746,8 @@ if(requiredMeasures){
 }
 if(sampleEmployee&&!sampleEmployee.value)sampleEmployee.value=emp.value.trim();
 if(sampleTime&&!sampleTime.value)sampleTime.value=gpLocalDateTimeValue(new Date());
+if(sampleCandidates)sampleCandidates.addEventListener("change",e=>{if(e.target.classList.contains("gpSampleCheck"))gpSaveHaccpDraft()});
+[sampleAmount,sampleDays,sampleEmployee,sampleTime].filter(Boolean).forEach(el=>{el.addEventListener("input",gpSaveHaccpDraft);el.addEventListener("change",gpSaveHaccpDraft)});
 if(samplePreviewBtn)samplePreviewBtn.addEventListener("click",()=>{const a=gpRenderSelectedLabels();if(!a.length)sampleNotice.textContent="Bitte Komponenten auswählen.";else sampleNotice.textContent=a.length+" Etikett"+(a.length===1?"":"en")+" vorbereitet."});
 if(samplePrint)samplePrint.addEventListener("click",()=>{
   const items=gpRenderSelectedLabels();
@@ -8672,7 +8772,7 @@ if(rec.type==="Speisentemperatur"){
   const n=gpComponentMeasureCount(rec.dish||rec.location,rec.component||rec.location),required=gpRequiredMeasureCount();
   notice.textContent=`✓ Messung gespeichert · ${Math.min(n,required)}/${required} für ${rec.component||rec.location}`;
 }else notice.textContent="✓ Messung gespeichert.";
-gpRememberQuickPrefs();if(measureComp)measureComp.value="";act.value="";evaluate();render();gpRenderComponents();gpSetHaccpMode("measure");gpUpdateQuickSteps();setTimeout(()=>{try{act.focus()}catch(e){}},80)});
+gpRememberQuickPrefs();if(measureComp)measureComp.value="";act.value="";evaluate();render();gpRenderComponents();gpSetHaccpMode("measure");gpUpdateQuickSteps();gpSaveHaccpDraft();setTimeout(()=>{try{act.focus()}catch(e){}},80)});
 if(archiveDay)archiveDay.addEventListener("change",render);
 
 function gpReportHtml(rows,key,title){
@@ -8785,23 +8885,8 @@ if(deleteDayDoc)deleteDayDoc.addEventListener("click",()=>{
 });
 
 hist.addEventListener("click",e=>{let b=e.target.closest("[data-haccp-id]");if(!b)return;store(load().filter(r=>r.id!==b.dataset.haccpId));render()});
-$("haccpClear").addEventListener("click",()=>{
-  act.value="";
-  action.value="";
-  notice.textContent="";
-  const p=preset[type.value];
-  if(p){
-    mn.value=p[0];
-    mx.value=p[1];
-    loc.placeholder=p[2];
-  }
-  loc.value="";
-  gpRefreshMenuPick();
-  if(menuPick) menuPick.value="";
-  evaluate();
-  loc.focus();
-});
-gpInitDevices();gpMigrateCurrentToArchive();gpApplyQuickPrefs();gpRefreshMenuPick();gpRenderDevicePicker();if(editDevice)editDevice.disabled=!devicePick.value;gpRenderComponents();evaluate();render();gpSetHaccpMode(localStorage.getItem("gastropilot_haccp_view_v1")||"measure");gpUpdateQuickSteps();
+gpInitDevices();gpMigrateCurrentToArchive();gpApplyQuickPrefs();gpRefreshMenuPick();gpRenderDevicePicker();if(editDevice)editDevice.disabled=!devicePick.value;gpRestoreHaccpDraft();gpRenderComponents();evaluate();render();gpApplySampleDraftSelection();gpSetHaccpMode(localStorage.getItem("gastropilot_haccp_view_v1")||"measure");gpUpdateQuickSteps();
+window.addEventListener("beforeunload",gpSaveHaccpDraft);
 })();
 </script>
 
