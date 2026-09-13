@@ -8035,8 +8035,24 @@ try{
 
     document.body.classList.add('gp-app-ready');
 
-    /* Jeder neue App-/Seitenstart beginnt bewusst auf Home. */
-    showScreen('homeCard','Start');
+    /* Beim ersten Start Home, danach zuletzt verwendeten Arbeitsbereich wieder öffnen. */
+    var lastScreen='homeCard';
+    try{
+      var savedScreen=localStorage.getItem('gastropilot_active_screen');
+      if(savedScreen && screenIds.indexOf(savedScreen)>=0 && document.getElementById(savedScreen)){
+        lastScreen=savedScreen;
+      }
+    }catch(e){}
+
+    var labels={
+      homeCard:'Start',
+      mengenrechner:'Mengenrechner',
+      gerichte:'Gericht anlegen',
+      weekPlannerCard:'Wochenplan',
+      shoppingCard:'Einkaufsliste',
+      haccpCard:'HACCP'
+    };
+    showScreen(lastScreen,labels[lastScreen]||'Start');
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
