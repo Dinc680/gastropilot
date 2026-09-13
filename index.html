@@ -2670,6 +2670,66 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 #gpAppNav button.gp-nav-active{background:#135847!important;color:#fff!important;border-radius:11px;text-shadow:0 1px 1px rgba(0,0,0,.14)}
 #gpAppNav button.gp-nav-active::before{background:#ffc45f!important}
 </style>
+<style id="gp-v75-home-design">
+.gpHomeHero{
+  position:relative;overflow:hidden;
+  margin:-2px -2px 18px;padding:24px 20px 22px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#104f40 0%,#176b56 68%,#23836a 100%);
+  color:#fff;box-shadow:0 10px 24px rgba(19,88,71,.18)
+}
+.gpHomeHero:after{
+  content:"";position:absolute;width:150px;height:150px;border-radius:50%;
+  right:-58px;top:-64px;background:rgba(255,196,95,.18)
+}
+.gpHomeHeroBadge{font-size:11px;font-weight:900;letter-spacing:.16em;color:#ffd184;margin-bottom:14px}
+.gpHomeHeroIcon{
+  position:absolute;right:18px;bottom:17px;width:52px;height:52px;border-radius:16px;
+  display:grid;place-items:center;font-size:27px;background:rgba(255,255,255,.13);
+  border:1px solid rgba(255,255,255,.20)
+}
+.gpHomeHero h2{margin:0 66px 7px 0!important;color:#fff!important;font-size:25px!important;line-height:1.12}
+.gpHomeHero p{margin:0 66px 0 0;max-width:480px;color:rgba(255,255,255,.88);font-size:14px;line-height:1.45}
+.gpHomeSectionTitle{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:4px 2px 11px}
+.gpHomeSectionTitle strong{font-size:16px;color:#183f35}
+.gpHomeSectionTitle span{font-size:11px;color:#74807b}
+.gpHomeGrid{gap:11px!important}
+.gpHomeTile{
+  position:relative;overflow:hidden;min-height:88px!important;padding:15px!important;
+  border-radius:16px!important;text-align:left!important
+}
+.gpHomeTile:after{
+  content:"›";position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:24px;font-weight:500;color:rgba(19,88,71,.32)
+}
+.gpHomeTile .gpHomeIcon{
+  width:44px!important;height:44px!important;min-width:44px;border-radius:13px!important;
+  display:grid!important;place-items:center;font-size:22px!important;
+  background:rgba(255,255,255,.76)!important;border:1px solid rgba(19,88,71,.10)
+}
+.gpHomeTile strong{display:block;padding-right:14px;font-size:15px!important;line-height:1.15}
+.gpHomeTile small{display:block;padding-right:14px;margin-top:4px!important;line-height:1.25;color:#6d7974!important}
+.gpHomeTileWide{
+  background:linear-gradient(135deg,#e9f5f0,#fff7e8)!important;
+  border-color:#c8ded5!important
+}
+.gpHomeTileWide .gpHomeIcon{background:#135847!important;color:#fff!important}
+.gpHomeToday{
+  margin-top:18px!important;padding:15px!important;border-radius:16px!important;
+  background:linear-gradient(145deg,#fff,#f4f8f6)!important;border:1px solid #dbe5e1!important
+}
+.gpHomeTodayTitle{display:flex!important;justify-content:space-between;align-items:center;margin-bottom:10px!important}
+.gpHomeTodayTitle span{font-weight:900;color:#173f35}
+.gpHomeTodayTitle small{font-size:11px;font-weight:600;color:#7b8581}
+.gpHomeStatus{padding:10px 11px!important;border-radius:11px;background:#fff;border:1px solid #e2e8e5;margin-top:7px}
+@media(max-width:430px){
+ .gpHomeHero{padding:21px 17px 20px}
+ .gpHomeHero h2{font-size:23px!important}
+ .gpHomeHero p{font-size:13px}
+ .gpHomeSectionTitle span{display:none}
+ .gpHomeTile{min-height:84px!important;padding:13px!important}
+}
+</style>
 </head>
 
 <body>
@@ -2710,32 +2770,34 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 <main>
 
 <section class="card appSection gpHome" id="homeCard">
-  <div class="gpHomeIntro">
-    <div class="eyebrow">GastroPilot</div>
-    <h2>Was möchtest du machen?</h2>
-    <p class="muted">Direkt zum gewünschten Bereich – ohne Umwege.</p>
+  <div class="gpHomeHero">
+    <div class="gpHomeHeroBadge">GASTROPILOT</div>
+    <div class="gpHomeHeroIcon">👨‍🍳</div>
+    <h2>Was steht heute an?</h2>
+    <p>Plane, berechne und dokumentiere deinen Küchenalltag – Schritt für Schritt.</p>
   </div>
+  <div class="gpHomeSectionTitle"><strong>Schnell starten</strong><span>Wähle deinen Arbeitsbereich</span></div>
 
   <div class="gpHomeGrid">
     <button type="button" class="gpHomeTile" data-home-screen="mengenrechner" data-home-label="Mengenrechner">
-      <span class="gpHomeIcon">⚖️</span><span><strong>Mengen</strong><small>Portionen & Kalkulation</small></span>
+      <span class="gpHomeIcon">⚖️</span><span><strong>Mengen berechnen</strong><small>Portionen, Zutaten & Kalkulation</small></span>
     </button>
     <button type="button" class="gpHomeTile" data-home-screen="gerichte" data-home-label="Gericht anlegen">
-      <span class="gpHomeIcon">➕</span><span><strong>Gerichte</strong><small>Rezepte anlegen</small></span>
+      <span class="gpHomeIcon">➕</span><span><strong>Gerichte anlegen</strong><small>Eigene Rezepte & Zutaten</small></span>
     </button>
     <button type="button" class="gpHomeTile" data-home-screen="weekPlannerCard" data-home-label="Wochenplan">
-      <span class="gpHomeIcon">📅</span><span><strong>Wochenplan</strong><small>Woche organisieren</small></span>
+      <span class="gpHomeIcon">📅</span><span><strong>Wochenplan</strong><small>Speisen & Portionen planen</small></span>
     </button>
     <button type="button" class="gpHomeTile" data-home-screen="shoppingCard" data-home-label="Einkaufsliste">
-      <span class="gpHomeIcon">🛒</span><span><strong>Einkauf</strong><small>Listen & Mengen</small></span>
+      <span class="gpHomeIcon">🛒</span><span><strong>Einkauf prüfen</strong><small>Bedarf gesammelt im Blick</small></span>
     </button>
     <button type="button" class="gpHomeTile gpHomeTileWide" data-home-screen="haccpCard" data-home-label="HACCP">
-      <span class="gpHomeIcon">✅</span><span><strong>HACCP</strong><small>Kontrollen & Dokumentation</small></span>
+      <span class="gpHomeIcon">✅</span><span><strong>HACCP kontrollieren</strong><small>Messen, prüfen & dokumentieren</small></span>
     </button>
   </div>
 
   <div class="gpHomeToday">
-    <div class="gpHomeTodayTitle">Heute</div>
+    <div class="gpHomeTodayTitle"><span>Heute im Blick</span><small>Dein aktueller Stand</small></div>
     <div id="gpHomeWeekStatus" class="gpHomeStatus">📅 Wochenplan wird geladen …</div>
     <div id="gpHomeHaccpStatus" class="gpHomeStatus">✅ HACCP wird geladen …</div>
   </div>
