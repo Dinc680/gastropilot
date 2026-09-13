@@ -3384,7 +3384,6 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 </div>
 <div class="gpDraftSavedHint">Eingaben werden automatisch auf diesem Gerät zwischengespeichert.</div>
 </div>
-
 <div id="gpHaccpPaneFryer" class="gpHaccpPane">
   <div class="gpFryerHead">
     <div><strong>🍟 Frittierkontrolle</strong><div class="muted">Temperatur, Ölzustand, Ölwechsel und Reinigung dokumentieren.</div></div>
@@ -9236,65 +9235,7 @@ if(samplePrint)samplePrint.addEventListener("click",()=>{
   .labels{display:flex;flex-wrap:wrap;gap:5mm}.gpSampleLabel{box-sizing:border-box;width:76mm;min-height:45mm;border:1.5px solid #111;padding:4mm;background:#fff;break-inside:avoid}
   .gpSampleLabelTitle{font-size:15px;font-weight:900;text-align:center;border-bottom:1px solid #111;padding-bottom:2mm;margin-bottom:2mm}.gpSampleLabelDish{font-size:16px;font-weight:900;margin-bottom:1.5mm}
   .gpSampleLabelRow{font-size:11px;line-height:1.45}.gpSampleLabelFoot{margin-top:2mm;padding-top:2mm;border-top:1px solid #aaa;font-size:10px;font-weight:700}
-  @media print{.actions{display:none}.labels{gap:3mm}}</style></head><body><div class="actions"><button onclick="window.print()">Etiketten drucken / PDF</button></div><div class="labels">${labels}</div>
-<script id="gp-v76-fryer-js">
-(function(){
-const $f=id=>document.getElementById(id);
-const DEVKEY="gastropilot_haccp_fryers_v1", LOGKEY="gastropilot_haccp_fryer_log_v1";
-const defaults=["Fritteuse 1","Fritteuse 2"];
-function load(k,d){try{const x=JSON.parse(localStorage.getItem(k));return Array.isArray(x)?x:d}catch(e){return d}}
-function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
-function devices(){return load(DEVKEY,defaults.slice())}
-function logs(){return load(LOGKEY,[])}
-function esc(s){const d=document.createElement("div");d.textContent=String(s??"");return d.innerHTML}
-function todayKey(d=new Date()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-function renderDevices(){
- const ds=devices(), pick=$f("gpFryerPick"), list=$f("gpFryerDeviceList");
- if(!pick||!list)return;
- const old=pick.value;
- pick.innerHTML=ds.length?ds.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join(""):`<option value="">Bitte zuerst Fritteuse anlegen</option>`;
- if(ds.includes(old))pick.value=old;
- list.innerHTML=ds.length?ds.map((n,i)=>`<div class="gpFryerDeviceRow"><span>${esc(n)}</span><button type="button" class="secondary danger" data-fryer-delete="${i}">×</button></div>`).join(""):`<div class="muted">Noch keine Fritteuse angelegt.</div>`;
- list.querySelectorAll("[data-fryer-delete]").forEach(b=>b.onclick=()=>{
-   const a=devices();a.splice(Number(b.dataset.fryerDelete),1);save(DEVKEY,a);renderDevices();
- });
-}
-function stateText(v){return v==="in_ordnung"?"In Ordnung":v==="beobachten"?"Beobachten":"Ölwechsel erforderlich"}
-function renderToday(){
- const box=$f("gpFryerTodayList"), count=$f("gpFryerTodayCount");if(!box)return;
- const rows=logs().filter(r=>r.day===todayKey()).sort((a,b)=>b.ts-a.ts);
- count.textContent=rows.length?rows.length+" Kontrolle"+(rows.length===1?"":"n"):"";
- box.innerHTML=rows.length?rows.map(r=>{
-   const cls=r.oilState==="wechsel"?"bad":r.oilState==="beobachten"?"warn":"";
-   return `<div class="gpFryerRecord"><div class="gpFryerRecordTop"><strong>${esc(r.device)}</strong><span class="gpFryerBadge ${cls}">${esc(stateText(r.oilState))}</span></div>
-   <div class="gpFryerRecordMeta">${esc(r.time)} · ${esc(r.temp)} °C · Reinigung: ${r.cleaned?"Ja":"Nein"} · Ölwechsel: ${r.oilChanged?"Ja":"Nein"} · ${esc(r.employee)}${r.note?`<br>${esc(r.note)}`:""}</div></div>`;
- }).join(""):`<div class="muted">Heute noch keine Frittierkontrolle gespeichert.</div>`;
-}
-$f("gpFryerManageToggle")?.addEventListener("click",()=>{const x=$f("gpFryerManage");x.hidden=!x.hidden});
-$f("gpFryerAdd")?.addEventListener("click",()=>{
- const inp=$f("gpFryerNewName"),n=inp.value.trim(),notice=$f("gpFryerManageNotice");if(!n){notice.textContent="Bitte einen Namen eingeben.";return}
- const a=devices();if(a.some(x=>x.toLowerCase()===n.toLowerCase())){notice.textContent="Diese Fritteuse ist bereits vorhanden.";return}
- a.push(n);save(DEVKEY,a);inp.value="";notice.textContent="Fritteuse gespeichert.";renderDevices();$f("gpFryerPick").value=n;
-});
-$f("gpFryerSave")?.addEventListener("click",()=>{
- const device=$f("gpFryerPick").value,temp=$f("gpFryerTemp").value.trim().replace(",","."),
- employee=$f("gpFryerEmployee").value.trim(),notice=$f("gpFryerNotice");
- if(!device){notice.textContent="Bitte eine Fritteuse auswählen.";return}
- if(temp===""||!Number.isFinite(Number(temp))){notice.textContent="Bitte eine gültige Temperatur eingeben.";return}
- if(!employee){notice.textContent="Bitte Mitarbeiter / Kürzel eintragen.";return}
- const now=new Date(), a=logs();
- a.push({id:Date.now(),ts:Date.now(),day:todayKey(now),time:now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
- device,temp:String(Number(temp)).replace(".",","),oilState:$f("gpFryerOilState").value,
- cleaned:$f("gpFryerCleaned").checked,oilChanged:$f("gpFryerOilChanged").checked,note:$f("gpFryerNote").value.trim(),employee});
- save(LOGKEY,a);notice.textContent="✓ Frittierkontrolle gespeichert.";
- $f("gpFryerTemp").value="";$f("gpFryerNote").value="";$f("gpFryerCleaned").checked=false;$f("gpFryerOilChanged").checked=false;
- renderToday();$f("gpFryerTemp").focus();
-});
-renderDevices();renderToday();
-})();
-</script>
-
-</body></html>`);
+  @media print{.actions{display:none}.labels{gap:3mm}}</style></head><body><div class="actions"><button onclick="window.print()">Etiketten drucken / PDF</button></div><div class="labels">${labels}</div></body></html>`);
   w.document.close();
   sampleNotice.textContent="✓ "+items.length+" Rückstellprobe"+(items.length===1?"":"n")+" dokumentiert. Etiketten sind druckbereit.";
 });
@@ -9498,6 +9439,62 @@ window.addEventListener("beforeunload",gpSaveHaccpDraft);
 })();
 </script>
 
+<script id="gp-v76-fryer-js">
+(function(){
+const $f=id=>document.getElementById(id);
+const DEVKEY="gastropilot_haccp_fryers_v1", LOGKEY="gastropilot_haccp_fryer_log_v1";
+const defaults=["Fritteuse 1","Fritteuse 2"];
+function load(k,d){try{const x=JSON.parse(localStorage.getItem(k));return Array.isArray(x)?x:d}catch(e){return d}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function devices(){return load(DEVKEY,defaults.slice())}
+function logs(){return load(LOGKEY,[])}
+function esc(s){const d=document.createElement("div");d.textContent=String(s??"");return d.innerHTML}
+function todayKey(d=new Date()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function renderDevices(){
+ const ds=devices(), pick=$f("gpFryerPick"), list=$f("gpFryerDeviceList");
+ if(!pick||!list)return;
+ const old=pick.value;
+ pick.innerHTML=ds.length?ds.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join(""):`<option value="">Bitte zuerst Fritteuse anlegen</option>`;
+ if(ds.includes(old))pick.value=old;
+ list.innerHTML=ds.length?ds.map((n,i)=>`<div class="gpFryerDeviceRow"><span>${esc(n)}</span><button type="button" class="secondary danger" data-fryer-delete="${i}">×</button></div>`).join(""):`<div class="muted">Noch keine Fritteuse angelegt.</div>`;
+ list.querySelectorAll("[data-fryer-delete]").forEach(b=>b.onclick=()=>{
+   const a=devices();a.splice(Number(b.dataset.fryerDelete),1);save(DEVKEY,a);renderDevices();
+ });
+}
+function stateText(v){return v==="in_ordnung"?"In Ordnung":v==="beobachten"?"Beobachten":"Ölwechsel erforderlich"}
+function renderToday(){
+ const box=$f("gpFryerTodayList"), count=$f("gpFryerTodayCount");if(!box)return;
+ const rows=logs().filter(r=>r.day===todayKey()).sort((a,b)=>b.ts-a.ts);
+ count.textContent=rows.length?rows.length+" Kontrolle"+(rows.length===1?"":"n"):"";
+ box.innerHTML=rows.length?rows.map(r=>{
+   const cls=r.oilState==="wechsel"?"bad":r.oilState==="beobachten"?"warn":"";
+   return `<div class="gpFryerRecord"><div class="gpFryerRecordTop"><strong>${esc(r.device)}</strong><span class="gpFryerBadge ${cls}">${esc(stateText(r.oilState))}</span></div>
+   <div class="gpFryerRecordMeta">${esc(r.time)} · ${esc(r.temp)} °C · Reinigung: ${r.cleaned?"Ja":"Nein"} · Ölwechsel: ${r.oilChanged?"Ja":"Nein"} · ${esc(r.employee)}${r.note?`<br>${esc(r.note)}`:""}</div></div>`;
+ }).join(""):`<div class="muted">Heute noch keine Frittierkontrolle gespeichert.</div>`;
+}
+$f("gpFryerManageToggle")?.addEventListener("click",()=>{const x=$f("gpFryerManage");x.hidden=!x.hidden});
+$f("gpFryerAdd")?.addEventListener("click",()=>{
+ const inp=$f("gpFryerNewName"),n=inp.value.trim(),notice=$f("gpFryerManageNotice");if(!n){notice.textContent="Bitte einen Namen eingeben.";return}
+ const a=devices();if(a.some(x=>x.toLowerCase()===n.toLowerCase())){notice.textContent="Diese Fritteuse ist bereits vorhanden.";return}
+ a.push(n);save(DEVKEY,a);inp.value="";notice.textContent="Fritteuse gespeichert.";renderDevices();$f("gpFryerPick").value=n;
+});
+$f("gpFryerSave")?.addEventListener("click",()=>{
+ const device=$f("gpFryerPick").value,temp=$f("gpFryerTemp").value.trim().replace(",","."),
+ employee=$f("gpFryerEmployee").value.trim(),notice=$f("gpFryerNotice");
+ if(!device){notice.textContent="Bitte eine Fritteuse auswählen.";return}
+ if(temp===""||!Number.isFinite(Number(temp))){notice.textContent="Bitte eine gültige Temperatur eingeben.";return}
+ if(!employee){notice.textContent="Bitte Mitarbeiter / Kürzel eintragen.";return}
+ const now=new Date(), a=logs();
+ a.push({id:Date.now(),ts:Date.now(),day:todayKey(now),time:now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
+ device,temp:String(Number(temp)).replace(".",","),oilState:$f("gpFryerOilState").value,
+ cleaned:$f("gpFryerCleaned").checked,oilChanged:$f("gpFryerOilChanged").checked,note:$f("gpFryerNote").value.trim(),employee});
+ save(LOGKEY,a);notice.textContent="✓ Frittierkontrolle gespeichert.";
+ $f("gpFryerTemp").value="";$f("gpFryerNote").value="";$f("gpFryerCleaned").checked=false;$f("gpFryerOilChanged").checked=false;
+ renderToday();$f("gpFryerTemp").focus();
+});
+renderDevices();renderToday();
+})();
+</script>
 </body>
 </html>
   
