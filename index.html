@@ -2754,6 +2754,18 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
  .gpFryerGrid{grid-template-columns:1fr}.gpFryerAddRow{grid-template-columns:1fr}
 }
 </style>
+<style id="gp-v762-fryer-docs-css">
+.gpFryerDocsCard{margin:16px 0;padding:14px;border:1px solid #d9e5e0;border-radius:15px;background:linear-gradient(145deg,#fffaf1,#fff)}
+.gpFryerDocsHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.gpFryerDocsHead strong{color:#173f35}
+.gpFryerDocsCount{font-size:11px;font-weight:850;padding:5px 8px;border-radius:999px;background:#fff0d8;color:#9a5b0b;white-space:nowrap}
+.gpFryerDocsEmpty{padding:10px 0;color:#75807c;font-size:13px}
+.gpFryerDocsRow{padding:11px 12px;border:1px solid #e0e7e4;border-radius:11px;background:#fff;margin-top:8px}
+.gpFryerDocsRowTop{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.gpFryerDocsMeta{font-size:12px;color:#68746f;line-height:1.5;margin-top:5px}
+.gpFryerDocsState{font-size:11px;font-weight:850;padding:4px 7px;border-radius:999px;background:#e8f6ef;color:#176544}
+.gpFryerDocsState.warn{background:#fff3df;color:#9a5b0b}.gpFryerDocsState.bad{background:#fbeaea;color:#a13f3f}
+</style>
 </head>
 
 <body>
@@ -3459,6 +3471,18 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   <button id="haccpSaveDayDoc" class="secondary" type="button">HACCP-Tag abschließen</button>
   <button id="haccpOpenDayDoc" class="secondary" type="button">Bericht ansehen</button><button id="haccpExportDayDoc" class="secondary" type="button">PDF / Teilen</button>
   <button id="gpManageDayDoc" class="secondary" type="button">Verwalten</button><button id="haccpDeleteDayDoc" class="secondary danger gpAdvancedDanger" type="button">Tagesabschluss verwalten</button>
+</div>
+
+
+<div class="gpFryerDocsCard">
+  <div class="gpFryerDocsHead">
+    <div>
+      <strong>🍟 Frittierkontrollen</strong>
+      <div class="muted">Gespeicherte Frittierkontrollen des ausgewählten Archivtags.</div>
+    </div>
+    <span id="gpFryerDocsCount" class="gpFryerDocsCount"></span>
+  </div>
+  <div id="gpFryerDocsList"></div>
 </div>
 
 <div id="haccpReportViewer" class="gpReportViewer" hidden>
@@ -9492,7 +9516,25 @@ $f("gpFryerSave")?.addEventListener("click",()=>{
  $f("gpFryerTemp").value="";$f("gpFryerNote").value="";$f("gpFryerCleaned").checked=false;$f("gpFryerOilChanged").checked=false;
  renderToday();$f("gpFryerTemp").focus();
 });
-renderDevices();renderToday();
+
+function docsDay(){
+ const sel=$f("haccpArchiveDay");
+ return sel&&sel.value?sel.value:todayKey();
+}
+function renderFryerDocs(){
+ const box=$f("gpFryerDocsList"),count=$f("gpFryerDocsCount");if(!box)return;
+ const day=docsDay();
+ const rows=logs().filter(r=>r.day===day).sort((a,b)=>b.ts-a.ts);
+ count.textContent=rows.length?rows.length+" Eintrag"+(rows.length===1?"":"e"):"0 Einträge";
+ box.innerHTML=rows.length?rows.map(r=>{
+   const cls=r.oilState==="wechsel"?"bad":r.oilState==="beobachten"?"warn":"";
+   return `<div class="gpFryerDocsRow"><div class="gpFryerDocsRowTop"><strong>${esc(r.device)}</strong><span class="gpFryerDocsState ${cls}">${esc(stateText(r.oilState))}</span></div>
+   <div class="gpFryerDocsMeta">${esc(r.time)} · Temperatur: ${esc(r.temp)} °C · Reinigung: ${r.cleaned?"Ja":"Nein"} · Ölwechsel: ${r.oilChanged?"Ja":"Nein"} · Mitarbeiter: ${esc(r.employee)}${r.note?`<br>Maßnahme/Bemerkung: ${esc(r.note)}`:""}</div></div>`;
+ }).join(""):`<div class="gpFryerDocsEmpty">Für diesen Tag sind keine Frittierkontrollen gespeichert.</div>`;
+}
+$f("haccpArchiveDay")?.addEventListener("change",renderFryerDocs);
+document.querySelector('[data-haccp-mode="docs"]')?.addEventListener("click",()=>setTimeout(renderFryerDocs,0));
+renderDevices();renderToday();renderFryerDocs();
 })();
 </script>
 </body>
