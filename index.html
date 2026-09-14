@@ -2811,6 +2811,17 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 @media(max-width:620px){.gpReportHero{display:block}.gpReportOverall{display:inline-block;margin-top:10px;white-space:normal}.gpReportStats{grid-template-columns:repeat(2,1fr)}.gpReportStats>div:nth-child(2){border-right:0}.gpReportStats>div:nth-child(-n+2){border-bottom:1px solid #e2e8e5}}
 </style>
 
+
+<style id="gp-v771-report-refine-css">
+.gpReportSection{margin-top:20px!important}
+.gpReportSectionHead{padding-bottom:6px;border-bottom:1px solid #e4eae7}
+.gpReportDeviationList{display:grid;gap:8px}
+.gpReportDeviation{display:grid;grid-template-columns:1.2fr 1fr 1.6fr;gap:10px;padding:10px 12px;border:1px solid #efd7b4;border-radius:10px;background:#fff8ed;font-size:11px}
+.gpReportDeviation strong{color:#6e470e}.gpReportDeviation span{color:#775b30}.gpReportDeviation small{color:#675b48}
+.gpReportOkBlock{padding:12px;border:1px solid #c9e2d6;border-radius:10px;background:#edf8f2;color:#176544;font-weight:800;font-size:12px}
+@media(max-width:620px){.gpReportDeviation{grid-template-columns:1fr}.gpReportSection{margin-top:18px!important}}
+</style>
+
 </head>
 
 <body>
@@ -9342,10 +9353,33 @@ function gpFryerRowsForDay(key){
   }catch(e){return[]}
 }
 function gpSampleRowsForDay(key){
+  let saved=[];
   try{
     const a=JSON.parse(localStorage.getItem("gastropilot_haccp_samples_v1")||"[]");
-    return Array.isArray(a)?a.filter(r=>String(r.time||"").slice(0,10)===key):[];
-  }catch(e){return[]}
+    saved=Array.isArray(a)?a.filter(r=>String(r.time||"").slice(0,10)===key):[];
+  }catch(e){saved=[]}
+  if(key===gpTodayKey() && typeof gpSelectedSampleData==="function"){
+    const selected=gpSelectedSampleData().filter(r=>String(r.time||"").slice(0,10)===key);
+    const seen=new Set(saved.map(r=>[gpNormName(r.dish||""),gpNormName(r.component||""),String(r.time||""),String(r.amount||"")].join("|")));
+    selected.forEach(r=>{
+      const k=[gpNormName(r.dish||""),gpNormName(r.component||""),String(r.time||""),String(r.amount||"")].join("|");
+      if(!seen.has(k)){saved.push(r);seen.add(k)}
+    });
+  }
+  return saved;
+}
+function gpPersistSelectedSamplesForDayClose(key){
+  if(key!==gpTodayKey() || typeof gpSelectedSampleData!=="function" || typeof gpStoreSamples!=="function")return;
+  const selected=gpSelectedSampleData().filter(r=>String(r.time||"").slice(0,10)===key);
+  if(!selected.length)return;
+  const existing=gpLoadSamples();
+  const seen=new Set(existing.map(r=>[gpNormName(r.dish||""),gpNormName(r.component||""),String(r.time||""),String(r.amount||"")].join("|")));
+  const fresh=selected.filter(r=>{
+    const k=[gpNormName(r.dish||""),gpNormName(r.component||""),String(r.time||""),String(r.amount||"")].join("|");
+    if(seen.has(k))return false;
+    seen.add(k);return true;
+  });
+  if(fresh.length)gpStoreSamples(fresh);
 }
 function gpReportStatus(rows,fryerRows){
   const deviations=(rows||[]).filter(r=>!r.ok).length;
@@ -9357,48 +9391,67 @@ function gpReportStatus(rows,fryerRows){
 function gpReportHtml(rows,key,title,fryerRows,sampleRows){
   fryerRows=Array.isArray(fryerRows)?fryerRows:[];
   sampleRows=Array.isArray(sampleRows)?sampleRows:[];
-  const status=gpReportStatus(rows,fryerRows);
-  const tempDeviations=rows.filter(r=>!r.ok).length;
-  const foodRows=rows.filter(r=>r.type==="Speisentemperatur");
-  const deviceRows=rows.filter(r=>r.type==="Kühlung"||r.type==="Tiefkühlung");
+  rows=Array.isArray(rows)?rows:[];
 
-  const tempTable=rows.length?`<div class="gpReportSection">
-    <div class="gpReportSectionHead"><span>01</span><div><strong>Temperaturkontrollen</strong><small>${rows.length} Messung${rows.length===1?"":"en"}</small></div></div>
-    <div class="gpReportTableWrap"><table class="gpReportTable"><thead><tr>
-      <th>Zeit / Art</th><th>Kontrollpunkt</th><th>Soll</th><th>Ist</th><th>Bewertung / Maßnahme</th><th>Mitarbeiter</th>
-    </tr></thead><tbody>${rows.map(r=>`<tr>
-      <td>${esc(r.date)}<br><span class="gpReportMuted">${esc(r.type)}</span></td>
-      <td><strong>${esc(r.dish?`${r.dish} – ${r.component||r.location}`:r.location)}</strong></td>
-      <td>${r.min}–${r.max} °C</td><td><strong>${r.actual} °C</strong></td>
+  const cooling=rows.filter(r=>r.type==="Kühlung").slice().sort((a,b)=>(a.location||"").localeCompare(b.location||"","de"));
+  const freezing=rows.filter(r=>r.type==="Tiefkühlung").slice().sort((a,b)=>(a.location||"").localeCompare(b.location||"","de"));
+  const food=rows.filter(r=>r.type==="Speisentemperatur").slice().sort((a,b)=>
+    (a.dish||a.location||"").localeCompare(b.dish||b.location||"","de") ||
+    (a.component||"").localeCompare(b.component||"","de")
+  );
+  const deviations=rows.filter(r=>!r.ok);
+  const fryerAttention=fryerRows.filter(r=>r.oilState==="wechsel"||r.oilState==="beobachten");
+  const status=(deviations.length||fryerAttention.length)?{cls:"warn",text:"Prüfhinweise vorhanden"}:{cls:"ok",text:"Kontrollen ohne offene Abweichungskennzeichnung"};
+
+  function tempRows(list){
+    return list.map(r=>`<tr>
+      <td><strong>${esc(r.dish?`${r.dish}${r.component?` – ${r.component}`:""}`:r.location)}</strong><br><span class="gpReportMuted">${esc(r.date||"")}</span></td>
+      <td>${r.min}–${r.max} °C</td>
+      <td><strong>${r.actual} °C</strong></td>
       <td><span class="gpReportPill ${r.ok?"ok":"warn"}">${r.ok?"In Ordnung":"Abweichung"}</span>${r.action?`<div class="gpReportAction">Maßnahme: ${esc(r.action)}</div>`:""}</td>
       <td>${esc(r.employee||"—")}</td>
-    </tr>`).join("")}</tbody></table></div>
-  </div>`:`<div class="gpReportEmpty">Keine Temperaturkontrollen dokumentiert.</div>`;
+    </tr>`).join("");
+  }
+  function tempSection(nr,titleText,list,emptyText){
+    return `<div class="gpReportSection">
+      <div class="gpReportSectionHead"><span>${nr}</span><div><strong>${titleText}</strong><small>${list.length} Kontrolle${list.length===1?"":"n"}</small></div></div>
+      ${list.length?`<div class="gpReportTableWrap"><table class="gpReportTable"><thead><tr><th>Kontrollpunkt</th><th>Soll</th><th>Ist</th><th>Bewertung / Maßnahme</th><th>Mitarbeiter</th></tr></thead><tbody>${tempRows(list)}</tbody></table></div>`:`<div class="gpReportEmpty">${emptyText}</div>`}
+    </div>`;
+  }
 
-  const fryerTable=fryerRows.length?`<div class="gpReportSection">
-    <div class="gpReportSectionHead"><span>02</span><div><strong>Frittierkontrollen</strong><small>${fryerRows.length} Kontrolle${fryerRows.length===1?"":"n"}</small></div></div>
-    <div class="gpReportTableWrap"><table class="gpReportTable"><thead><tr>
-      <th>Zeit</th><th>Fritteuse</th><th>Temperatur</th><th>Ölzustand</th><th>Reinigung / Ölwechsel</th><th>Mitarbeiter</th>
-    </tr></thead><tbody>${fryerRows.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(r=>{
+  const fryerTable=`<div class="gpReportSection">
+    <div class="gpReportSectionHead"><span>04</span><div><strong>Frittierkontrollen</strong><small>${fryerRows.length} Kontrolle${fryerRows.length===1?"":"n"}</small></div></div>
+    ${fryerRows.length?`<div class="gpReportTableWrap"><table class="gpReportTable"><thead><tr>
+      <th>Fritteuse</th><th>Temperatur</th><th>Ölzustand</th><th>Reinigung / Ölwechsel</th><th>Mitarbeiter</th>
+    </tr></thead><tbody>${fryerRows.slice().sort((a,b)=>(a.device||"").localeCompare(b.device||"","de")).map(r=>{
       const st=r.oilState==="wechsel"?"Ölwechsel erforderlich":r.oilState==="beobachten"?"Beobachten":"In Ordnung";
       const cls=r.oilState==="in_ordnung"?"ok":"warn";
-      return `<tr><td>${esc(r.time||"")}</td><td><strong>${esc(r.device||"")}</strong></td><td><strong>${esc(r.temp||"")} °C</strong></td>
+      return `<tr><td><strong>${esc(r.device||"")}</strong><br><span class="gpReportMuted">${esc(r.time||"")}</span></td><td><strong>${esc(r.temp||"")} °C</strong></td>
       <td><span class="gpReportPill ${cls}">${esc(st)}</span></td>
       <td>Reinigung: ${r.cleaned?"Ja ✓":"Nein"}<br>Ölwechsel: ${r.oilChanged?"Ja ✓":"Nein"}${r.note?`<div class="gpReportAction">${esc(r.note)}</div>`:""}</td>
       <td>${esc(r.employee||"—")}</td></tr>`;
-    }).join("")}</tbody></table></div>
-  </div>`:`<div class="gpReportSection"><div class="gpReportSectionHead"><span>02</span><div><strong>Frittierkontrollen</strong><small>Keine Einträge</small></div></div><div class="gpReportEmpty">Für diesen Tag wurden keine Frittierkontrollen gespeichert.</div></div>`;
+    }).join("")}</tbody></table></div>`:`<div class="gpReportEmpty">Keine Frittierkontrollen dokumentiert.</div>`}
+  </div>`;
 
-  const sampleTable=sampleRows.length?`<div class="gpReportSection">
-    <div class="gpReportSectionHead"><span>03</span><div><strong>Rückstellproben</strong><small>${sampleRows.length} Probe${sampleRows.length===1?"":"n"}</small></div></div>
-    <div class="gpReportTableWrap"><table class="gpReportTable"><thead><tr>
+  const sampleTable=`<div class="gpReportSection">
+    <div class="gpReportSectionHead"><span>05</span><div><strong>Rückstellproben</strong><small>${sampleRows.length} Probe${sampleRows.length===1?"":"n"}</small></div></div>
+    ${sampleRows.length?`<div class="gpReportTableWrap"><table class="gpReportTable"><thead><tr>
       <th>Speise</th><th>Komponente</th><th>Probenmenge</th><th>Entnahme</th><th>Aufbewahrung</th><th>Mitarbeiter</th>
-    </tr></thead><tbody>${sampleRows.map(r=>{
+    </tr></thead><tbody>${sampleRows.slice().sort((a,b)=>(a.dish||"").localeCompare(b.dish||"","de")||(a.component||"").localeCompare(b.component||"","de")).map(r=>{
       const expiry=gpSampleExpiry(r.time,r.days);
       return `<tr><td><strong>${esc(r.dish||"—")}</strong></td><td>${esc(r.component||"—")}</td><td>${esc(r.amount||"—")}</td>
       <td>${esc(gpSampleDate(new Date(r.time)))}</td><td>bis ${esc(gpSampleDate(expiry).split(",")[0])}</td><td>${esc(r.employee||"—")}</td></tr>`;
-    }).join("")}</tbody></table></div>
-  </div>`:`<div class="gpReportSection"><div class="gpReportSectionHead"><span>03</span><div><strong>Rückstellproben</strong><small>Keine Einträge</small></div></div><div class="gpReportEmpty">Für diesen Tag wurden keine Rückstellproben dokumentiert.</div></div>`;
+    }).join("")}</tbody></table></div>`:`<div class="gpReportEmpty">Keine Rückstellproben dokumentiert.</div>`}
+  </div>`;
+
+  const deviationItems=[
+    ...deviations.map(r=>({label:r.dish?`${r.dish}${r.component?` – ${r.component}`:""}`:r.location,detail:`${r.actual} °C statt ${r.min}–${r.max} °C`,action:r.action||"Keine Maßnahme eingetragen"})),
+    ...fryerAttention.map(r=>({label:r.device,detail:r.oilState==="wechsel"?"Ölwechsel erforderlich":"Öl beobachten",action:r.note||"Keine zusätzliche Bemerkung"}))
+  ];
+  const deviationBlock=`<div class="gpReportSection">
+    <div class="gpReportSectionHead"><span>06</span><div><strong>Abweichungen & Maßnahmen</strong><small>${deviationItems.length} Hinweis${deviationItems.length===1?"":"e"}</small></div></div>
+    ${deviationItems.length?`<div class="gpReportDeviationList">${deviationItems.map(x=>`<div class="gpReportDeviation"><strong>${esc(x.label)}</strong><span>${esc(x.detail)}</span><small>Maßnahme: ${esc(x.action)}</small></div>`).join("")}</div>`:`<div class="gpReportOkBlock">✓ Keine dokumentierten Abweichungen für diesen Tag.</div>`}
+  </div>`;
 
   return `<div class="gpReportV2">
     <div class="gpReportHero">
@@ -9406,13 +9459,18 @@ function gpReportHtml(rows,key,title,fryerRows,sampleRows){
       <div class="gpReportOverall ${status.cls}">${esc(status.text)}</div>
     </div>
     <div class="gpReportStats">
-      <div><span>Temperaturen</span><strong>${rows.length}</strong><small>${deviceRows.length} Geräte · ${foodRows.length} Speisen</small></div>
-      <div><span>Frittierkontrollen</span><strong>${fryerRows.length}</strong><small>${fryerRows.filter(r=>r.oilChanged).length} Ölwechsel</small></div>
+      <div><span>Kühlung / TK</span><strong>${cooling.length+freezing.length}</strong><small>Gerätekontrollen</small></div>
+      <div><span>Speisen</span><strong>${food.length}</strong><small>Temperaturmessungen</small></div>
+      <div><span>Fritteuse</span><strong>${fryerRows.length}</strong><small>Kontrollen</small></div>
       <div><span>Rückstellproben</span><strong>${sampleRows.length}</strong><small>dokumentiert</small></div>
-      <div><span>Abweichungen</span><strong>${tempDeviations}</strong><small>Temperatur</small></div>
     </div>
-    ${tempTable}${fryerTable}${sampleTable}
-    <div class="gpReportFoot">Dieser Bericht fasst die in GastroPilot für den ausgewählten Tag gespeicherten HACCP-Daten zusammen.</div>
+    ${tempSection("01","Kühlkontrollen",cooling,"Keine Kühlkontrollen dokumentiert.")}
+    ${tempSection("02","Tiefkühlkontrollen",freezing,"Keine Tiefkühlkontrollen dokumentiert.")}
+    ${tempSection("03","Speisentemperaturen",food,"Keine Speisentemperaturen dokumentiert.")}
+    ${fryerTable}
+    ${sampleTable}
+    ${deviationBlock}
+    <div class="gpReportFoot">Tagesdokumentation · nach Kontrollbereichen gegliedert. Uhrzeiten bleiben am jeweiligen Eintrag erhalten, bestimmen aber nicht mehr die Reihenfolge des Berichts.</div>
   </div>`;
 }
 function gpShowReport(rows,key,title,fryerRows,sampleRows){
@@ -9473,6 +9531,7 @@ if(saveDayDoc)saveDayDoc.addEventListener("click",()=>{
     });
     if(open.length && !confirm("Noch "+open.length+" Kontrolle(n) offen:\n\n"+open.slice(0,8).join("\n")+"\n\nTag trotzdem abschließen?"))return;
   }
+  gpPersistSelectedSamplesForDayClose(key);
   const docs=gpLoadDayDocs();
   docs[key]={
     savedAt:new Date().toLocaleString("de-DE"),
