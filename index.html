@@ -2860,6 +2860,14 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 }
 </style>
 
+
+<style id="gp-v781-inspector-fix-css">
+.gpInspectorReport{margin-top:16px;padding:14px;border:2px solid #135847;border-radius:14px;background:#fff}
+.gpInspectorReportHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #dfe7e3}
+.gpInspectorReportHead strong{font-size:16px;color:#17483b}
+.gpInspectorReport[hidden]{display:none!important}
+</style>
+
 </head>
 
 <body>
@@ -3592,6 +3600,14 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   <div id="gpInspectorRangeText" class="gpInspectorRangeText"></div>
   <div id="gpInspectorDaysList" class="gpInspectorDaysList"></div>
   <div id="gpInspectorEmpty" class="gpInspectorEmpty" hidden>Für diesen Zeitraum sind keine abgeschlossenen HACCP-Tage vorhanden.</div>
+
+  <div id="gpInspectorReport" class="gpInspectorReport" hidden>
+    <div class="gpInspectorReportHead">
+      <strong>📄 Tagesbericht</strong>
+      <button id="gpInspectorReportClose" class="secondary" type="button">Schließen</button>
+    </div>
+    <div id="gpInspectorReportBody"></div>
+  </div>
 </div>
 <div class="gpArchiveBanner">✅ HACCP-Tagesarchiv aktiv</div>
 <div class="gpArchiveBar">
@@ -9835,16 +9851,17 @@ renderDevices();renderToday();renderFryerDocs();
 })();
 </script>
 
-<script id="gp-v78-inspector-js">
+<script id="gp-v781-inspector-js">
 (function(){
 const $i=id=>document.getElementById(id);
-const panel=$i("gpInspectorPanel"), openBtn=$i("gpInspectorOpen"), closeBtn=$i("gpInspectorClose");
+const panel=$i("gpInspectorPanel"),openBtn=$i("gpInspectorOpen"),closeBtn=$i("gpInspectorClose");
 if(!panel||!openBtn||!closeBtn)return;
 
 const fromEl=$i("gpInspectorFrom"),toEl=$i("gpInspectorTo"),applyBtn=$i("gpInspectorApply"),
 daysEl=$i("gpInspectorDays"),checksEl=$i("gpInspectorChecks"),samplesEl=$i("gpInspectorSamples"),
 devEl=$i("gpInspectorDeviations"),listEl=$i("gpInspectorDaysList"),emptyEl=$i("gpInspectorEmpty"),
-onlyDev=$i("gpInspectorOnlyDeviations"),rangeText=$i("gpInspectorRangeText"),pdfBtn=$i("gpInspectorPeriodPdf");
+onlyDev=$i("gpInspectorOnlyDeviations"),rangeText=$i("gpInspectorRangeText"),pdfBtn=$i("gpInspectorPeriodPdf"),
+report=$i("gpInspectorReport"),reportBody=$i("gpInspectorReportBody"),reportClose=$i("gpInspectorReportClose");
 const rangeBtns=[...document.querySelectorAll(".gpInspectorRangeBtn")];
 
 function keyDate(key){const p=String(key||"").split("-").map(Number);return p.length===3?new Date(p[0],p[1]-1,p[2],12):new Date(NaN)}
@@ -9856,15 +9873,36 @@ function fryerRows(doc){return Array.isArray(doc&&doc.fryerRows)?doc.fryerRows:[
 function sampleRows(doc){return Array.isArray(doc&&doc.sampleRows)?doc.sampleRows:[]}
 function tempRows(doc){return Array.isArray(doc&&doc.rows)?doc.rows:[]}
 function deviationCount(doc){
-  const t=tempRows(doc).filter(r=>!r.ok).length;
-  const f=fryerRows(doc).filter(r=>r.oilState==="wechsel"||r.oilState==="beobachten").length;
-  return t+f;
+  return tempRows(doc).filter(r=>!r.ok).length+
+    fryerRows(doc).filter(r=>r.oilState==="wechsel"||r.oilState==="beobachten").length;
 }
 function controlCount(doc){return tempRows(doc).length+fryerRows(doc).length}
+
+function reportHtml(doc,key,title){
+  if(typeof gpReportHtml==="function")return gpReportHtml(tempRows(doc),key,title,fryerRows(doc),sampleRows(doc));
+  return `<div><h3>${escI(title)}</h3><p>${escI(pretty(key))}</p></div>`;
+}
+function printableShell(doc,key,title){
+  const body=reportHtml(doc,key,title);
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${escI(title)} – ${escI(pretty(key))}</title>
+  <style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;margin:22px;color:#213a32}.actions{margin:0 0 18px}.actions button{font-size:16px;padding:10px 14px}
+  .gpReportHero{display:flex;justify-content:space-between;gap:14px;padding:14px;border-radius:10px;background:#135847;color:#fff}.gpReportKicker{font-size:9px;font-weight:900;color:#ffd184}.gpReportTitle{font-size:20px;font-weight:900}.gpReportMeta{font-size:11px}
+  .gpReportStats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #ccd8d3;margin:10px 0 14px}.gpReportStats>div{text-align:center;padding:7px;border-right:1px solid #ddd}.gpReportStats span,.gpReportStats small{display:block;font-size:8px;color:#68756f}.gpReportStats strong{display:block;font-size:16px}
+  .gpReportSection{margin-top:14px}.gpReportSectionHead{display:flex;gap:8px;align-items:center;border-bottom:1px solid #ddd;padding-bottom:5px}.gpReportSectionHead>span{font-weight:900;color:#135847}.gpReportSectionHead strong{display:block}.gpReportSectionHead small{display:block;font-size:8px;color:#777}
+  .gpReportTable{width:100%;border-collapse:collapse;font-size:8px}.gpReportTable th,.gpReportTable td{padding:5px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.gpReportTable th{background:#f1f4f2}.gpReportPill{font-weight:800}.gpReportAction,.gpReportMuted{font-size:7px;color:#666}.gpReportEmpty,.gpReportOkBlock{padding:7px;border:1px dashed #bbb;font-size:8px}.gpReportFoot{font-size:7px;color:#777;margin-top:10px}.gpReportDeviation{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:6px;padding:6px;border-bottom:1px solid #ead9bc;font-size:8px}
+  @media print{.actions{display:none}body{margin:7mm}.gpReportHero{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style></head><body><div class="actions"><button onclick="window.print()">Drucken / PDF</button></div>${body}</body></html>`;
+}
+function openDayPdf(doc,key){
+  const w=window.open("","_blank");
+  if(!w){alert("Bericht konnte nicht geöffnet werden. Bitte Pop-ups für GastroPilot erlauben.");return}
+  w.document.open();w.document.write(printableShell(doc,key,"Gesicherter HACCP-Tagesabschluss"));w.document.close();
+}
 function setRange(days){
   const end=new Date(),start=new Date();
-  if(days==="today"){start.setHours(12,0,0,0)}
-  else start.setDate(end.getDate()-(Number(days)-1));
+  if(days!=="today")start.setDate(end.getDate()-(Number(days)-1));
   fromEl.value=dateKey(start);toEl.value=dateKey(end);
   rangeBtns.forEach(b=>b.classList.toggle("gpActive",b.dataset.range===String(days)));
   renderInspector();
@@ -9904,42 +9942,54 @@ function renderInspector(){
   emptyEl.hidden=shown.length>0;
 }
 function openInspector(){
-  document.getElementById("haccpCard")?.classList.add("gpInspectorMode");
+  $i("haccpCard")?.classList.add("gpInspectorMode");
   panel.hidden=false;
   if(!fromEl.value||!toEl.value)setRange(30);else renderInspector();
   panel.scrollIntoView({behavior:"smooth",block:"start"});
 }
 function closeInspector(){
-  document.getElementById("haccpCard")?.classList.remove("gpInspectorMode");
+  report.hidden=true;reportBody.innerHTML="";
+  $i("haccpCard")?.classList.remove("gpInspectorMode");
   panel.hidden=true;
-  document.getElementById("gpInspectorEntry")?.scrollIntoView({behavior:"smooth",block:"start"});
+  $i("gpInspectorEntry")?.scrollIntoView({behavior:"smooth",block:"start"});
 }
 function periodHtml(rows){
   const totalChecks=rows.reduce((s,x)=>s+controlCount(x.doc),0),totalSamples=rows.reduce((s,x)=>s+sampleRows(x.doc).length,0),totalDev=rows.reduce((s,x)=>s+deviationCount(x.doc),0);
-  const days=rows.map(({key,doc})=>`<section class="day"><h2>${escI(pretty(key))}</h2><div class="mini">${controlCount(doc)} Kontrollen · ${sampleRows(doc).length} Rückstellproben · ${deviationCount(doc)} Abweichungen</div>${typeof gpReportHtml==="function"?gpReportHtml(tempRows(doc),key,"HACCP Tagesbericht",fryerRows(doc),sampleRows(doc)):""}</section>`).join("");
+  const days=rows.map(({key,doc})=>`<section class="day"><h2>${escI(pretty(key))}</h2><div class="mini">${controlCount(doc)} Kontrollen · ${sampleRows(doc).length} Rückstellproben · ${deviationCount(doc)} Abweichungen</div>${reportHtml(doc,key,"HACCP Tagesbericht")}</section>`).join("");
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HACCP Prüfbericht</title><style>
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;margin:22px;color:#213a32}.actions{margin-bottom:18px}.actions button{font-size:16px;padding:10px 14px}
   .cover{padding:18px;border:1px solid #cddad5;border-radius:12px;margin-bottom:20px}.cover h1{margin:0 0 5px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.stats div{border:1px solid #dde6e2;padding:10px;text-align:center}.stats span{display:block;font-size:9px;color:#777}.stats strong{font-size:20px}.day{page-break-before:always}.day:first-of-type{page-break-before:auto}.mini{font-size:11px;color:#666;margin-bottom:10px}
   .gpReportHero{display:flex;justify-content:space-between;gap:14px;padding:14px;border-radius:10px;background:#135847;color:#fff}.gpReportKicker{font-size:9px;font-weight:900;color:#ffd184}.gpReportTitle{font-size:20px;font-weight:900}.gpReportMeta{font-size:11px}.gpReportStats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #ccd8d3;margin:10px 0 14px}.gpReportStats>div{text-align:center;padding:7px;border-right:1px solid #ddd}.gpReportStats span,.gpReportStats small{display:block;font-size:8px;color:#68756f}.gpReportStats strong{display:block;font-size:16px}.gpReportSection{margin-top:14px}.gpReportSectionHead{display:flex;gap:8px;align-items:center;border-bottom:1px solid #ddd;padding-bottom:5px}.gpReportSectionHead>span{font-weight:900;color:#135847}.gpReportSectionHead strong{display:block}.gpReportSectionHead small{display:block;font-size:8px;color:#777}.gpReportTable{width:100%;border-collapse:collapse;font-size:8px}.gpReportTable th,.gpReportTable td{padding:5px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.gpReportTable th{background:#f1f4f2}.gpReportPill{font-weight:800}.gpReportAction,.gpReportMuted{font-size:7px;color:#666}.gpReportEmpty,.gpReportOkBlock{padding:7px;border:1px dashed #bbb;font-size:8px}.gpReportFoot{font-size:7px;color:#777;margin-top:10px}.gpReportDeviation{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:6px;padding:6px;border-bottom:1px solid #ead9bc;font-size:8px}
-  @media print{.actions{display:none}body{margin:7mm}.day{break-before:page}.cover{break-after:page}}@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}}
+  @media print{.actions{display:none}body{margin:7mm}.day{break-before:page}.cover{break-after:page}}
   </style></head><body><div class="actions"><button onclick="window.print()">Drucken / PDF</button></div><div class="cover"><h1>HACCP Prüfbericht</h1><div>${escI(pretty(fromEl.value))} bis ${escI(pretty(toEl.value))}</div><div class="stats"><div><span>Abgeschlossene Tage</span><strong>${rows.length}</strong></div><div><span>Kontrollen</span><strong>${totalChecks}</strong></div><div><span>Rückstellproben</span><strong>${totalSamples}</strong></div><div><span>Abweichungen</span><strong>${totalDev}</strong></div></div></div>${days}</body></html>`;
 }
+
 openBtn.addEventListener("click",openInspector);
 closeBtn.addEventListener("click",closeInspector);
+reportClose.addEventListener("click",()=>{report.hidden=true;reportBody.innerHTML="";});
 rangeBtns.forEach(b=>b.addEventListener("click",()=>setRange(b.dataset.range)));
 applyBtn.addEventListener("click",()=>{rangeBtns.forEach(b=>b.classList.remove("gpActive"));if(fromEl.value&&toEl.value&&fromEl.value>toEl.value){const x=fromEl.value;fromEl.value=toEl.value;toEl.value=x}renderInspector()});
 onlyDev.addEventListener("change",renderInspector);
+
 listEl.addEventListener("click",e=>{
   const ob=e.target.closest("[data-inspect-open]"),pb=e.target.closest("[data-inspect-pdf]");
-  const key=ob?.dataset.inspectOpen||pb?.dataset.inspectPdf;if(!key)return;
-  const doc=dayDocs()[key];if(!doc)return;
-  if(ob&&typeof gpShowReport==="function")gpShowReport(tempRows(doc),key,"Gesicherter HACCP-Tagesabschluss",fryerRows(doc),sampleRows(doc));
-  if(pb&&typeof gpOpenPrintableReport==="function")gpOpenPrintableReport(tempRows(doc),key,"Gesicherter HACCP-Tagesabschluss",fryerRows(doc),sampleRows(doc));
+  const key=ob?.dataset.inspectOpen||pb?.dataset.inspectPdf;
+  if(!key)return;
+  const doc=dayDocs()[key];
+  if(!doc)return;
+  if(ob){
+    reportBody.innerHTML=reportHtml(doc,key,"Gesicherter HACCP-Tagesabschluss");
+    report.hidden=false;
+    report.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  if(pb)openDayPdf(doc,key);
 });
+
 pdfBtn.addEventListener("click",()=>{
   const rows=inspectorRows();
   if(!rows.length){alert("Für diesen Zeitraum sind keine abgeschlossenen HACCP-Tage vorhanden.");return}
-  const w=window.open("","_blank");if(!w){alert("Bericht konnte nicht geöffnet werden. Bitte Pop-ups erlauben.");return}
+  const w=window.open("","_blank");
+  if(!w){alert("Bericht konnte nicht geöffnet werden. Bitte Pop-ups für GastroPilot erlauben.");return}
   w.document.open();w.document.write(periodHtml(rows));w.document.close();
 });
 })();
