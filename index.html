@@ -2787,6 +2787,30 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 }
 </style>
 
+
+<style id="gp-v77-day-report-css">
+.gpReportV2{color:#213a32}
+.gpReportHero{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:18px;border-radius:15px;background:linear-gradient(135deg,#124f41,#1f7560);color:#fff;margin-bottom:12px}
+.gpReportKicker{font-size:10px;font-weight:900;letter-spacing:.16em;color:#ffd184;margin-bottom:5px}
+.gpReportHero .gpReportTitle{font-size:21px;font-weight:900;margin:0;color:#fff}
+.gpReportHero .gpReportMeta{color:rgba(255,255,255,.82);margin-top:4px}
+.gpReportOverall{font-size:11px;font-weight:850;padding:7px 9px;border-radius:999px;white-space:nowrap;background:rgba(255,255,255,.15)}
+.gpReportOverall.warn{background:#fff0d8;color:#8b520b}
+.gpReportStats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #dce5e1;border-radius:13px;overflow:hidden;margin-bottom:16px;background:#fff}
+.gpReportStats>div{padding:11px 10px;text-align:center;border-right:1px solid #e2e8e5}.gpReportStats>div:last-child{border-right:0}
+.gpReportStats span,.gpReportStats small{display:block;color:#75807b;font-size:10px}.gpReportStats strong{display:block;font-size:19px;color:#17483b;margin:2px 0}
+.gpReportSection{margin-top:17px}.gpReportSectionHead{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.gpReportSectionHead>span{width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#e9f4f0;color:#135847;font-size:11px;font-weight:900}
+.gpReportSectionHead strong{display:block;color:#173f35}.gpReportSectionHead small{display:block;color:#7b8581;font-size:11px;margin-top:1px}
+.gpReportTableWrap{overflow-x:auto;border:1px solid #dfe6e3;border-radius:12px;background:#fff}
+.gpReportTable{width:100%;border-collapse:collapse;font-size:11px}.gpReportTable th{background:#f3f6f4;color:#61706a;text-transform:uppercase;letter-spacing:.03em;font-size:9px}
+.gpReportTable th,.gpReportTable td{padding:9px 8px;border-bottom:1px solid #e5ebe8;text-align:left;vertical-align:top}.gpReportTable tr:last-child td{border-bottom:0}
+.gpReportPill{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:850}.gpReportPill.ok{background:#e8f6ef;color:#176544}.gpReportPill.warn{background:#fff0d8;color:#94580d}
+.gpReportAction{margin-top:5px;color:#5d6964;font-size:10px;line-height:1.35}.gpReportMuted{color:#7a8580}.gpReportEmpty{padding:12px;border:1px dashed #d7dfdc;border-radius:10px;color:#7a8580;font-size:12px}
+.gpReportFoot{margin-top:18px;padding-top:10px;border-top:1px solid #e0e6e3;color:#7b8581;font-size:10px}
+@media(max-width:620px){.gpReportHero{display:block}.gpReportOverall{display:inline-block;margin-top:10px;white-space:normal}.gpReportStats{grid-template-columns:repeat(2,1fr)}.gpReportStats>div:nth-child(2){border-right:0}.gpReportStats>div:nth-child(-n+2){border-bottom:1px solid #e2e8e5}}
+</style>
+
 </head>
 
 <body>
@@ -9310,49 +9334,122 @@ if(rec.type==="Speisentemperatur"){
 gpRememberQuickPrefs();if(measureComp)measureComp.value="";act.value="";evaluate();render();gpRenderComponents();gpSetHaccpMode("measure");gpUpdateQuickSteps();gpSaveHaccpDraft();setTimeout(()=>{try{act.focus()}catch(e){}},80)});
 if(archiveDay)archiveDay.addEventListener("change",render);
 
-function gpReportHtml(rows,key,title){
-  return `<div class="gpReportTitle">${esc(title)}</div>
-  <div class="gpReportMeta">${esc(gpPrettyDate(key))} · ${rows.length} Kontrollen</div>
-  <table class="gpReportTable"><thead><tr>
-    <th>Zeit / Art</th><th>Speise / Komponente</th><th>Soll</th><th>Ist</th><th>Status / Maßnahme</th><th>Mitarbeiter</th>
-  </tr></thead><tbody>${rows.map(r=>`<tr>
-    <td>${esc(r.date)}<br>${esc(r.type)}</td>
-    <td>${esc(r.dish?`${r.dish} – ${r.component||r.location}`:r.location)}</td>
-    <td>${r.min}–${r.max} °C</td><td>${r.actual} °C</td>
-    <td>${r.ok?"✅ In Ordnung":"⚠️ Abweichung"}${r.action?`<br>Maßnahme: ${esc(r.action)}`:""}</td>
-    <td>${esc(r.employee||"")}</td>
-  </tr>`).join("")}</tbody></table>`;
+
+function gpFryerRowsForDay(key){
+  try{
+    const a=JSON.parse(localStorage.getItem("gastropilot_haccp_fryer_log_v1")||"[]");
+    return Array.isArray(a)?a.filter(r=>r.day===key):[];
+  }catch(e){return[]}
 }
-function gpShowReport(rows,key,title){
+function gpSampleRowsForDay(key){
+  try{
+    const a=JSON.parse(localStorage.getItem("gastropilot_haccp_samples_v1")||"[]");
+    return Array.isArray(a)?a.filter(r=>String(r.time||"").slice(0,10)===key):[];
+  }catch(e){return[]}
+}
+function gpReportStatus(rows,fryerRows){
+  const deviations=(rows||[]).filter(r=>!r.ok).length;
+  const fryerAttention=(fryerRows||[]).filter(r=>r.oilState==="wechsel"||r.oilState==="beobachten").length;
+  if(deviations||fryerAttention)return {cls:"warn",text:"Prüfhinweise vorhanden"};
+  return {cls:"ok",text:"Dokumentation ohne offene Abweichungskennzeichnung"};
+}
+
+function gpReportHtml(rows,key,title,fryerRows,sampleRows){
+  fryerRows=Array.isArray(fryerRows)?fryerRows:[];
+  sampleRows=Array.isArray(sampleRows)?sampleRows:[];
+  const status=gpReportStatus(rows,fryerRows);
+  const tempDeviations=rows.filter(r=>!r.ok).length;
+  const foodRows=rows.filter(r=>r.type==="Speisentemperatur");
+  const deviceRows=rows.filter(r=>r.type==="Kühlung"||r.type==="Tiefkühlung");
+
+  const tempTable=rows.length?`<div class="gpReportSection">
+    <div class="gpReportSectionHead"><span>01</span><div><strong>Temperaturkontrollen</strong><small>${rows.length} Messung${rows.length===1?"":"en"}</small></div></div>
+    <div class="gpReportTableWrap"><table class="gpReportTable"><thead><tr>
+      <th>Zeit / Art</th><th>Kontrollpunkt</th><th>Soll</th><th>Ist</th><th>Bewertung / Maßnahme</th><th>Mitarbeiter</th>
+    </tr></thead><tbody>${rows.map(r=>`<tr>
+      <td>${esc(r.date)}<br><span class="gpReportMuted">${esc(r.type)}</span></td>
+      <td><strong>${esc(r.dish?`${r.dish} – ${r.component||r.location}`:r.location)}</strong></td>
+      <td>${r.min}–${r.max} °C</td><td><strong>${r.actual} °C</strong></td>
+      <td><span class="gpReportPill ${r.ok?"ok":"warn"}">${r.ok?"In Ordnung":"Abweichung"}</span>${r.action?`<div class="gpReportAction">Maßnahme: ${esc(r.action)}</div>`:""}</td>
+      <td>${esc(r.employee||"—")}</td>
+    </tr>`).join("")}</tbody></table></div>
+  </div>`:`<div class="gpReportEmpty">Keine Temperaturkontrollen dokumentiert.</div>`;
+
+  const fryerTable=fryerRows.length?`<div class="gpReportSection">
+    <div class="gpReportSectionHead"><span>02</span><div><strong>Frittierkontrollen</strong><small>${fryerRows.length} Kontrolle${fryerRows.length===1?"":"n"}</small></div></div>
+    <div class="gpReportTableWrap"><table class="gpReportTable"><thead><tr>
+      <th>Zeit</th><th>Fritteuse</th><th>Temperatur</th><th>Ölzustand</th><th>Reinigung / Ölwechsel</th><th>Mitarbeiter</th>
+    </tr></thead><tbody>${fryerRows.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(r=>{
+      const st=r.oilState==="wechsel"?"Ölwechsel erforderlich":r.oilState==="beobachten"?"Beobachten":"In Ordnung";
+      const cls=r.oilState==="in_ordnung"?"ok":"warn";
+      return `<tr><td>${esc(r.time||"")}</td><td><strong>${esc(r.device||"")}</strong></td><td><strong>${esc(r.temp||"")} °C</strong></td>
+      <td><span class="gpReportPill ${cls}">${esc(st)}</span></td>
+      <td>Reinigung: ${r.cleaned?"Ja ✓":"Nein"}<br>Ölwechsel: ${r.oilChanged?"Ja ✓":"Nein"}${r.note?`<div class="gpReportAction">${esc(r.note)}</div>`:""}</td>
+      <td>${esc(r.employee||"—")}</td></tr>`;
+    }).join("")}</tbody></table></div>
+  </div>`:`<div class="gpReportSection"><div class="gpReportSectionHead"><span>02</span><div><strong>Frittierkontrollen</strong><small>Keine Einträge</small></div></div><div class="gpReportEmpty">Für diesen Tag wurden keine Frittierkontrollen gespeichert.</div></div>`;
+
+  const sampleTable=sampleRows.length?`<div class="gpReportSection">
+    <div class="gpReportSectionHead"><span>03</span><div><strong>Rückstellproben</strong><small>${sampleRows.length} Probe${sampleRows.length===1?"":"n"}</small></div></div>
+    <div class="gpReportTableWrap"><table class="gpReportTable"><thead><tr>
+      <th>Speise</th><th>Komponente</th><th>Probenmenge</th><th>Entnahme</th><th>Aufbewahrung</th><th>Mitarbeiter</th>
+    </tr></thead><tbody>${sampleRows.map(r=>{
+      const expiry=gpSampleExpiry(r.time,r.days);
+      return `<tr><td><strong>${esc(r.dish||"—")}</strong></td><td>${esc(r.component||"—")}</td><td>${esc(r.amount||"—")}</td>
+      <td>${esc(gpSampleDate(new Date(r.time)))}</td><td>bis ${esc(gpSampleDate(expiry).split(",")[0])}</td><td>${esc(r.employee||"—")}</td></tr>`;
+    }).join("")}</tbody></table></div>
+  </div>`:`<div class="gpReportSection"><div class="gpReportSectionHead"><span>03</span><div><strong>Rückstellproben</strong><small>Keine Einträge</small></div></div><div class="gpReportEmpty">Für diesen Tag wurden keine Rückstellproben dokumentiert.</div></div>`;
+
+  return `<div class="gpReportV2">
+    <div class="gpReportHero">
+      <div><div class="gpReportKicker">GASTROPILOT · HACCP</div><div class="gpReportTitle">${esc(title)}</div><div class="gpReportMeta">${esc(gpPrettyDate(key))}</div></div>
+      <div class="gpReportOverall ${status.cls}">${esc(status.text)}</div>
+    </div>
+    <div class="gpReportStats">
+      <div><span>Temperaturen</span><strong>${rows.length}</strong><small>${deviceRows.length} Geräte · ${foodRows.length} Speisen</small></div>
+      <div><span>Frittierkontrollen</span><strong>${fryerRows.length}</strong><small>${fryerRows.filter(r=>r.oilChanged).length} Ölwechsel</small></div>
+      <div><span>Rückstellproben</span><strong>${sampleRows.length}</strong><small>dokumentiert</small></div>
+      <div><span>Abweichungen</span><strong>${tempDeviations}</strong><small>Temperatur</small></div>
+    </div>
+    ${tempTable}${fryerTable}${sampleTable}
+    <div class="gpReportFoot">Dieser Bericht fasst die in GastroPilot für den ausgewählten Tag gespeicherten HACCP-Daten zusammen.</div>
+  </div>`;
+}
+function gpShowReport(rows,key,title,fryerRows,sampleRows){
   if(!rows.length){notice.textContent="Für diesen Tag gibt es keine gespeicherten Daten.";return}
-  reportViewerBody.innerHTML=gpReportHtml(rows,key,title);
+  reportViewerBody.innerHTML=gpReportHtml(rows,key,title,fryerRows,sampleRows);
   reportViewer.hidden=false;
   reportViewer.scrollIntoView({behavior:"smooth",block:"start"});
 }
-function gpOpenPrintableReport(rows,key,title){
+function gpOpenPrintableReport(rows,key,title,fryerRows,sampleRows){
   if(!rows.length){notice.textContent="Für diesen Tag gibt es keine gespeicherten Daten.";return}
   const w=window.open("","_blank");
   if(!w){notice.textContent="Bericht konnte nicht geöffnet werden. Bitte Pop-ups erlauben.";return}
-  const body=gpReportHtml(rows,key,title);
+  const body=gpReportHtml(rows,key,title,fryerRows,sampleRows);
   w.document.open();
   w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${esc(title)} – ${esc(gpPrettyDate(key))}</title>
   <style>
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;margin:24px;color:#111}
-  .gpReportTitle{font-size:22px;font-weight:800;margin-bottom:4px}.gpReportMeta{font-size:13px;color:#555;margin-bottom:18px}
-  table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px 6px;border-bottom:1px solid #ccc;text-align:left;vertical-align:top}th{background:#f3f3f3}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;margin:24px;color:#213a32}
   .actions{margin:0 0 18px;display:flex;gap:8px;flex-wrap:wrap}.actions button{font-size:16px;padding:10px 14px}
-  @media print{.actions{display:none}body{margin:10mm}}
+  .gpReportHero{display:flex;justify-content:space-between;gap:14px;padding:16px;border-radius:12px;background:#135847;color:#fff;margin-bottom:10px}
+  .gpReportKicker{font-size:9px;font-weight:900;letter-spacing:.15em;color:#ffd184}.gpReportTitle{font-size:21px;font-weight:900}.gpReportMeta{font-size:12px;color:#e6f0ec;margin-top:3px}
+  .gpReportOverall{font-size:10px;font-weight:800}.gpReportStats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #ccd8d3;margin-bottom:14px}
+  .gpReportStats>div{text-align:center;padding:8px;border-right:1px solid #dbe3df}.gpReportStats span,.gpReportStats small{display:block;font-size:9px;color:#68756f}.gpReportStats strong{display:block;font-size:17px}
+  .gpReportSection{margin-top:15px;break-inside:auto}.gpReportSectionHead{display:flex;gap:8px;align-items:center;margin-bottom:6px}.gpReportSectionHead>span{font-weight:900;color:#135847}.gpReportSectionHead strong{display:block}.gpReportSectionHead small{display:block;font-size:9px;color:#777}
+  .gpReportTableWrap{border:1px solid #ccd8d3}.gpReportTable{width:100%;border-collapse:collapse;font-size:9px}.gpReportTable th,.gpReportTable td{padding:6px 5px;border-bottom:1px solid #dde4e1;text-align:left;vertical-align:top}.gpReportTable th{background:#f1f4f2;font-size:8px}
+  .gpReportPill{font-weight:800}.gpReportAction,.gpReportMuted{color:#666;font-size:8px}.gpReportEmpty{padding:8px;border:1px dashed #bbb;font-size:9px;color:#666}.gpReportFoot{margin-top:14px;border-top:1px solid #ddd;padding-top:7px;font-size:8px;color:#777}
+  @media print{.actions{display:none}body{margin:8mm}.gpReportHero{-webkit-print-color-adjust:exact;print-color-adjust:exact}.gpReportSection{break-inside:avoid-page}}
   </style></head><body><div class="actions"><button onclick="window.print()">PDF / Drucken</button></div>${body}</body></html>`);
   w.document.close();
 }
-function gpPrintRows(rows,key,title){gpOpenPrintableReport(rows,key,title);}
+function gpPrintRows(rows,key,title,fryerRows,sampleRows){gpOpenPrintableReport(rows,key,title,fryerRows,sampleRows);}
 if(archiveDay)archiveDay.addEventListener("change",()=>{gpRenderDayDocStatus()});
 
 if(printDay)printDay.addEventListener("click",()=>{
   const key=archiveDay.value;
   const rows=gpLoadArchive().filter(r=>gpDateKeyFromRecord(r)===key);
-  gpPrintRows(rows,key,"HACCP Tagesprotokoll");
+  gpPrintRows(rows,key,"HACCP Tagesprotokoll",gpFryerRowsForDay(key),gpSampleRowsForDay(key));
 });
 
 if(saveDayDoc)saveDayDoc.addEventListener("click",()=>{
@@ -9377,7 +9474,13 @@ if(saveDayDoc)saveDayDoc.addEventListener("click",()=>{
     if(open.length && !confirm("Noch "+open.length+" Kontrolle(n) offen:\n\n"+open.slice(0,8).join("\n")+"\n\nTag trotzdem abschließen?"))return;
   }
   const docs=gpLoadDayDocs();
-  docs[key]={savedAt:new Date().toLocaleString("de-DE"),rows:JSON.parse(JSON.stringify(rows))};
+  docs[key]={
+    savedAt:new Date().toLocaleString("de-DE"),
+    rows:JSON.parse(JSON.stringify(rows)),
+    fryerRows:JSON.parse(JSON.stringify(gpFryerRowsForDay(key))),
+    sampleRows:JSON.parse(JSON.stringify(gpSampleRowsForDay(key))),
+    reportVersion:"2.0"
+  };
   gpSaveDayDocs(docs);notice.textContent="✓ HACCP-Tag abgeschlossen und gesichert.";gpRenderDayDocStatus();
 });
 
@@ -9385,14 +9488,14 @@ if(openDayDoc)openDayDoc.addEventListener("click",()=>{
   const key=archiveDay.value;
   const docs=gpLoadDayDocs(),doc=docs[key];
   if(!doc){notice.textContent="Dieser Tag wurde noch nicht abgeschlossen.";return}
-  gpShowReport(doc.rows,key,"Gesicherter HACCP-Tagesabschluss");
+  gpShowReport(doc.rows,key,"Gesicherter HACCP-Tagesabschluss",doc.fryerRows||[],doc.sampleRows||[]);
 });
 
 if(exportDayDoc)exportDayDoc.addEventListener("click",()=>{
   const key=archiveDay.value;
   const docs=gpLoadDayDocs(),doc=docs[key];
   if(!doc){notice.textContent="Dieser Tag wurde noch nicht abgeschlossen.";return}
-  gpOpenPrintableReport(doc.rows,key,"Gesicherter HACCP-Tagesabschluss");
+  gpOpenPrintableReport(doc.rows,key,"Gesicherter HACCP-Tagesabschluss",doc.fryerRows||[],doc.sampleRows||[]);
 });
 if(closeReport)closeReport.addEventListener("click",()=>{reportViewer.hidden=true;reportViewerBody.innerHTML=""});
 
