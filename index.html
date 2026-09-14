@@ -2754,18 +2754,39 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
  .gpFryerGrid{grid-template-columns:1fr}.gpFryerAddRow{grid-template-columns:1fr}
 }
 </style>
-<style id="gp-v762-fryer-docs-css">
-.gpFryerDocsCard{margin:16px 0;padding:14px;border:1px solid #d9e5e0;border-radius:15px;background:linear-gradient(145deg,#fffaf1,#fff)}
-.gpFryerDocsHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
-.gpFryerDocsHead strong{color:#173f35}
-.gpFryerDocsCount{font-size:11px;font-weight:850;padding:5px 8px;border-radius:999px;background:#fff0d8;color:#9a5b0b;white-space:nowrap}
-.gpFryerDocsEmpty{padding:10px 0;color:#75807c;font-size:13px}
-.gpFryerDocsRow{padding:11px 12px;border:1px solid #e0e7e4;border-radius:11px;background:#fff;margin-top:8px}
-.gpFryerDocsRowTop{display:flex;justify-content:space-between;gap:8px;align-items:center}
-.gpFryerDocsMeta{font-size:12px;color:#68746f;line-height:1.5;margin-top:5px}
-.gpFryerDocsState{font-size:11px;font-weight:850;padding:4px 7px;border-radius:999px;background:#e8f6ef;color:#176544}
-.gpFryerDocsState.warn{background:#fff3df;color:#9a5b0b}.gpFryerDocsState.bad{background:#fbeaea;color:#a13f3f}
+
+
+<style id="gp-v763-fryer-docs-css">
+.gpFryerDocsPanel{margin:18px 0;border:1px solid #d9e3df;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 6px 18px rgba(34,56,48,.05)}
+.gpFryerDocsHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:17px 18px 14px;border-bottom:1px solid #e3e9e6;background:linear-gradient(180deg,#fbfcfb 0%,#f7faf8 100%)}
+.gpFryerDocsEyebrow{font-size:10px;font-weight:900;letter-spacing:.15em;color:#a86616;margin-bottom:5px}
+.gpFryerDocsHeader h3{margin:0 0 3px!important;color:#173f35;font-size:18px}
+.gpFryerDocsCounter{min-width:42px;height:42px;padding:0 11px;display:grid;place-items:center;border-radius:12px;background:#135847;color:#fff;font-size:16px;font-weight:900}
+.gpFryerDocsSummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-bottom:1px solid #e5ebe8}
+.gpFryerSummaryItem{padding:12px 14px;text-align:center;border-right:1px solid #e5ebe8;background:#fff}
+.gpFryerSummaryItem:last-child{border-right:0}
+.gpFryerSummaryItem span{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#7a8580}
+.gpFryerSummaryItem strong{display:block;margin-top:3px;font-size:18px;color:#1c493d}
+.gpFryerDocsTableWrap{padding:0 14px 14px}
+.gpFryerDocsTableHead{display:grid;grid-template-columns:1.35fr .7fr .95fr 1.3fr .9fr;gap:10px;padding:10px 8px 7px;color:#75807b;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.05em}
+.gpFryerDocRow{display:grid;grid-template-columns:1.35fr .7fr .95fr 1.3fr .9fr;gap:10px;align-items:center;padding:12px 8px;border-top:1px solid #e7ece9;font-size:13px}
+.gpFryerDocDevice strong{display:block;color:#203e35}.gpFryerDocDevice small{display:block;color:#7c8682;margin-top:2px}
+.gpFryerDocTemp{font-weight:900;color:#203e35}
+.gpFryerDocStatus{display:inline-flex;align-items:center;justify-content:center;width:max-content;max-width:100%;padding:5px 8px;border-radius:999px;background:#e8f6ef;color:#176544;font-size:11px;font-weight:850;line-height:1.15}
+.gpFryerDocStatus.warn{background:#fff3df;color:#9a5b0b}.gpFryerDocStatus.bad{background:#fbeaea;color:#a13f3f}
+.gpFryerDocActions{color:#4d5d56;line-height:1.45}.gpFryerDocEmployee{font-weight:750;color:#30463e}
+.gpFryerDocNote{grid-column:1/-1;padding:8px 10px;margin-top:-2px;border-radius:9px;background:#f7f9f8;color:#5f6b66;font-size:12px;line-height:1.4}
+.gpFryerDocsEmpty{padding:18px 8px 6px;text-align:center;color:#7a8580;font-size:13px}
+@media(max-width:720px){
+  .gpFryerDocsTableHead{display:none}
+  .gpFryerDocsTableWrap{padding:8px 12px 12px}
+  .gpFryerDocRow{grid-template-columns:1fr auto;gap:7px 12px;padding:13px 2px}
+  .gpFryerDocDevice{grid-column:1/2}.gpFryerDocTemp{grid-column:2/3;grid-row:1}
+  .gpFryerDocStatus{grid-column:1/2}.gpFryerDocActions{grid-column:1/-1}
+  .gpFryerDocEmployee{grid-column:2/3;grid-row:2;text-align:right}.gpFryerDocNote{grid-column:1/-1}
+}
 </style>
+
 </head>
 
 <body>
@@ -3474,15 +3495,27 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 </div>
 
 
-<div class="gpFryerDocsCard">
-  <div class="gpFryerDocsHead">
+
+<div class="gpFryerDocsPanel">
+  <div class="gpFryerDocsHeader">
     <div>
-      <strong>🍟 Frittierkontrollen</strong>
-      <div class="muted">Gespeicherte Frittierkontrollen des ausgewählten Archivtags.</div>
+      <div class="gpFryerDocsEyebrow">PRÜFPROTOKOLL</div>
+      <h3>Frittierkontrollen</h3>
+      <div class="muted">Dokumentierte Kontrollen des ausgewählten Tages.</div>
     </div>
-    <span id="gpFryerDocsCount" class="gpFryerDocsCount"></span>
+    <div id="gpFryerDocsCount" class="gpFryerDocsCounter">0</div>
   </div>
-  <div id="gpFryerDocsList"></div>
+  <div class="gpFryerDocsSummary">
+    <div class="gpFryerSummaryItem"><span>Kontrollen</span><strong id="gpFryerSummaryChecks">0</strong></div>
+    <div class="gpFryerSummaryItem"><span>Ölwechsel</span><strong id="gpFryerSummaryChanges">0</strong></div>
+    <div class="gpFryerSummaryItem"><span>Reinigungen</span><strong id="gpFryerSummaryCleaned">0</strong></div>
+  </div>
+  <div class="gpFryerDocsTableWrap">
+    <div class="gpFryerDocsTableHead">
+      <span>Fritteuse</span><span>Temp.</span><span>Status</span><span>Maßnahmen</span><span>Mitarbeiter</span>
+    </div>
+    <div id="gpFryerDocsList"></div>
+  </div>
 </div>
 
 <div id="haccpReportViewer" class="gpReportViewer" hidden>
@@ -9521,16 +9554,32 @@ function docsDay(){
  const sel=$f("haccpArchiveDay");
  return sel&&sel.value?sel.value:todayKey();
 }
+
 function renderFryerDocs(){
  const box=$f("gpFryerDocsList"),count=$f("gpFryerDocsCount");if(!box)return;
  const day=docsDay();
  const rows=logs().filter(r=>r.day===day).sort((a,b)=>b.ts-a.ts);
- count.textContent=rows.length?rows.length+" Eintrag"+(rows.length===1?"":"e"):"0 Einträge";
+ const changes=rows.filter(r=>r.oilChanged).length;
+ const cleaned=rows.filter(r=>r.cleaned).length;
+
+ count.textContent=rows.length;
+ const s1=$f("gpFryerSummaryChecks"),s2=$f("gpFryerSummaryChanges"),s3=$f("gpFryerSummaryCleaned");
+ if(s1)s1.textContent=rows.length;
+ if(s2)s2.textContent=changes;
+ if(s3)s3.textContent=cleaned;
+
  box.innerHTML=rows.length?rows.map(r=>{
    const cls=r.oilState==="wechsel"?"bad":r.oilState==="beobachten"?"warn":"";
-   return `<div class="gpFryerDocsRow"><div class="gpFryerDocsRowTop"><strong>${esc(r.device)}</strong><span class="gpFryerDocsState ${cls}">${esc(stateText(r.oilState))}</span></div>
-   <div class="gpFryerDocsMeta">${esc(r.time)} · Temperatur: ${esc(r.temp)} °C · Reinigung: ${r.cleaned?"Ja":"Nein"} · Ölwechsel: ${r.oilChanged?"Ja":"Nein"} · Mitarbeiter: ${esc(r.employee)}${r.note?`<br>Maßnahme/Bemerkung: ${esc(r.note)}`:""}</div></div>`;
- }).join(""):`<div class="gpFryerDocsEmpty">Für diesen Tag sind keine Frittierkontrollen gespeichert.</div>`;
+   const actions=[r.cleaned?"Reinigung ✓":"Reinigung –",r.oilChanged?"Ölwechsel ✓":"Ölwechsel –"].join(" · ");
+   return `<div class="gpFryerDocRow">
+     <div class="gpFryerDocDevice"><strong>${esc(r.device)}</strong><small>${esc(r.time)} Uhr</small></div>
+     <div class="gpFryerDocTemp">${esc(r.temp)} °C</div>
+     <div><span class="gpFryerDocStatus ${cls}">${esc(stateText(r.oilState))}</span></div>
+     <div class="gpFryerDocActions">${actions}</div>
+     <div class="gpFryerDocEmployee">${esc(r.employee)}</div>
+     ${r.note?`<div class="gpFryerDocNote"><strong>Bemerkung:</strong> ${esc(r.note)}</div>`:""}
+   </div>`;
+ }).join(""):`<div class="gpFryerDocsEmpty">Für diesen Tag sind keine Frittierkontrollen vorhanden.</div>`;
 }
 $f("haccpArchiveDay")?.addEventListener("change",renderFryerDocs);
 document.querySelector('[data-haccp-mode="docs"]')?.addEventListener("click",()=>setTimeout(renderFryerDocs,0));
