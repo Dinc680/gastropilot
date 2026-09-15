@@ -2852,6 +2852,7 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 .gpInspectorEmpty{padding:18px;text-align:center;border:1px dashed #cfd9d5;border-radius:12px;color:#7b8581;background:#fafcfb}
 .gpInspectorMode #gpInspectorEntry,.gpInspectorMode .gpArchiveBanner,.gpInspectorMode .gpArchiveBar,.gpInspectorMode .gpDayDocBar,.gpInspectorMode .gpFryerDocsPanel,.gpInspectorMode .gpHaccpDocsOnly{display:none!important}
 .gpInspectorMode #gpInspectorPanel{display:block!important}
+.gpInspectorMode #haccpReportViewer:not([hidden]){display:block!important;position:relative;z-index:3}
 @media(max-width:720px){
  .gpInspectorEntry,.gpInspectorHero,.gpInspectorTools{align-items:stretch;flex-direction:column}
  .gpInspectorRangeBar{grid-template-columns:1fr}.gpInspectorDates{grid-template-columns:1fr 1fr}.gpInspectorDates button{grid-column:1/-1}
@@ -3600,14 +3601,6 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   <div id="gpInspectorRangeText" class="gpInspectorRangeText"></div>
   <div id="gpInspectorDaysList" class="gpInspectorDaysList"></div>
   <div id="gpInspectorEmpty" class="gpInspectorEmpty" hidden>Für diesen Zeitraum sind keine abgeschlossenen HACCP-Tage vorhanden.</div>
-
-  <div id="gpInspectorReport" class="gpInspectorReport" hidden>
-    <div class="gpInspectorReportHead">
-      <strong>📄 Tagesbericht</strong>
-      <button id="gpInspectorReportClose" class="secondary" type="button">Schließen</button>
-    </div>
-    <div id="gpInspectorReportBody"></div>
-  </div>
 </div>
 <div class="gpArchiveBanner">✅ HACCP-Tagesarchiv aktiv</div>
 <div class="gpArchiveBar">
@@ -9860,8 +9853,7 @@ if(!panel||!openBtn||!closeBtn)return;
 const fromEl=$i("gpInspectorFrom"),toEl=$i("gpInspectorTo"),applyBtn=$i("gpInspectorApply"),
 daysEl=$i("gpInspectorDays"),checksEl=$i("gpInspectorChecks"),samplesEl=$i("gpInspectorSamples"),
 devEl=$i("gpInspectorDeviations"),listEl=$i("gpInspectorDaysList"),emptyEl=$i("gpInspectorEmpty"),
-onlyDev=$i("gpInspectorOnlyDeviations"),rangeText=$i("gpInspectorRangeText"),pdfBtn=$i("gpInspectorPeriodPdf"),
-report=$i("gpInspectorReport"),reportBody=$i("gpInspectorReportBody"),reportClose=$i("gpInspectorReportClose");
+onlyDev=$i("gpInspectorOnlyDeviations"),rangeText=$i("gpInspectorRangeText"),pdfBtn=$i("gpInspectorPeriodPdf");
 const rangeBtns=[...document.querySelectorAll(".gpInspectorRangeBtn")];
 
 function keyDate(key){const p=String(key||"").split("-").map(Number);return p.length===3?new Date(p[0],p[1]-1,p[2],12):new Date(NaN)}
@@ -9948,7 +9940,6 @@ function openInspector(){
   panel.scrollIntoView({behavior:"smooth",block:"start"});
 }
 function closeInspector(){
-  report.hidden=true;reportBody.innerHTML="";
   $i("haccpCard")?.classList.remove("gpInspectorMode");
   panel.hidden=true;
   $i("gpInspectorEntry")?.scrollIntoView({behavior:"smooth",block:"start"});
@@ -9966,7 +9957,6 @@ function periodHtml(rows){
 
 openBtn.addEventListener("click",openInspector);
 closeBtn.addEventListener("click",closeInspector);
-reportClose.addEventListener("click",()=>{report.hidden=true;reportBody.innerHTML="";});
 rangeBtns.forEach(b=>b.addEventListener("click",()=>setRange(b.dataset.range)));
 applyBtn.addEventListener("click",()=>{rangeBtns.forEach(b=>b.classList.remove("gpActive"));if(fromEl.value&&toEl.value&&fromEl.value>toEl.value){const x=fromEl.value;fromEl.value=toEl.value;toEl.value=x}renderInspector()});
 onlyDev.addEventListener("change",renderInspector);
@@ -9977,12 +9967,31 @@ listEl.addEventListener("click",e=>{
   if(!key)return;
   const doc=dayDocs()[key];
   if(!doc)return;
-  if(ob){
-    reportBody.innerHTML=reportHtml(doc,key,"Gesicherter HACCP-Tagesabschluss");
-    report.hidden=false;
-    report.scrollIntoView({behavior:"smooth",block:"start"});
+
+  // Use the proven native V7.7.1 report renderer directly.
+  // gpReportHtml lives in the HACCP closure, so inspector must not call it from this outer script.
+  const nativeDay=document.getElementById("haccpArchiveDay");
+  if(nativeDay){
+    nativeDay.value=key;
+    nativeDay.dispatchEvent(new Event("change",{bubbles:true}));
   }
-  if(pb)openDayPdf(doc,key);
+
+  if(ob){
+    const nativeOpen=document.getElementById("haccpOpenDayDoc");
+    if(nativeOpen){
+      nativeOpen.click();
+      const nativeViewer=document.getElementById("haccpReportViewer");
+      if(nativeViewer){
+        nativeViewer.hidden=false;
+        nativeViewer.style.display="block";
+        nativeViewer.scrollIntoView({behavior:"smooth",block:"start"});
+      }
+    }
+  }
+  if(pb){
+    const nativePdf=document.getElementById("haccpExportDayDoc");
+    if(nativePdf)nativePdf.click();
+  }
 });
 
 pdfBtn.addEventListener("click",()=>{
