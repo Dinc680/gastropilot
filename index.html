@@ -2869,6 +2869,20 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 .gpInspectorReport[hidden]{display:none!important}
 </style>
 
+
+<style id="gp-v79-cleaning-css">
+#gpHaccpModeNav{grid-template-columns:repeat(5,minmax(0,1fr))}
+.gpCleaningHead,.gpCleaningTodayHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.gpCleaningHead strong{font-size:17px;color:#17483b}
+.gpCleaningManage{padding:14px;border:1px solid #d8e3df;border-radius:13px;background:#f8fbfa;margin-bottom:14px}.gpCleaningManageTitle,.gpCleaningCompleteTitle{font-weight:850;color:#17483b;margin-bottom:10px}
+.gpCleaningForm{display:grid;grid-template-columns:1fr 1fr;gap:9px}.gpCleaningForm button{grid-column:1/-1}
+.gpCleaningTaskAdmin{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid #e1e8e5}.gpCleaningTaskAdmin small{display:block;color:#7b8581;margin-top:2px}
+.gpCleaningTodayList{display:grid;gap:9px}.gpCleaningTask{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid #dce5e1;border-radius:12px;background:#fff}
+.gpCleaningTask.gpDone{background:#f1f8f5;border-color:#c9e2d7}.gpCleaningTaskTitle{font-weight:850;color:#27483f}.gpCleaningTaskMeta{font-size:10px;color:#74807b;margin-top:3px}.gpCleaningTaskStatus{font-size:10px;font-weight:850;margin-top:5px;color:#8a641b}.gpCleaningTask.gpDone .gpCleaningTaskStatus{color:#176544}
+.gpCleaningCompleteBox{margin-top:14px;padding:14px;border:2px solid #d7a34a;border-radius:13px;background:#fffaf1}.gpCleaningSelectedTask{font-weight:800;margin-bottom:9px}.gpCleaningCompleteActions{display:flex;gap:8px;flex-wrap:wrap}
+.gpCleaningSummaryReport{margin-top:14px}
+@media(max-width:720px){#gpHaccpModeNav{grid-template-columns:repeat(2,minmax(0,1fr))}.gpCleaningForm{grid-template-columns:1fr}.gpCleaningTask{grid-template-columns:1fr}.gpCleaningTask button{width:100%}}
+</style>
+
 </head>
 
 <body>
@@ -3418,6 +3432,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   <button type="button" class="gpHaccpModeBtn" data-haccp-mode="today">📋 Heute</button>
   <button type="button" class="gpHaccpModeBtn" data-haccp-mode="docs">📁 Dokumentation</button>
   <button type="button" class="gpHaccpModeBtn" data-haccp-mode="fryer">🍟 Fritteuse</button>
+  <button type="button" class="gpHaccpModeBtn" data-haccp-mode="cleaning">🧹 Reinigung</button>
 </div>
 <div class="gpHaccpForm">
 <div id="gpHaccpPaneMeasure" class="gpHaccpPane gpActive"><div class="gpQuickMeasureHead"><div><strong>🌡 Schnellmessung</strong><div class="muted">Auswählen → Temperatur → Speichern</div></div><button id="gpDeviceSettingsToggle" class="gpMiniSettings" type="button">⚙️ Geräte</button></div>
@@ -3499,6 +3514,45 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 </div>
 <div class="gpDraftSavedHint">Eingaben werden automatisch auf diesem Gerät zwischengespeichert.</div>
 </div>
+<div id="gpHaccpPaneCleaning" class="gpHaccpPane">
+  <div class="gpCleaningHead">
+    <div><strong>🧹 Reinigungsplan</strong><div class="muted">Heute fällige Aufgaben erledigen und dokumentieren.</div></div>
+    <button id="gpCleaningManageToggle" class="gpMiniSettings" type="button">⚙️ Reinigungsplan</button>
+  </div>
+
+  <div id="gpCleaningManage" class="gpCleaningManage" hidden>
+    <div class="gpCleaningManageTitle">Betriebseigene Reinigungsaufgaben</div>
+    <div id="gpCleaningTaskList"></div>
+    <div class="gpCleaningForm">
+      <label>Bereich / Objekt<input id="gpCleaningObject" type="text" placeholder="z. B. Arbeitstische Küche"></label>
+      <label>Verfahren<input id="gpCleaningMethod" type="text" placeholder="z. B. reinigen und desinfizieren"></label>
+      <label>Reinigungsmittel<input id="gpCleaningProduct" type="text" placeholder="z. B. Flächendesinfektion"></label>
+      <label>Intervall<select id="gpCleaningInterval"><option value="daily">Täglich</option><option value="afteruse">Nach Gebrauch</option><option value="weekly">Wöchentlich</option><option value="monthly">Monatlich</option><option value="custom">Individuell / bei Bedarf</option></select></label>
+      <label>Zuständig<input id="gpCleaningResponsible" type="text" placeholder="z. B. Küche / Spätdienst"></label>
+      <button id="gpCleaningAdd" class="secondary" type="button">+ Aufgabe speichern</button>
+    </div>
+    <div id="gpCleaningManageNotice" class="saveSuccess"></div>
+  </div>
+
+  <div class="gpCleaningTodayHead">
+    <div><strong>Heute zu erledigen</strong><div id="gpCleaningProgress" class="muted">0 von 0 erledigt</div></div>
+  </div>
+  <div id="gpCleaningTodayList" class="gpCleaningTodayList"></div>
+  <div id="gpCleaningEmpty" class="muted">Noch keine Reinigungsaufgaben angelegt.</div>
+
+  <div id="gpCleaningCompleteBox" class="gpCleaningCompleteBox" hidden>
+    <div class="gpCleaningCompleteTitle">Aufgabe dokumentieren</div>
+    <div id="gpCleaningSelectedTask" class="gpCleaningSelectedTask"></div>
+    <label>Mitarbeiter / Kürzel<input id="gpCleaningEmployee" type="text" autocomplete="off" placeholder="Name oder Kürzel"></label>
+    <label>Bemerkung / Abweichung<textarea id="gpCleaningNote" rows="3" placeholder="optional, z. B. Nachreinigung erforderlich"></textarea></label>
+    <div class="gpCleaningCompleteActions">
+      <button id="gpCleaningDone" class="primary" type="button">✓ Als erledigt speichern</button>
+      <button id="gpCleaningCancel" class="secondary" type="button">Abbrechen</button>
+    </div>
+    <div id="gpCleaningNotice" class="saveSuccess"></div>
+  </div>
+</div>
+
 <div id="gpHaccpPaneFryer" class="gpHaccpPane">
   <div class="gpFryerHead">
     <div><strong>🍟 Frittierkontrolle</strong><div class="muted">Temperatur, Ölzustand, Ölwechsel und Reinigung dokumentieren.</div></div>
@@ -9223,7 +9277,8 @@ const gpHaccpPanes={
   measure:$("gpHaccpPaneMeasure"),
   today:$("gpHaccpPaneToday"),
   docs:$("gpHaccpPaneDocs"),
-  fryer:$("gpHaccpPaneFryer")
+  fryer:$("gpHaccpPaneFryer"),
+  cleaning:$("gpHaccpPaneCleaning")
 };
 function gpSetHaccpMode(mode){
   if(!gpHaccpPanes[mode])mode="measure";
@@ -9633,7 +9688,9 @@ if(saveDayDoc)saveDayDoc.addEventListener("click",()=>{
     rows:JSON.parse(JSON.stringify(rows)),
     fryerRows:JSON.parse(JSON.stringify(gpFryerRowsForDay(key))),
     sampleRows:JSON.parse(JSON.stringify(gpSampleRowsForDay(key))),
-    reportVersion:"2.0"
+    cleaningRows:JSON.parse(JSON.stringify(window.gpCleaningRowsForDay?window.gpCleaningRowsForDay(key):[])),
+    cleaningTasks:JSON.parse(JSON.stringify(window.gpCleaningTasksForDay?window.gpCleaningTasksForDay(key):[])),
+    reportVersion:"2.1"
   };
   gpSaveDayDocs(docs);notice.textContent="✓ HACCP-Tag abgeschlossen und gesichert.";gpRenderDayDocStatus();
 });
@@ -9863,6 +9920,8 @@ function escI(s){const d=document.createElement("div");d.textContent=String(s??"
 function dayDocs(){try{const x=JSON.parse(localStorage.getItem("gastropilot_haccp_daydocs_v1")||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}}
 function fryerRows(doc){return Array.isArray(doc&&doc.fryerRows)?doc.fryerRows:[]}
 function sampleRows(doc){return Array.isArray(doc&&doc.sampleRows)?doc.sampleRows:[]}
+function cleaningRows(doc){return Array.isArray(doc&&doc.cleaningRows)?doc.cleaningRows:[]}
+function cleaningTasks(doc){return Array.isArray(doc&&doc.cleaningTasks)?doc.cleaningTasks:[]}
 function tempRows(doc){return Array.isArray(doc&&doc.rows)?doc.rows:[]}
 function deviationCount(doc){
   return tempRows(doc).filter(r=>!r.ok).length+
@@ -9955,9 +10014,14 @@ function periodHtml(rows){
   function sampleTable(list){
     return `<section class="prSec"><h3>Rückstellproben</h3>${list.length?`<table><thead><tr><th>Speise / Komponente</th><th>Menge</th><th>Entnahme</th><th>Aufbewahrung</th><th>Mitarbeiter</th></tr></thead><tbody>${list.map(r=>`<tr><td><strong>${e(r.dish||r.name||"—")}</strong>${r.component?`<small>${e(r.component)}</small>`:""}</td><td>${e(r.amount||"—")}</td><td>${e(r.time||r.date||"—")}</td><td>${e(r.until||r.keepUntil||r.retentionUntil||"—")}</td><td>${e(r.employee||"—")}</td></tr>`).join("")}</tbody></table>`:`<div class="empty">Keine Einträge.</div>`}</section>`;
   }
+  function cleaningTable(done,tasks){
+    const doneIds=new Set(done.map(x=>x.taskId));
+    const rows=tasks.length?tasks:done.map(x=>({id:x.taskId,object:x.object,method:x.method,product:x.product,responsible:x.responsible}));
+    return `<section class="prSec"><h3>Reinigungsplan</h3>${rows.length?`<table><thead><tr><th>Bereich / Objekt</th><th>Verfahren / Mittel</th><th>Status</th><th>Mitarbeiter</th></tr></thead><tbody>${rows.map(t=>{const r=done.filter(x=>x.taskId===t.id).slice(-1)[0];return `<tr><td><strong>${e(t.object||"—")}</strong></td><td>${e(t.method||"—")}<small>${e(t.product||"—")}</small></td><td>${r?"Erledigt":"Offen"}${r&&r.note?`<small>${e(r.note)}</small>`:""}</td><td>${e(r?r.employee:"—")}</td></tr>`}).join("")}</tbody></table>`:`<div class="empty">Keine Aufgaben.</div>`}</section>`;
+  }
   function dayBlock(key,doc){
-    const temps=tempRows(doc),fryers=fryerRows(doc),samples=sampleRows(doc),devs=deviationCount(doc);
-    return `<article class="prDay"><div class="dayHead"><div><div class="kicker">HACCP-TAGESABSCHLUSS</div><h2>${e(pretty(key))}</h2><small>Gesichert: ${e(doc.savedAt||"—")}</small></div><strong>${devs?`${devs} Abweichung${devs===1?"":"en"}`:"Ohne Abweichung"}</strong></div><div class="dayStats"><div>Temperatur<strong>${temps.length}</strong></div><div>Fritteuse<strong>${fryers.length}</strong></div><div>Rückstellproben<strong>${samples.length}</strong></div><div>Abweichungen<strong>${devs}</strong></div></div>${tempTable("Kühlkontrollen",temps.filter(r=>r.type==="Kühlung"))}${tempTable("Tiefkühlkontrollen",temps.filter(r=>r.type==="Tiefkühlung"))}${tempTable("Speisentemperaturen",temps.filter(r=>r.type==="Speisentemperatur"))}${fryerTable(fryers)}${sampleTable(samples)}</article>`;
+    const temps=tempRows(doc),fryers=fryerRows(doc),samples=sampleRows(doc),cleans=cleaningRows(doc),cleanTasks=cleaningTasks(doc),devs=deviationCount(doc);
+    return `<article class="prDay"><div class="dayHead"><div><div class="kicker">HACCP-TAGESABSCHLUSS</div><h2>${e(pretty(key))}</h2><small>Gesichert: ${e(doc.savedAt||"—")}</small></div><strong>${devs?`${devs} Abweichung${devs===1?"":"en"}`:"Ohne Abweichung"}</strong></div><div class="dayStats"><div>Temperatur<strong>${temps.length}</strong></div><div>Fritteuse<strong>${fryers.length}</strong></div><div>Rückstellproben<strong>${samples.length}</strong></div><div>Abweichungen<strong>${devs}</strong></div></div>${tempTable("Kühlkontrollen",temps.filter(r=>r.type==="Kühlung"))}${tempTable("Tiefkühlkontrollen",temps.filter(r=>r.type==="Tiefkühlung"))}${tempTable("Speisentemperaturen",temps.filter(r=>r.type==="Speisentemperatur"))}${fryerTable(fryers)}${sampleTable(samples)}${cleaningTable(cleans,cleanTasks)}</article>`;
   }
   const totalChecks=rows.reduce((s,x)=>s+controlCount(x.doc),0),totalSamples=rows.reduce((s,x)=>s+sampleRows(x.doc).length,0),totalDev=rows.reduce((s,x)=>s+deviationCount(x.doc),0);
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HACCP Prüfbericht</title><style>
@@ -10012,6 +10076,61 @@ pdfBtn.addEventListener("click",()=>{
   if(!w){alert("Bericht konnte nicht geöffnet werden. Bitte Pop-ups für GastroPilot erlauben.");return}
   w.document.open();w.document.write(periodHtml(rows));w.document.close();
 });
+})();
+</script>
+
+
+<script id="gp-v79-cleaning-js">
+(function(){
+const TASK_KEY="gastropilot_haccp_cleaning_tasks_v1",LOG_KEY="gastropilot_haccp_cleaning_log_v1";
+const $c=id=>document.getElementById(id),todayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const escC=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const load=(k,f=[])=>{try{const x=JSON.parse(localStorage.getItem(k)||"null");return Array.isArray(x)?x:f}catch(e){return f}},save=(k,x)=>localStorage.setItem(k,JSON.stringify(x));
+const labels={daily:"Täglich",afteruse:"Nach Gebrauch",weekly:"Wöchentlich",monthly:"Monatlich",custom:"Individuell / bei Bedarf"};
+function tasks(){return load(TASK_KEY)} function logs(){return load(LOG_KEY)}
+function dueTask(t,key){
+  const d=new Date(key+"T12:00:00");
+  if(t.interval==="daily"||t.interval==="afteruse"||t.interval==="custom")return true;
+  if(t.interval==="weekly")return d.getDay()===1;
+  if(t.interval==="monthly")return d.getDate()===1;
+  return true;
+}
+window.gpCleaningRowsForDay=key=>logs().filter(x=>x.day===key);
+window.gpCleaningTasksForDay=key=>tasks().filter(t=>dueTask(t,key));
+let selectedId="";
+function renderAdmin(){
+  const box=$c("gpCleaningTaskList");if(!box)return;
+  const a=tasks();
+  box.innerHTML=a.map(t=>`<div class="gpCleaningTaskAdmin"><div><strong>${escC(t.object)}</strong><small>${escC(labels[t.interval]||t.interval)} · ${escC(t.product||"ohne Mittel")} · ${escC(t.responsible||"ohne Zuständigkeit")}</small></div><button class="secondary danger" data-clean-delete="${escC(t.id)}" type="button">×</button></div>`).join("")||'<div class="muted">Noch keine Aufgaben angelegt.</div>';
+}
+function renderToday(){
+  const box=$c("gpCleaningTodayList"),empty=$c("gpCleaningEmpty"),progress=$c("gpCleaningProgress");if(!box)return;
+  const key=todayKey(),a=tasks().filter(t=>dueTask(t,key)),l=logs().filter(x=>x.day===key);
+  const doneIds=new Set(l.map(x=>x.taskId));
+  const done=a.filter(t=>doneIds.has(t.id)).length;
+  progress.textContent=`${done} von ${a.length} erledigt`;
+  empty.style.display=a.length?"none":"block";
+  box.innerHTML=a.map(t=>{const row=l.filter(x=>x.taskId===t.id).sort((x,y)=>(y.savedAt||"").localeCompare(x.savedAt||""))[0],ok=!!row;
+    return `<div class="gpCleaningTask ${ok?"gpDone":""}"><div><div class="gpCleaningTaskTitle">${escC(t.object)}</div><div class="gpCleaningTaskMeta">${escC(t.method||"—")} · ${escC(t.product||"—")} · ${escC(labels[t.interval]||t.interval)} · ${escC(t.responsible||"—")}</div><div class="gpCleaningTaskStatus">${ok?`✓ Erledigt · ${escC(row.time||"")} · ${escC(row.employee||"—")}`:"⬜ Offen"}</div>${row&&row.note?`<div class="gpCleaningTaskMeta">Bemerkung: ${escC(row.note)}</div>`:""}</div><button class="${ok?"secondary":"primary"}" data-clean-open="${escC(t.id)}" type="button">${ok?"Erneut dokumentieren":"Erledigen"}</button></div>`;
+  }).join("");
+}
+function renderAll(){renderAdmin();renderToday()}
+$c("gpCleaningManageToggle")?.addEventListener("click",()=>{const b=$c("gpCleaningManage");b.hidden=!b.hidden;$c("gpCleaningManageToggle").textContent=b.hidden?"⚙️ Reinigungsplan":"✕ Schließen";renderAdmin()});
+$c("gpCleaningAdd")?.addEventListener("click",()=>{
+  const object=$c("gpCleaningObject").value.trim();if(!object){$c("gpCleaningManageNotice").textContent="Bitte Bereich / Objekt eintragen.";return}
+  const a=tasks();a.push({id:"clean-"+Date.now(),object,method:$c("gpCleaningMethod").value.trim(),product:$c("gpCleaningProduct").value.trim(),interval:$c("gpCleaningInterval").value,responsible:$c("gpCleaningResponsible").value.trim()});save(TASK_KEY,a);
+  ["gpCleaningObject","gpCleaningMethod","gpCleaningProduct","gpCleaningResponsible"].forEach(id=>$c(id).value="");$c("gpCleaningManageNotice").textContent="✓ Reinigungsaufgabe gespeichert.";renderAll();
+});
+$c("gpCleaningTaskList")?.addEventListener("click",e=>{const b=e.target.closest("[data-clean-delete]");if(!b)return;const t=tasks().find(x=>x.id===b.dataset.cleanDelete);if(t&&confirm(`Reinigungsaufgabe „${t.object}“ löschen? Bereits dokumentierte Erledigungen bleiben erhalten.`)){save(TASK_KEY,tasks().filter(x=>x.id!==t.id));renderAll()}});
+$c("gpCleaningTodayList")?.addEventListener("click",e=>{const b=e.target.closest("[data-clean-open]");if(!b)return;selectedId=b.dataset.cleanOpen;const t=tasks().find(x=>x.id===selectedId);if(!t)return;$c("gpCleaningSelectedTask").textContent=t.object;$c("gpCleaningCompleteBox").hidden=false;$c("gpCleaningNotice").textContent="";$c("gpCleaningCompleteBox").scrollIntoView({behavior:"smooth",block:"start"})});
+$c("gpCleaningCancel")?.addEventListener("click",()=>{$c("gpCleaningCompleteBox").hidden=true;selectedId=""});
+$c("gpCleaningDone")?.addEventListener("click",()=>{
+  const t=tasks().find(x=>x.id===selectedId);if(!t)return;const emp=$c("gpCleaningEmployee").value.trim();if(!emp){$c("gpCleaningNotice").textContent="Bitte Mitarbeiter / Kürzel eintragen.";return}
+  const d=new Date(),l=logs();l.push({id:"cleanlog-"+Date.now(),taskId:t.id,object:t.object,method:t.method,product:t.product,interval:t.interval,responsible:t.responsible,day:todayKey(),time:d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),savedAt:d.toLocaleString("de-DE"),employee:emp,note:$c("gpCleaningNote").value.trim()});save(LOG_KEY,l);
+  $c("gpCleaningNote").value="";$c("gpCleaningCompleteBox").hidden=true;selectedId="";renderToday();
+});
+document.querySelectorAll('[data-haccp-mode="cleaning"]').forEach(b=>b.addEventListener("click",renderAll));
+renderAll();
 })();
 </script>
 
