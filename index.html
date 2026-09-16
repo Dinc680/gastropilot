@@ -2883,6 +2883,10 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 @media(max-width:720px){#gpHaccpModeNav{grid-template-columns:repeat(2,minmax(0,1fr))}.gpCleaningForm{grid-template-columns:1fr}.gpCleaningTask{grid-template-columns:1fr}.gpCleaningTask button{width:100%}}
 </style>
 
+<style id="gp-v791-cleaning-report-css">
+.gpReportStats{grid-template-columns:repeat(5,1fr)}
+@media(max-width:720px){.gpReportStats{grid-template-columns:repeat(2,1fr)}.gpReportStats>div{border-bottom:1px solid #dbe3df}}
+</style>
 </head>
 
 <body>
@@ -9538,9 +9542,11 @@ function gpReportStatus(rows,fryerRows){
   return {cls:"ok",text:"Dokumentation ohne offene Abweichungskennzeichnung"};
 }
 
-function gpReportHtml(rows,key,title,fryerRows,sampleRows){
+function gpReportHtml(rows,key,title,fryerRows,sampleRows,cleaningRows,cleaningTasks){
   fryerRows=Array.isArray(fryerRows)?fryerRows:[];
   sampleRows=Array.isArray(sampleRows)?sampleRows:[];
+  cleaningRows=Array.isArray(cleaningRows)?cleaningRows:[];
+  cleaningTasks=Array.isArray(cleaningTasks)?cleaningTasks:[];
   rows=Array.isArray(rows)?rows:[];
 
   const cooling=rows.filter(r=>r.type==="Kühlung").slice().sort((a,b)=>(a.location||"").localeCompare(b.location||"","de"));
@@ -9551,7 +9557,7 @@ function gpReportHtml(rows,key,title,fryerRows,sampleRows){
   );
   const deviations=rows.filter(r=>!r.ok);
   const fryerAttention=fryerRows.filter(r=>r.oilState==="wechsel"||r.oilState==="beobachten");
-  const status=(deviations.length||fryerAttention.length)?{cls:"warn",text:"Prüfhinweise vorhanden"}:{cls:"ok",text:"Kontrollen ohne offene Abweichungskennzeichnung"};
+  let status=(deviations.length||fryerAttention.length)?{cls:"warn",text:"Prüfhinweise vorhanden"}:{cls:"ok",text:"Kontrollen ohne offene Abweichungskennzeichnung"};
 
   function tempRows(list){
     return list.map(r=>`<tr>
@@ -9594,12 +9600,28 @@ function gpReportHtml(rows,key,title,fryerRows,sampleRows){
     }).join("")}</tbody></table></div>`:`<div class="gpReportEmpty">Keine Rückstellproben dokumentiert.</div>`}
   </div>`;
 
+  const cleaningDoneIds=new Set(cleaningRows.map(r=>r.taskId));
+  const cleaningDisplay=cleaningTasks.length?cleaningTasks:cleaningRows.map(r=>({id:r.taskId,object:r.object,method:r.method,product:r.product,responsible:r.responsible}));
+  const cleaningTable=`<div class="gpReportSection">
+    <div class="gpReportSectionHead"><span>06</span><div><strong>Reinigungsplan</strong><small>${cleaningDoneIds.size} von ${cleaningDisplay.length} Aufgabe${cleaningDisplay.length===1?"":"n"} erledigt</small></div></div>
+    ${cleaningDisplay.length?`<div class="gpReportTableWrap"><table class="gpReportTable"><thead><tr>
+      <th>Bereich / Objekt</th><th>Verfahren / Mittel</th><th>Zuständig</th><th>Status / Bemerkung</th><th>Mitarbeiter</th>
+    </tr></thead><tbody>${cleaningDisplay.map(t=>{
+      const done=cleaningRows.filter(r=>r.taskId===t.id).slice(-1)[0];
+      return `<tr><td><strong>${esc(t.object||"—")}</strong></td><td>${esc(t.method||"—")}<br><span class="gpReportMuted">${esc(t.product||"—")}</span></td>
+      <td>${esc(t.responsible||"—")}</td><td><span class="gpReportPill ${done?"ok":"warn"}">${done?"Erledigt":"Offen"}</span>${done?`<div class="gpReportMuted">${esc(done.time||"")}</div>`:""}${done&&done.note?`<div class="gpReportAction">${esc(done.note)}</div>`:""}</td><td>${esc(done?done.employee:"—")}</td></tr>`;
+    }).join("")}</tbody></table></div>`:`<div class="gpReportEmpty">Keine Reinigungsaufgaben für diesen Tag dokumentiert.</div>`}
+  </div>`;
+
+  const cleaningOpen=cleaningDisplay.filter(t=>!cleaningDoneIds.has(t.id));
+  if(cleaningOpen.length)status={cls:"warn",text:"Prüfhinweise vorhanden"};
   const deviationItems=[
     ...deviations.map(r=>({label:r.dish?`${r.dish}${r.component?` – ${r.component}`:""}`:r.location,detail:`${r.actual} °C statt ${r.min}–${r.max} °C`,action:r.action||"Keine Maßnahme eingetragen"})),
-    ...fryerAttention.map(r=>({label:r.device,detail:r.oilState==="wechsel"?"Ölwechsel erforderlich":"Öl beobachten",action:r.note||"Keine zusätzliche Bemerkung"}))
+    ...fryerAttention.map(r=>({label:r.device,detail:r.oilState==="wechsel"?"Ölwechsel erforderlich":"Öl beobachten",action:r.note||"Keine zusätzliche Bemerkung"})),
+    ...cleaningOpen.map(t=>({label:t.object||"Reinigungsaufgabe",detail:"Reinigungsaufgabe offen",action:"Im Tagesabschluss nicht als erledigt dokumentiert"}))
   ];
   const deviationBlock=`<div class="gpReportSection">
-    <div class="gpReportSectionHead"><span>06</span><div><strong>Abweichungen & Maßnahmen</strong><small>${deviationItems.length} Hinweis${deviationItems.length===1?"":"e"}</small></div></div>
+    <div class="gpReportSectionHead"><span>07</span><div><strong>Abweichungen & Maßnahmen</strong><small>${deviationItems.length} Hinweis${deviationItems.length===1?"":"e"}</small></div></div>
     ${deviationItems.length?`<div class="gpReportDeviationList">${deviationItems.map(x=>`<div class="gpReportDeviation"><strong>${esc(x.label)}</strong><span>${esc(x.detail)}</span><small>Maßnahme: ${esc(x.action)}</small></div>`).join("")}</div>`:`<div class="gpReportOkBlock">✓ Keine dokumentierten Abweichungen für diesen Tag.</div>`}
   </div>`;
 
@@ -9613,27 +9635,29 @@ function gpReportHtml(rows,key,title,fryerRows,sampleRows){
       <div><span>Speisen</span><strong>${food.length}</strong><small>Temperaturmessungen</small></div>
       <div><span>Fritteuse</span><strong>${fryerRows.length}</strong><small>Kontrollen</small></div>
       <div><span>Rückstellproben</span><strong>${sampleRows.length}</strong><small>dokumentiert</small></div>
+      <div><span>Reinigung</span><strong>${cleaningDoneIds.size}/${cleaningDisplay.length}</strong><small>erledigt</small></div>
     </div>
     ${tempSection("01","Kühlkontrollen",cooling,"Keine Kühlkontrollen dokumentiert.")}
     ${tempSection("02","Tiefkühlkontrollen",freezing,"Keine Tiefkühlkontrollen dokumentiert.")}
     ${tempSection("03","Speisentemperaturen",food,"Keine Speisentemperaturen dokumentiert.")}
     ${fryerTable}
     ${sampleTable}
+    ${cleaningTable}
     ${deviationBlock}
     <div class="gpReportFoot">Tagesdokumentation · nach Kontrollbereichen gegliedert. Uhrzeiten bleiben am jeweiligen Eintrag erhalten, bestimmen aber nicht mehr die Reihenfolge des Berichts.</div>
   </div>`;
 }
-function gpShowReport(rows,key,title,fryerRows,sampleRows){
+function gpShowReport(rows,key,title,fryerRows,sampleRows,cleaningRows,cleaningTasks){
   if(!rows.length){notice.textContent="Für diesen Tag gibt es keine gespeicherten Daten.";return}
-  reportViewerBody.innerHTML=gpReportHtml(rows,key,title,fryerRows,sampleRows);
+  reportViewerBody.innerHTML=gpReportHtml(rows,key,title,fryerRows,sampleRows,cleaningRows,cleaningTasks);
   reportViewer.hidden=false;
   reportViewer.scrollIntoView({behavior:"smooth",block:"start"});
 }
-function gpOpenPrintableReport(rows,key,title,fryerRows,sampleRows){
+function gpOpenPrintableReport(rows,key,title,fryerRows,sampleRows,cleaningRows,cleaningTasks){
   if(!rows.length){notice.textContent="Für diesen Tag gibt es keine gespeicherten Daten.";return}
   const w=window.open("","_blank");
   if(!w){notice.textContent="Bericht konnte nicht geöffnet werden. Bitte Pop-ups erlauben.";return}
-  const body=gpReportHtml(rows,key,title,fryerRows,sampleRows);
+  const body=gpReportHtml(rows,key,title,fryerRows,sampleRows,cleaningRows,cleaningTasks);
   w.document.open();
   w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${esc(title)} – ${esc(gpPrettyDate(key))}</title>
@@ -9699,14 +9723,14 @@ if(openDayDoc)openDayDoc.addEventListener("click",()=>{
   const key=archiveDay.value;
   const docs=gpLoadDayDocs(),doc=docs[key];
   if(!doc){notice.textContent="Dieser Tag wurde noch nicht abgeschlossen.";return}
-  gpShowReport(doc.rows,key,"Gesicherter HACCP-Tagesabschluss",doc.fryerRows||[],doc.sampleRows||[]);
+  gpShowReport(doc.rows,key,"Gesicherter HACCP-Tagesabschluss",doc.fryerRows||[],doc.sampleRows||[],doc.cleaningRows||[],doc.cleaningTasks||[]);
 });
 
 if(exportDayDoc)exportDayDoc.addEventListener("click",()=>{
   const key=archiveDay.value;
   const docs=gpLoadDayDocs(),doc=docs[key];
   if(!doc){notice.textContent="Dieser Tag wurde noch nicht abgeschlossen.";return}
-  gpOpenPrintableReport(doc.rows,key,"Gesicherter HACCP-Tagesabschluss",doc.fryerRows||[],doc.sampleRows||[]);
+  gpOpenPrintableReport(doc.rows,key,"Gesicherter HACCP-Tagesabschluss",doc.fryerRows||[],doc.sampleRows||[],doc.cleaningRows||[],doc.cleaningTasks||[]);
 });
 if(closeReport)closeReport.addEventListener("click",()=>{reportViewer.hidden=true;reportViewerBody.innerHTML=""});
 
