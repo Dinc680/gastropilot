@@ -2895,6 +2895,13 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 .gpRoundLaunch{display:grid;grid-template-columns:1fr auto;gap:8px;margin:0 0 12px}.gpRoundPanel{padding:14px;border:2px solid var(--green);border-radius:15px;background:#f8fbfa;margin-bottom:12px}.gpRoundTop,.gpRoundOrderHead{display:flex;justify-content:space-between;align-items:center;gap:10px}.gpRoundDots{display:flex;gap:4px;flex-wrap:wrap;margin:10px 0}.gpRoundDot{width:9px;height:9px;border-radius:50%;background:#cbd6d2}.gpRoundDot.done{background:#23836b}.gpRoundDot.current{background:#d79a34;transform:scale(1.25)}.gpRoundCurrent{font-size:20px;font-weight:900;color:#17483b;padding:10px 0}.gpRoundCurrent small{display:block;font-size:12px;font-weight:600;color:#6f7b76;margin-top:4px}.gpRoundActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.gpRoundOrderPanel{padding:14px;border:1px solid #d8e3df;border-radius:14px;background:#fff;margin-bottom:12px}.gpRoundOrderRow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid #e4e9e7}.gpRoundOrderRow button{min-width:42px;padding:7px}.gpRoundFocus #haccpType,.gpRoundFocus #gpDeviceWrap,.gpRoundFocus #haccpMenuPickWrap{scroll-margin-top:90px}
 @media(max-width:600px){.gpRoundLaunch{grid-template-columns:1fr}.gpRoundLaunch button{width:100%}}
 </style>
+<style id="gp-v794-round-compact-css">
+.gpRoundLaunch{margin:0 0 8px;grid-template-columns:1fr auto}.gpRoundPanel{margin:7px 0 9px;padding:9px 10px;border-width:1px;border-radius:11px}
+.gpRoundTop{align-items:flex-start}.gpRoundTop strong{font-size:13px}.gpRoundTop .muted{font-size:10px}.gpRoundCurrent{font-size:16px;padding:5px 0 3px}.gpRoundCurrent small{font-size:11px;margin-top:2px}
+.gpRoundDots{margin:5px 0;gap:3px}.gpRoundDot{width:7px;height:7px}.gpRoundActions{grid-template-columns:auto auto;justify-content:space-between;gap:6px;margin-top:5px}
+.gpRoundActions button{min-height:34px!important;padding:6px 9px!important;font-size:11px!important}#gpRoundClose{min-height:30px!important;padding:4px 8px!important}.gpRoundOrderPanel{margin:0 0 8px;padding:10px}
+@media(max-width:600px){.gpRoundLaunch{grid-template-columns:1fr auto}.gpRoundLaunch button{width:auto}.gpRoundLaunch #gpRoundStart{width:100%}}
+</style>
 </head>
 
 <body>
@@ -3454,12 +3461,6 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   <button id="gpRoundStart" type="button" class="primary">▶ Messrunde starten</button>
   <button id="gpRoundOrder" type="button" class="secondary">↕ Reihenfolge</button>
 </div>
-<div id="gpRoundPanel" class="gpRoundPanel" hidden>
-  <div class="gpRoundTop"><div><strong id="gpRoundProgress">Messrunde</strong><div id="gpRoundKind" class="muted"></div></div><button id="gpRoundClose" class="gpMiniSettings" type="button">✕</button></div>
-  <div id="gpRoundDots" class="gpRoundDots"></div>
-  <div id="gpRoundCurrent" class="gpRoundCurrent"></div>
-  <div class="gpRoundActions"><button id="gpRoundBack" class="secondary" type="button">← Zurück</button><button id="gpRoundSkip" class="secondary" type="button">Überspringen →</button></div>
-</div>
 <div id="gpRoundOrderPanel" class="gpRoundOrderPanel" hidden>
   <div class="gpRoundOrderHead"><strong>Messreihenfolge Geräte</strong><button id="gpRoundOrderClose" class="gpMiniSettings" type="button">✕</button></div>
   <div class="muted">Mit ↑ und ↓ die Reihenfolge für die tägliche Messrunde festlegen.</div>
@@ -3524,6 +3525,13 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <label id="haccpMeasureComponentWrap" hidden>Zu messende Komponente<select id="haccpMeasureComponent"><option value="">Komponente auswählen</option></select></label>
 <label>Gemessene Temperatur °C<input id="haccpActual" type="text" inputmode="decimal" step="0.1"  placeholder="z. B. 5,2"></label>
 <div id="haccpEvaluation" class="gpEval">Temperatur eingeben – GP bewertet automatisch.</div>
+<div id="gpRoundPanel" class="gpRoundPanel" hidden>
+  <div class="gpRoundTop"><div><strong id="gpRoundProgress">Messrunde</strong><div id="gpRoundKind" class="muted"></div></div><button id="gpRoundClose" class="gpMiniSettings" type="button">✕</button></div>
+  <div id="gpRoundDots" class="gpRoundDots"></div>
+  <div id="gpRoundCurrent" class="gpRoundCurrent"></div>
+  <div class="gpRoundActions"><button id="gpRoundBack" class="secondary" type="button">← Zurück</button><button id="gpRoundSkip" class="secondary" type="button">Überspringen →</button></div>
+</div>
+
 <label id="haccpActionWrap" hidden>Ergriffene Maßnahme<textarea id="haccpAction" rows="3" placeholder="z. B. Ware umgelagert, Kühlung geprüft"></textarea></label>
 <label>Mitarbeiter / Kürzel<input id="haccpEmployee" placeholder="Name oder Kürzel"></label>
 <button id="haccpSave" class="primary" type="button">Messung speichern</button><div id="haccpNotice" class="saveSuccess"></div>
@@ -10207,7 +10215,7 @@ function setCurrent(){
    if(isDessert(x.name)){const mn=$r("haccpMin"),mx=$r("haccpMax");if(mn&&mx){mn.value="1";mx.value="7";mn.dispatchEvent(new Event("input",{bubbles:true}));mx.dispatchEvent(new Event("input",{bubbles:true}))}}
    $r("gpRoundKind").textContent=isDessert(x.name)?"Kaltes Dessert":"Speisentemperatur";$r("gpRoundCurrent").innerHTML=`${x.name}<small>${isDessert(x.name)?"Soll: 1 bis 7 °C":"Komponente auswählen und messen"}</small>`;
  }
- if(act){act.value="";act.dispatchEvent(new Event("input",{bubbles:true}));setTimeout(()=>{act.scrollIntoView({behavior:"smooth",block:"center"});act.focus()},120)}
+ if(act){act.value="";act.dispatchEvent(new Event("input",{bubbles:true}));setTimeout(()=>{act.focus({preventScroll:true})},120)}
  lastArchiveCount=archiveCount();
 }
 function finish(){running=false;$r("gpRoundProgress").textContent="✓ Messrunde abgeschlossen";$r("gpRoundKind").textContent=`${queue.length} Messpunkte bearbeitet`;$r("gpRoundCurrent").innerHTML="Messrunde beendet<small>Offene oder übersprungene Punkte können in „Heute“ geprüft werden.</small>";$r("gpRoundDots").innerHTML=queue.map(()=>'<span class="gpRoundDot done"></span>').join("")}
