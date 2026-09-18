@@ -10211,12 +10211,15 @@ function buildQueue(){
 function archive(){return arr("gastropilot_haccp_archive_v1")}
 function matches(r,p){if(p.kind==="device")return (r.type==="Kühlung"||r.type==="Tiefkühlung")&&norm(r.location)===norm(p.name);return r.type==="Speisentemperatur"&&norm(r.dish||r.location)===norm(p.name)&&(!p.component||norm(r.component||r.location)===norm(p.component))}
 function syncPlan(){
- const ps=plans(),p=ps[dayKey()];if(!p)return null;const rows=archive().filter(r=>{
- if((r.isoDate||"")===dayKey())return true;
- if(!r.isoDate&&r.date){const m=String(r.date).match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);if(m)return `${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`===dayKey()}
- return false;
-});
- p.points.forEach(pt=>{const hits=rows.filter(r=>matches(r,pt));pt.recordIds=hits.map(r=>r.id);pt.count=hits.length;pt.done=hits.length>=(pt.required||1)});
+ const ps=plans(),p=ps[dayKey()];if(!p)return null;
+ const rows=archive();
+ p.points.forEach(pt=>{
+   const ids=new Set(pt.recordIds||[]);
+   rows.forEach(r=>{if(matches(r,pt))ids.add(r.id)});
+   pt.recordIds=[...ids];
+   pt.count=pt.recordIds.length;
+   pt.done=pt.count>=(pt.required||1);
+ });
  p.updatedAt=new Date().toISOString();ps[dayKey()]=p;savePlans(ps);renderTodayDoc();return p
 }
 function renderTodayDoc(){const box=$r("gpRoundTodayDoc"),sum=$r("gpRoundTodaySummary"),list=$r("gpRoundTodayList");if(!box)return;const p=plans()[dayKey()];if(!p){box.hidden=true;return}box.hidden=false;const done=p.points.filter(x=>x.done).length;sum.textContent=`${done}/${p.points.length} abgeschlossen`;list.innerHTML=p.points.map(x=>`<div class="gpRoundDocRow"><div><b>${x.kind==="device"?x.name:x.name+(x.component?" · "+x.component:"")}</b><br><span>${x.kind==="device"?x.type:"Speisentemperatur"} · ${x.count||0}/${x.required||1} Messung${(x.required||1)===1?"":"en"}</span></div><span class="${x.done?"gpRoundDocOk":"gpRoundDocOpen"}">${x.done?"✓ erledigt":"⚠ offen"}</span></div>`).join("")}
@@ -10250,18 +10253,34 @@ $r("gpRoundStart")?.addEventListener("click",()=>{queue=buildQueue();if(!queue.l
 $r("gpRoundClose")?.addEventListener("click",()=>{running=false;$r("gpRoundPanel").hidden=true;syncPlan()});
 $r("gpRoundBack")?.addEventListener("click",()=>{if(idx>0){idx--;setCurrent()}});$r("gpRoundSkip")?.addEventListener("click",()=>{if(running){idx=nextOpen(idx);if(idx>=queue.length)finish();else setCurrent()}});
 $r("haccpSave")?.addEventListener("click",()=>{
- if(!running){setTimeout(syncPlan,300);return}
- const pointIndex=idx,pointBefore=currentPlanPoint(),beforeCount=pointBefore?pointBefore.count||0:0;
+ if(!running){setTimeout(syncPlan,250);return}
+ const pointIndex=idx;
+ const point=queue[pointIndex];
+ const knownIds=new Set(lastArchiveIds);
  setTimeout(()=>{
-   const notice=$r("haccpNotice"),success=notice&&String(notice.textContent||"").trim().startsWith("✓");
-   if(!success)return;
-   const p=syncPlan(),cur=p&&p.points[pointIndex];
-   if(!cur)return;
-   if((cur.count||0)>beforeCount){
-     idx=cur.done?nextOpen(pointIndex):pointIndex;
-     if(idx>=p.points.length)finish();else setCurrent();
+   const rows=archive();
+   const added=rows.filter(r=>!knownIds.has(r.id));
+   const hit=added.find(r=>matches(r,point));
+   if(!hit)return;
+
+   // Die native HACCP-Speicherung ist der Beweis für diesen Messpunkt.
+   const ps=plans(),plan=ps[dayKey()];
+   if(!plan||!plan.points[pointIndex])return;
+   const pp=plan.points[pointIndex];
+   pp.recordIds=Array.from(new Set([...(pp.recordIds||[]),hit.id]));
+   pp.count=(pp.recordIds||[]).length;
+   pp.done=pp.count>=(pp.required||1);
+   plan.updatedAt=new Date().toISOString();
+   ps[dayKey()]=plan;savePlans(ps);
+   renderTodayDoc();
+
+   if(pp.done){
+     idx=nextOpen(pointIndex);
+   }else{
+     idx=pointIndex;
    }
- },650);
+   if(idx>=plan.points.length)finish();else setCurrent();
+ },180);
 });
 document.querySelectorAll('[data-haccp-mode="today"]').forEach(b=>b.addEventListener("click",()=>setTimeout(syncPlan,50)));
 syncPlan();
