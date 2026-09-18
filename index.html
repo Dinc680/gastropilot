@@ -2896,11 +2896,11 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 @media(max-width:600px){.gpRoundLaunch{grid-template-columns:1fr}.gpRoundLaunch button{width:100%}}
 </style>
 <style id="gp-v794-round-compact-css">
-.gpRoundLaunch{margin:0 0 8px;grid-template-columns:1fr auto}.gpRoundPanel{margin:7px 0 9px;padding:9px 10px;border-width:1px;border-radius:11px}
+.gpRoundLaunch{margin:0 0 8px;grid-template-columns:1fr auto auto}.gpRoundPanel{margin:7px 0 9px;padding:9px 10px;border-width:1px;border-radius:11px}
 .gpRoundTop{align-items:flex-start}.gpRoundTop strong{font-size:13px}.gpRoundTop .muted{font-size:10px}.gpRoundCurrent{font-size:16px;padding:5px 0 3px}.gpRoundCurrent small{font-size:11px;margin-top:2px}
 .gpRoundDots{margin:5px 0;gap:3px}.gpRoundDot{width:7px;height:7px}.gpRoundActions{grid-template-columns:auto auto;justify-content:space-between;gap:6px;margin-top:5px}
 .gpRoundActions button{min-height:34px!important;padding:6px 9px!important;font-size:11px!important}#gpRoundClose{min-height:30px!important;padding:4px 8px!important}.gpRoundOrderPanel{margin:0 0 8px;padding:10px}
-@media(max-width:600px){.gpRoundLaunch{grid-template-columns:1fr auto}.gpRoundLaunch button{width:auto}.gpRoundLaunch #gpRoundStart{width:100%}}
+@media(max-width:600px){.gpRoundLaunch{grid-template-columns:1fr 1fr}.gpRoundLaunch #gpRoundStart{grid-column:1/-1}.gpRoundLaunch button{width:auto}.gpRoundLaunch #gpRoundStart{width:100%}}
 </style>
 <style id="gp-v795-round-doc-css">
 .gpRoundTodayDoc{margin:12px 0;padding:12px;border:1px solid #d7e2de;border-radius:13px;background:#fff}.gpRoundTodayHead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:7px}
@@ -3463,6 +3463,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <label>Kontrollart<select id="haccpType"><option>Kühlung</option><option>Tiefkühlung</option><option>Speisentemperatur</option></select></label>
 <div class="gpRoundLaunch">
   <button id="gpRoundStart" type="button" class="primary">▶ Messrunde starten</button>
+  <button id="gpRoundRefreshFoods" type="button" class="secondary">🍽 Speisen übernehmen</button>
   <button id="gpRoundOrder" type="button" class="secondary">↕ Reihenfolge</button>
 </div>
 <div id="gpRoundOrderPanel" class="gpRoundOrderPanel" hidden>
@@ -10189,7 +10190,16 @@ function arr(k){try{const a=JSON.parse(localStorage.getItem(k)||"[]");return Arr
 function loadDevices(){return arr("gastropilot_haccp_devices_v1")} function loadOrder(){return arr(ORDER_KEY)} function saveOrder(a){localStorage.setItem(ORDER_KEY,JSON.stringify(a))}
 function plans(){try{const x=JSON.parse(localStorage.getItem(PLAN_KEY)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}} function savePlans(x){localStorage.setItem(PLAN_KEY,JSON.stringify(x))}
 function orderedDevices(){const ds=loadDevices(),o=loadOrder(),rank=new Map(o.map((id,i)=>[id,i]));return ds.slice().sort((a,b)=>(rank.has(a.id)?rank.get(a.id):999)-(rank.has(b.id)?rank.get(b.id):999))}
-function todayFoods(){const sel=$r("haccpMenuPick");if(!sel)return[];return [...sel.options].filter(o=>o.value&&o.value!=="__manual__").map(o=>o.value).filter((v,i,a)=>a.indexOf(v)===i)}
+function todayFoods(){
+ const out=[];
+ try{
+   const wp=JSON.parse(localStorage.getItem("gastropilot_week_plan")||"{}");
+   const names=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"],day=names[new Date().getDay()],d=wp&&wp[day];
+   if(d&&typeof d==="object")Object.values(d).forEach(slot=>{const n=slot&&slot.recipeName;if(n&&!out.includes(n))out.push(n)});
+ }catch(e){}
+ const sel=$r("haccpMenuPick");if(sel)[...sel.options].filter(o=>o.value&&o.value!=="__manual__").forEach(o=>{if(!out.includes(o.value))out.push(o.value)});
+ return out;
+}
 function components(dish){try{const x=JSON.parse(localStorage.getItem("gastropilot_haccp_components_v1")||"{}");const a=x[norm(dish)];return Array.isArray(a)?a.filter(Boolean):[]}catch(e){return[]}}
 function required(){const n=parseInt(localStorage.getItem("gastropilot_haccp_measure_count_v1")||"3",10);return n===2?2:3}
 function isDessert(name){return /pudding|dessert|joghurt|quark|milchreis|kompott/.test(norm(name))}
@@ -10216,15 +10226,39 @@ function setCurrent(){
  if(!running)return;const p=syncPlan();if(!p)return;if(idx>=p.points.length){finish();return}const x=p.points[idx],type=$r("haccpType"),act=$r("haccpActual");
  $r("gpRoundProgress").textContent=`Messrunde · ${idx+1} von ${p.points.length}`;$r("gpRoundDots").innerHTML=p.points.map((z,i)=>`<span class="gpRoundDot ${z.done?"done":i===idx?"current":""}"></span>`).join("");
  if(x.kind==="device"){type.value=x.type;type.dispatchEvent(new Event("change",{bubbles:true}));const pick=$r("gpDevicePick");if(pick){pick.value=x.id;pick.dispatchEvent(new Event("change",{bubbles:true}))}$r("gpRoundKind").textContent=x.type;$r("gpRoundCurrent").innerHTML=`${x.name}<small>Soll: ${x.min} bis ${x.max} °C · ${x.done?"✓ erledigt":"noch offen"}</small>`}
- else{type.value="Speisentemperatur";type.dispatchEvent(new Event("change",{bubbles:true}));const menu=$r("haccpMenuPick");if(menu){menu.value=x.name;menu.dispatchEvent(new Event("change",{bubbles:true}))}setTimeout(()=>{const mc=$r("gpMeasureComponent");if(mc&&x.component){mc.value=x.component;mc.dispatchEvent(new Event("change",{bubbles:true}))}},30);if(isDessert(x.name)){const mn=$r("haccpMin"),mx=$r("haccpMax");if(mn&&mx){mn.value="1";mx.value="7";mn.dispatchEvent(new Event("input",{bubbles:true}));mx.dispatchEvent(new Event("input",{bubbles:true}))}}$r("gpRoundKind").textContent=isDessert(x.name)?"Kaltes Dessert":"Speisentemperatur";$r("gpRoundCurrent").innerHTML=`${x.name}${x.component?" · "+x.component:""}<small>${isDessert(x.name)?"Soll: 1 bis 7 °C · ":""}${x.count||0}/${x.required||1} Messungen</small>`}
+ else{type.value="Speisentemperatur";type.dispatchEvent(new Event("change",{bubbles:true}));const menu=$r("haccpMenuPick");if(menu){menu.value=x.name;menu.dispatchEvent(new Event("change",{bubbles:true}))}setTimeout(()=>{const mc=$r("haccpMeasureComponent");if(mc&&x.component){mc.value=x.component;mc.dispatchEvent(new Event("change",{bubbles:true}))}},30);if(isDessert(x.name)){const mn=$r("haccpMin"),mx=$r("haccpMax");if(mn&&mx){mn.value="1";mx.value="7";mn.dispatchEvent(new Event("input",{bubbles:true}));mx.dispatchEvent(new Event("input",{bubbles:true}))}}$r("gpRoundKind").textContent=isDessert(x.name)?"Kaltes Dessert":"Speisentemperatur";$r("gpRoundCurrent").innerHTML=`${x.name}${x.component?" · "+x.component:""}<small>${isDessert(x.name)?"Soll: 1 bis 7 °C · ":""}${x.count||0}/${x.required||1} Messungen</small>`}
  lastArchiveIds=new Set(archive().map(r=>r.id));if(act){act.value="";act.dispatchEvent(new Event("input",{bubbles:true}));setTimeout(()=>act.focus({preventScroll:true}),100)}
 }
 function nextOpen(from){const p=syncPlan();if(!p)return from+1;for(let i=from+1;i<p.points.length;i++)if(!p.points[i].done)return i;for(let i=0;i<=from;i++)if(!p.points[i].done)return i;return p.points.length}
 function finish(){running=false;const p=syncPlan(),done=p?p.points.filter(x=>x.done).length:0,total=p?p.points.length:0;$r("gpRoundProgress").textContent=done===total?"✓ Messrunde abgeschlossen":"Messrunde beendet";$r("gpRoundKind").textContent=`${done} von ${total} Messpunkten abgeschlossen`;$r("gpRoundCurrent").innerHTML=done===total?"Alle vorgesehenen Messpunkte dokumentiert.":"Offene Messpunkte bleiben in „Heute“ sichtbar.";$r("gpRoundDots").innerHTML=p?p.points.map(x=>`<span class="gpRoundDot ${x.done?"done":""}"></span>`).join(""):""}
-$r("gpRoundStart")?.addEventListener("click",()=>{queue=buildQueue();if(!queue.length){$r("haccpNotice").textContent="Keine Geräte oder Speisen für die Messrunde gefunden.";return}saveNewPlan();idx=0;running=true;$r("gpRoundPanel").hidden=false;setCurrent()});
+$r("gpRoundRefreshFoods")?.addEventListener("click",()=>{
+ const fresh=buildQueue(),ps=plans(),old=ps[dayKey()];
+ if(!old){queue=fresh;$r("haccpNotice").textContent=`${fresh.filter(x=>x.kind==="food").length} Speisen-Messpunkte gefunden. Messrunde kann gestartet werden.`;return}
+ const oldMap=new Map(old.points.map(x=>[x.key,x]));
+ old.points=fresh.map(x=>oldMap.has(x.key)?{...x,...oldMap.get(x.key),required:x.required}:{...x,count:0,done:false,recordIds:[]});
+ ps[dayKey()]=old;savePlans(ps);queue=old.points;syncPlan();
+ $r("haccpNotice").textContent=`✓ Messrunde aktualisiert: ${queue.filter(x=>x.kind==="food").length} Speisen-Messpunkte übernommen.`;
+});
+$r("gpRoundStart")?.addEventListener("click",()=>{queue=buildQueue();if(!queue.length){$r("haccpNotice").textContent="Keine Geräte oder Speisen für die Messrunde gefunden.";return}saveNewPlan();idx=0;running=true;$r("gpRoundPanel").hidden=false;
+ const dc=queue.filter(x=>x.kind==="device").length,fc=queue.filter(x=>x.kind==="food").length;
+ $r("haccpNotice").textContent=`Messrunde gestartet: ${dc} Geräte · ${fc} Speisen-Messpunkte.`;
+ setCurrent()});
 $r("gpRoundClose")?.addEventListener("click",()=>{running=false;$r("gpRoundPanel").hidden=true;syncPlan()});
 $r("gpRoundBack")?.addEventListener("click",()=>{if(idx>0){idx--;setCurrent()}});$r("gpRoundSkip")?.addEventListener("click",()=>{if(running){idx=nextOpen(idx);if(idx>=queue.length)finish();else setCurrent()}});
-$r("haccpSave")?.addEventListener("click",()=>{if(!running){setTimeout(syncPlan,180);return}setTimeout(()=>{const now=archive(),added=now.some(r=>!lastArchiveIds.has(r.id));if(!added)return;const p=syncPlan(),cur=p&&p.points[idx];if(cur&&cur.done)idx=nextOpen(idx);setCurrent()},220)});
+$r("haccpSave")?.addEventListener("click",()=>{if(!running){setTimeout(syncPlan,250);return}
+ const beforePoint=queue[idx];
+ setTimeout(()=>{
+   const now=archive(),addedRows=now.filter(r=>!lastArchiveIds.has(r.id));
+   if(!addedRows.length)return;
+   const p=syncPlan(),cur=p&&p.points[idx];
+   if(cur){
+     const matchingAdded=addedRows.some(r=>matches(r,cur));
+     if(matchingAdded){
+       if(cur.done) idx=nextOpen(idx);
+       setCurrent();
+     }
+   }
+ },350)});
 document.querySelectorAll('[data-haccp-mode="today"]').forEach(b=>b.addEventListener("click",()=>setTimeout(syncPlan,50)));
 syncPlan();
 })();
