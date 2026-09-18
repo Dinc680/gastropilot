@@ -2902,6 +2902,10 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 .gpRoundActions button{min-height:34px!important;padding:6px 9px!important;font-size:11px!important}#gpRoundClose{min-height:30px!important;padding:4px 8px!important}.gpRoundOrderPanel{margin:0 0 8px;padding:10px}
 @media(max-width:600px){.gpRoundLaunch{grid-template-columns:1fr auto}.gpRoundLaunch button{width:auto}.gpRoundLaunch #gpRoundStart{width:100%}}
 </style>
+<style id="gp-v795-round-doc-css">
+.gpRoundTodayDoc{margin:12px 0;padding:12px;border:1px solid #d7e2de;border-radius:13px;background:#fff}.gpRoundTodayHead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:7px}
+.gpRoundTodayHead span{font-size:12px;font-weight:800}.gpRoundDocRow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #edf1ef;font-size:12px}.gpRoundDocRow:last-child{border-bottom:0}.gpRoundDocRow b{font-size:13px}.gpRoundDocOk{color:#176c56;font-weight:850}.gpRoundDocOpen{color:#a36c17;font-weight:850}
+</style>
 </head>
 
 <body>
@@ -3753,6 +3757,10 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   <div class="gpSimpleTodayTitle">📋 Heute</div>
   <div id="gpTodayProgress" class="gpTodayProgress"></div>
   <div id="haccpTodayChecks" class="gpTodayChecks"></div>
+  <div id="gpRoundTodayDoc" class="gpRoundTodayDoc" hidden>
+    <div class="gpRoundTodayHead"><strong>🔁 Messrunde</strong><span id="gpRoundTodaySummary"></span></div>
+    <div id="gpRoundTodayList"></div>
+  </div>
 
   <div class="gpSampleCollection">
     <div class="gpSampleCollectionHead">
@@ -9749,6 +9757,7 @@ if(saveDayDoc)saveDayDoc.addEventListener("click",()=>{
     sampleRows:JSON.parse(JSON.stringify(gpSampleRowsForDay(key))),
     cleaningRows:JSON.parse(JSON.stringify(window.gpCleaningRowsForDay?window.gpCleaningRowsForDay(key):[])),
     cleaningTasks:JSON.parse(JSON.stringify(window.gpCleaningTasksForDay?window.gpCleaningTasksForDay(key):[])),
+  roundPlan:(()=>{try{const x=JSON.parse(localStorage.getItem("gastropilot_haccp_round_plan_v1")||"{}");return JSON.parse(JSON.stringify(x[key]||null))}catch(e){return null}})(),
     reportVersion:"2.1"
   };
   gpSaveDayDocs(docs);notice.textContent="✓ HACCP-Tag abgeschlossen und gesichert.";gpRenderDayDocStatus();
@@ -10171,59 +10180,53 @@ document.querySelectorAll('[data-haccp-mode="cleaning"]').forEach(b=>b.addEventL
 })();
 </script>
 
-<script id="gp-v793-round-js">
+<script id="gp-v795-round-js">
 (function(){
-const $r=id=>document.getElementById(id),ORDER_KEY="gastropilot_haccp_round_order_v1";
-let queue=[],idx=0,running=false,lastArchiveCount=0;
-function loadDevices(){try{const a=JSON.parse(localStorage.getItem("gastropilot_haccp_devices_v1")||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
-function loadOrder(){try{const a=JSON.parse(localStorage.getItem(ORDER_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
-function saveOrder(a){localStorage.setItem(ORDER_KEY,JSON.stringify(a))}
-function norm(s){return String(s||"").trim().toLowerCase()}
+const $r=id=>document.getElementById(id),ORDER_KEY="gastropilot_haccp_round_order_v1",PLAN_KEY="gastropilot_haccp_round_plan_v1";
+let queue=[],idx=0,running=false,lastArchiveIds=new Set();
+const norm=s=>String(s||"").trim().toLowerCase(),dayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function arr(k){try{const a=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
+function loadDevices(){return arr("gastropilot_haccp_devices_v1")} function loadOrder(){return arr(ORDER_KEY)} function saveOrder(a){localStorage.setItem(ORDER_KEY,JSON.stringify(a))}
+function plans(){try{const x=JSON.parse(localStorage.getItem(PLAN_KEY)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}} function savePlans(x){localStorage.setItem(PLAN_KEY,JSON.stringify(x))}
 function orderedDevices(){const ds=loadDevices(),o=loadOrder(),rank=new Map(o.map((id,i)=>[id,i]));return ds.slice().sort((a,b)=>(rank.has(a.id)?rank.get(a.id):999)-(rank.has(b.id)?rank.get(b.id):999))}
-function todayFoods(){
- const sel=$r("haccpMenuPick");if(!sel)return[];
- return [...sel.options].filter(o=>o.value&&o.value!=="__manual__").map(o=>o.value).filter((v,i,a)=>a.indexOf(v)===i);
-}
-function isDessert(name){const n=norm(name);return /pudding|dessert|joghurt|quark|milchreis|kompott/.test(n)}
+function todayFoods(){const sel=$r("haccpMenuPick");if(!sel)return[];return [...sel.options].filter(o=>o.value&&o.value!=="__manual__").map(o=>o.value).filter((v,i,a)=>a.indexOf(v)===i)}
+function components(dish){try{const x=JSON.parse(localStorage.getItem("gastropilot_haccp_components_v1")||"{}");const a=x[norm(dish)];return Array.isArray(a)?a.filter(Boolean):[]}catch(e){return[]}}
+function required(){const n=parseInt(localStorage.getItem("gastropilot_haccp_measure_count_v1")||"3",10);return n===2?2:3}
+function isDessert(name){return /pudding|dessert|joghurt|quark|milchreis|kompott/.test(norm(name))}
 function buildQueue(){
- const q=orderedDevices().map(d=>({kind:"device",id:d.id,name:d.name,type:d.type,min:d.min,max:d.max}));
- todayFoods().forEach(name=>q.push({kind:"food",name}));
+ const q=orderedDevices().map(d=>({key:"dev:"+d.id,kind:"device",id:d.id,name:d.name,type:d.type,min:d.min,max:d.max,required:1}));
+ todayFoods().forEach(name=>{const cs=components(name);if(cs.length)cs.forEach(c=>q.push({key:"food:"+norm(name)+"|"+norm(c),kind:"food",name,component:c,required:required()}));else q.push({key:"food:"+norm(name),kind:"food",name,component:"",required:required()})});
  return q;
 }
-function renderOrder(){
- const box=$r("gpRoundOrderList"),ds=orderedDevices();if(!box)return;
- box.innerHTML=ds.map((d,i)=>`<div class="gpRoundOrderRow"><span><strong>${d.name}</strong><br><small>${d.type}</small></span><button type="button" data-up="${d.id}" ${i===0?"disabled":""}>↑</button><button type="button" data-down="${d.id}" ${i===ds.length-1?"disabled":""}>↓</button></div>`).join("")||'<div class="muted">Keine Geräte angelegt.</div>';
+function archive(){return arr("gastropilot_haccp_archive_v1")}
+function matches(r,p){if(p.kind==="device")return (r.type==="Kühlung"||r.type==="Tiefkühlung")&&norm(r.location)===norm(p.name);return r.type==="Speisentemperatur"&&norm(r.dish||r.location)===norm(p.name)&&(!p.component||norm(r.component||r.location)===norm(p.component))}
+function syncPlan(){
+ const ps=plans(),p=ps[dayKey()];if(!p)return null;const rows=archive().filter(r=>(r.isoDate||"")===dayKey());
+ p.points.forEach(pt=>{const hits=rows.filter(r=>matches(r,pt));pt.recordIds=hits.map(r=>r.id);pt.count=hits.length;pt.done=hits.length>=(pt.required||1)});
+ p.updatedAt=new Date().toISOString();ps[dayKey()]=p;savePlans(ps);renderTodayDoc();return p
 }
+function renderTodayDoc(){const box=$r("gpRoundTodayDoc"),sum=$r("gpRoundTodaySummary"),list=$r("gpRoundTodayList");if(!box)return;const p=plans()[dayKey()];if(!p){box.hidden=true;return}box.hidden=false;const done=p.points.filter(x=>x.done).length;sum.textContent=`${done}/${p.points.length} abgeschlossen`;list.innerHTML=p.points.map(x=>`<div class="gpRoundDocRow"><div><b>${x.kind==="device"?x.name:x.name+(x.component?" · "+x.component:"")}</b><br><span>${x.kind==="device"?x.type:"Speisentemperatur"} · ${x.count||0}/${x.required||1} Messung${(x.required||1)===1?"":"en"}</span></div><span class="${x.done?"gpRoundDocOk":"gpRoundDocOpen"}">${x.done?"✓ erledigt":"⚠ offen"}</span></div>`).join("")}
+function renderOrder(){const box=$r("gpRoundOrderList"),ds=orderedDevices();if(!box)return;box.innerHTML=ds.map((d,i)=>`<div class="gpRoundOrderRow"><span><strong>${d.name}</strong><br><small>${d.type}</small></span><button type="button" data-up="${d.id}" ${i===0?"disabled":""}>↑</button><button type="button" data-down="${d.id}" ${i===ds.length-1?"disabled":""}>↓</button></div>`).join("")||'<div class="muted">Keine Geräte angelegt.</div>'}
 function move(id,dir){const a=orderedDevices().map(d=>d.id),i=a.indexOf(id),j=i+dir;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];saveOrder(a);renderOrder()}
 $r("gpRoundOrderList")?.addEventListener("click",e=>{const u=e.target.closest("[data-up]"),d=e.target.closest("[data-down]");if(u)move(u.dataset.up,-1);if(d)move(d.dataset.down,1)});
-$r("gpRoundOrder")?.addEventListener("click",()=>{$r("gpRoundOrderPanel").hidden=false;renderOrder();$r("gpRoundOrderPanel").scrollIntoView({behavior:"smooth",block:"start"})});
-$r("gpRoundOrderClose")?.addEventListener("click",()=>{$r("gpRoundOrderPanel").hidden=true});
-function archiveCount(){try{return JSON.parse(localStorage.getItem("gastropilot_haccp_archive_v1")||"[]").length}catch(e){return 0}}
+$r("gpRoundOrder")?.addEventListener("click",()=>{$r("gpRoundOrderPanel").hidden=false;renderOrder()});$r("gpRoundOrderClose")?.addEventListener("click",()=>{$r("gpRoundOrderPanel").hidden=true});
+function saveNewPlan(){const ps=plans();ps[dayKey()]={day:dayKey(),startedAt:new Date().toISOString(),points:queue.map(x=>({...x,count:0,done:false,recordIds:[]}))};savePlans(ps)}
+function currentPlanPoint(){const p=syncPlan();return p&&p.points[idx]}
 function setCurrent(){
- if(!running||!queue.length)return;
- if(idx>=queue.length){finish();return}
- const x=queue[idx],type=$r("haccpType"),act=$r("haccpActual");
- $r("gpRoundProgress").textContent=`Messrunde · ${idx+1} von ${queue.length}`;
- $r("gpRoundDots").innerHTML=queue.map((_,i)=>`<span class="gpRoundDot ${i<idx?"done":i===idx?"current":""}"></span>`).join("");
- if(x.kind==="device"){
-   type.value=x.type;type.dispatchEvent(new Event("change",{bubbles:true}));
-   const pick=$r("gpDevicePick");if(pick){pick.value=x.id;pick.dispatchEvent(new Event("change",{bubbles:true}))}
-   $r("gpRoundKind").textContent=x.type;$r("gpRoundCurrent").innerHTML=`${x.name}<small>Soll: ${x.min} bis ${x.max} °C</small>`;
- }else{
-   type.value="Speisentemperatur";type.dispatchEvent(new Event("change",{bubbles:true}));
-   const menu=$r("haccpMenuPick");if(menu){menu.value=x.name;menu.dispatchEvent(new Event("change",{bubbles:true}))}
-   if(isDessert(x.name)){const mn=$r("haccpMin"),mx=$r("haccpMax");if(mn&&mx){mn.value="1";mx.value="7";mn.dispatchEvent(new Event("input",{bubbles:true}));mx.dispatchEvent(new Event("input",{bubbles:true}))}}
-   $r("gpRoundKind").textContent=isDessert(x.name)?"Kaltes Dessert":"Speisentemperatur";$r("gpRoundCurrent").innerHTML=`${x.name}<small>${isDessert(x.name)?"Soll: 1 bis 7 °C":"Komponente auswählen und messen"}</small>`;
- }
- if(act){act.value="";act.dispatchEvent(new Event("input",{bubbles:true}));setTimeout(()=>{act.focus({preventScroll:true})},120)}
- lastArchiveCount=archiveCount();
+ if(!running)return;const p=syncPlan();if(!p)return;if(idx>=p.points.length){finish();return}const x=p.points[idx],type=$r("haccpType"),act=$r("haccpActual");
+ $r("gpRoundProgress").textContent=`Messrunde · ${idx+1} von ${p.points.length}`;$r("gpRoundDots").innerHTML=p.points.map((z,i)=>`<span class="gpRoundDot ${z.done?"done":i===idx?"current":""}"></span>`).join("");
+ if(x.kind==="device"){type.value=x.type;type.dispatchEvent(new Event("change",{bubbles:true}));const pick=$r("gpDevicePick");if(pick){pick.value=x.id;pick.dispatchEvent(new Event("change",{bubbles:true}))}$r("gpRoundKind").textContent=x.type;$r("gpRoundCurrent").innerHTML=`${x.name}<small>Soll: ${x.min} bis ${x.max} °C · ${x.done?"✓ erledigt":"noch offen"}</small>`}
+ else{type.value="Speisentemperatur";type.dispatchEvent(new Event("change",{bubbles:true}));const menu=$r("haccpMenuPick");if(menu){menu.value=x.name;menu.dispatchEvent(new Event("change",{bubbles:true}))}setTimeout(()=>{const mc=$r("gpMeasureComponent");if(mc&&x.component){mc.value=x.component;mc.dispatchEvent(new Event("change",{bubbles:true}))}},30);if(isDessert(x.name)){const mn=$r("haccpMin"),mx=$r("haccpMax");if(mn&&mx){mn.value="1";mx.value="7";mn.dispatchEvent(new Event("input",{bubbles:true}));mx.dispatchEvent(new Event("input",{bubbles:true}))}}$r("gpRoundKind").textContent=isDessert(x.name)?"Kaltes Dessert":"Speisentemperatur";$r("gpRoundCurrent").innerHTML=`${x.name}${x.component?" · "+x.component:""}<small>${isDessert(x.name)?"Soll: 1 bis 7 °C · ":""}${x.count||0}/${x.required||1} Messungen</small>`}
+ lastArchiveIds=new Set(archive().map(r=>r.id));if(act){act.value="";act.dispatchEvent(new Event("input",{bubbles:true}));setTimeout(()=>act.focus({preventScroll:true}),100)}
 }
-function finish(){running=false;$r("gpRoundProgress").textContent="✓ Messrunde abgeschlossen";$r("gpRoundKind").textContent=`${queue.length} Messpunkte bearbeitet`;$r("gpRoundCurrent").innerHTML="Messrunde beendet<small>Offene oder übersprungene Punkte können in „Heute“ geprüft werden.</small>";$r("gpRoundDots").innerHTML=queue.map(()=>'<span class="gpRoundDot done"></span>').join("")}
-$r("gpRoundStart")?.addEventListener("click",()=>{queue=buildQueue();idx=0;if(!queue.length){$r("haccpNotice").textContent="Keine Geräte oder Speisen für die Messrunde gefunden.";return}running=true;$r("gpRoundPanel").hidden=false;document.getElementById("gpHaccpPaneMeasure")?.classList.add("gpRoundFocus");setCurrent()});
-$r("gpRoundClose")?.addEventListener("click",()=>{running=false;$r("gpRoundPanel").hidden=true;document.getElementById("gpHaccpPaneMeasure")?.classList.remove("gpRoundFocus")});
-$r("gpRoundBack")?.addEventListener("click",()=>{if(idx>0){idx--;setCurrent()}});
-$r("gpRoundSkip")?.addEventListener("click",()=>{if(running){idx++;setCurrent()}});
-$r("haccpSave")?.addEventListener("click",()=>{if(!running)return;setTimeout(()=>{const c=archiveCount();if(c>lastArchiveCount){idx++;setCurrent()}},180)});
+function nextOpen(from){const p=syncPlan();if(!p)return from+1;for(let i=from+1;i<p.points.length;i++)if(!p.points[i].done)return i;for(let i=0;i<=from;i++)if(!p.points[i].done)return i;return p.points.length}
+function finish(){running=false;const p=syncPlan(),done=p?p.points.filter(x=>x.done).length:0,total=p?p.points.length:0;$r("gpRoundProgress").textContent=done===total?"✓ Messrunde abgeschlossen":"Messrunde beendet";$r("gpRoundKind").textContent=`${done} von ${total} Messpunkten abgeschlossen`;$r("gpRoundCurrent").innerHTML=done===total?"Alle vorgesehenen Messpunkte dokumentiert.":"Offene Messpunkte bleiben in „Heute“ sichtbar.";$r("gpRoundDots").innerHTML=p?p.points.map(x=>`<span class="gpRoundDot ${x.done?"done":""}"></span>`).join(""):""}
+$r("gpRoundStart")?.addEventListener("click",()=>{queue=buildQueue();if(!queue.length){$r("haccpNotice").textContent="Keine Geräte oder Speisen für die Messrunde gefunden.";return}saveNewPlan();idx=0;running=true;$r("gpRoundPanel").hidden=false;setCurrent()});
+$r("gpRoundClose")?.addEventListener("click",()=>{running=false;$r("gpRoundPanel").hidden=true;syncPlan()});
+$r("gpRoundBack")?.addEventListener("click",()=>{if(idx>0){idx--;setCurrent()}});$r("gpRoundSkip")?.addEventListener("click",()=>{if(running){idx=nextOpen(idx);if(idx>=queue.length)finish();else setCurrent()}});
+$r("haccpSave")?.addEventListener("click",()=>{if(!running){setTimeout(syncPlan,180);return}setTimeout(()=>{const now=archive(),added=now.some(r=>!lastArchiveIds.has(r.id));if(!added)return;const p=syncPlan(),cur=p&&p.points[idx];if(cur&&cur.done)idx=nextOpen(idx);setCurrent()},220)});
+document.querySelectorAll('[data-haccp-mode="today"]').forEach(b=>b.addEventListener("click",()=>setTimeout(syncPlan,50)));
+syncPlan();
 })();
 </script>
 </body>
