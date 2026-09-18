@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.10 Geräte-Messrunde</title>
+<title>GastroPilot – V7.11 Touch-Schutz</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2891,7 +2891,11 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 .gpCleaningOnDemandWrap{margin-top:18px;padding-top:14px;border-top:1px solid #dce5e1}.gpCleaningOnDemandTitle{font-weight:850;color:#17483b;margin-bottom:2px}
 .gpCleaningTask.gpNotRequired{background:#f7f8f7;border-color:#dfe4e2}.gpCleaningTask.gpNotRequired .gpCleaningTaskStatus{color:#69736f}
 </style>
-<style id="gp-v710-device-round-css">.gpDeviceRoundLaunch{display:grid;grid-template-columns:1fr auto;gap:7px;margin:0 0 8px}.gpDeviceRoundLive,.gpDeviceRoundOrderPanel{margin:7px 0 9px;padding:9px 10px;border:1px solid #d6e1dd;border-radius:12px;background:#fff}.gpDeviceRoundTop,.gpDeviceRoundHead,.gpDeviceRoundOrderRow{display:flex;align-items:center;gap:7px}.gpDeviceRoundTop,.gpDeviceRoundHead{justify-content:space-between}.gpDeviceRoundCurrent{font-size:17px;font-weight:850;padding:5px 0}.gpDeviceRoundCurrent small{display:block;font-size:11px;font-weight:600;color:#68736f}.gpDeviceRoundDots{display:flex;gap:4px;flex-wrap:wrap;margin:5px 0}.gpDeviceRoundDot{width:8px;height:8px;border-radius:50%;background:#d9dfdc}.gpDeviceRoundDot.current{background:#d59028}.gpDeviceRoundDot.done{background:#22866f}.gpDeviceRoundActions{display:flex;justify-content:space-between;gap:6px}.gpDeviceRoundOrderRow{padding:7px 0;border-bottom:1px solid #edf1ef}.gpDeviceRoundOrderRow span{flex:1}</style></head>
+<style id="gp-v710-device-round-css">.gpDeviceRoundLaunch{display:grid;grid-template-columns:1fr auto;gap:7px;margin:0 0 8px}.gpDeviceRoundLive,.gpDeviceRoundOrderPanel{margin:7px 0 9px;padding:9px 10px;border:1px solid #d6e1dd;border-radius:12px;background:#fff}.gpDeviceRoundTop,.gpDeviceRoundHead,.gpDeviceRoundOrderRow{display:flex;align-items:center;gap:7px}.gpDeviceRoundTop,.gpDeviceRoundHead{justify-content:space-between}.gpDeviceRoundCurrent{font-size:17px;font-weight:850;padding:5px 0}.gpDeviceRoundCurrent small{display:block;font-size:11px;font-weight:600;color:#68736f}.gpDeviceRoundDots{display:flex;gap:4px;flex-wrap:wrap;margin:5px 0}.gpDeviceRoundDot{width:8px;height:8px;border-radius:50%;background:#d9dfdc}.gpDeviceRoundDot.current{background:#d59028}.gpDeviceRoundDot.done{background:#22866f}.gpDeviceRoundActions{display:flex;justify-content:space-between;gap:6px}.gpDeviceRoundOrderRow{padding:7px 0;border-bottom:1px solid #edf1ef}.gpDeviceRoundOrderRow span{flex:1}</style><style id="gp-v711-touch-safety-css">
+#gpDeviceRoundStop{min-height:26px!important;height:26px!important;padding:2px 7px!important;font-size:10px!important;line-height:1!important;width:auto!important;opacity:.72}
+#gpDeviceRoundStop:active{opacity:1}
+</style>
+</head>
 
 <body>
 
@@ -10156,6 +10160,14 @@ function next(){if(i<ds.length-1){i++;show()}else{run=false;$("gpDeviceRoundProg
 $("gpDeviceRoundStart").onclick=()=>{ds=ordered();if(!ds.length)return;i=0;run=true;show()};$("gpDeviceRoundStop").onclick=()=>{run=false;$("gpDeviceRoundLive").hidden=true};$("gpDeviceRoundBack").onclick=()=>{if(run&&i>0){i--;show()}};$("gpDeviceRoundSkip").onclick=()=>{if(run)next()};
 $("gpDeviceRoundOrder").onclick=()=>{$("gpDeviceRoundOrderPanel").hidden=false;orderUI()};$("gpDeviceRoundOrderClose").onclick=()=>{$("gpDeviceRoundOrderPanel").hidden=true};$("gpDeviceRoundOrderList").onclick=e=>{let u=e.target.closest("[data-up]"),d=e.target.closest("[data-down]");if(u)move(u.dataset.up,-1);if(d)move(d.dataset.down,1)};
 let save=$("haccpSave");save.addEventListener("pointerdown",()=>{if(run&&cur)before=new Set(history().map(x=>x.id))},true);save.addEventListener("click",()=>{if(!run||!cur)return;let expected={name:cur.name,type:cur.type,index:i};setTimeout(()=>{if(!run||i!==expected.index)return;let added=history().filter(x=>!before.has(x.id));if(added.some(x=>x.type===expected.type&&norm(x.location)===norm(expected.name)))next()},120)});
-})();</script></body>
+})();</script><script id="gp-v711-touch-guard-js">(function(){
+if(!window.matchMedia||!window.matchMedia("(pointer: coarse)").matches)return;
+let sx=0,sy=0,moved=false,tracking=false;
+document.addEventListener("touchstart",e=>{if(e.touches.length!==1)return;let t=e.touches[0];sx=t.clientX;sy=t.clientY;moved=false;tracking=true},{passive:true,capture:true});
+document.addEventListener("touchmove",e=>{if(!tracking||e.touches.length!==1)return;let t=e.touches[0];if(Math.abs(t.clientX-sx)>8||Math.abs(t.clientY-sy)>8)moved=true},{passive:true,capture:true});
+document.addEventListener("touchend",()=>setTimeout(()=>tracking=false,0),{passive:true,capture:true});
+document.addEventListener("click",e=>{if(!moved)return;let el=e.target.closest("button,a,[role='button'],[data-recipe-name],[data-recipe],[data-dish],[data-remove],[data-delete]");if(!el)return;let area=el.closest("#mengenrechner,#gerichte,#weekPlannerCard,#shoppingCard");if(!area)return;e.preventDefault();e.stopImmediatePropagation();moved=false},true);
+})();</script>
+</body>
 </html>
   
