@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – Mengenrechner</title>
+<title>GastroPilot – V7.10 Geräte-Messrunde</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2891,22 +2891,7 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 .gpCleaningOnDemandWrap{margin-top:18px;padding-top:14px;border-top:1px solid #dce5e1}.gpCleaningOnDemandTitle{font-weight:850;color:#17483b;margin-bottom:2px}
 .gpCleaningTask.gpNotRequired{background:#f7f8f7;border-color:#dfe4e2}.gpCleaningTask.gpNotRequired .gpCleaningTaskStatus{color:#69736f}
 </style>
-<style id="gp-v793-round-css">
-.gpRoundLaunch{display:grid;grid-template-columns:1fr auto;gap:8px;margin:0 0 12px}.gpRoundPanel{padding:14px;border:2px solid var(--green);border-radius:15px;background:#f8fbfa;margin-bottom:12px}.gpRoundTop,.gpRoundOrderHead{display:flex;justify-content:space-between;align-items:center;gap:10px}.gpRoundDots{display:flex;gap:4px;flex-wrap:wrap;margin:10px 0}.gpRoundDot{width:9px;height:9px;border-radius:50%;background:#cbd6d2}.gpRoundDot.done{background:#23836b}.gpRoundDot.current{background:#d79a34;transform:scale(1.25)}.gpRoundCurrent{font-size:20px;font-weight:900;color:#17483b;padding:10px 0}.gpRoundCurrent small{display:block;font-size:12px;font-weight:600;color:#6f7b76;margin-top:4px}.gpRoundActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.gpRoundOrderPanel{padding:14px;border:1px solid #d8e3df;border-radius:14px;background:#fff;margin-bottom:12px}.gpRoundOrderRow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid #e4e9e7}.gpRoundOrderRow button{min-width:42px;padding:7px}.gpRoundFocus #haccpType,.gpRoundFocus #gpDeviceWrap,.gpRoundFocus #haccpMenuPickWrap{scroll-margin-top:90px}
-@media(max-width:600px){.gpRoundLaunch{grid-template-columns:1fr}.gpRoundLaunch button{width:100%}}
-</style>
-<style id="gp-v794-round-compact-css">
-.gpRoundLaunch{margin:0 0 8px;grid-template-columns:1fr auto auto}.gpRoundPanel{margin:7px 0 9px;padding:9px 10px;border-width:1px;border-radius:11px}
-.gpRoundTop{align-items:flex-start}.gpRoundTop strong{font-size:13px}.gpRoundTop .muted{font-size:10px}.gpRoundCurrent{font-size:16px;padding:5px 0 3px}.gpRoundCurrent small{font-size:11px;margin-top:2px}
-.gpRoundDots{margin:5px 0;gap:3px}.gpRoundDot{width:7px;height:7px}.gpRoundActions{grid-template-columns:auto auto;justify-content:space-between;gap:6px;margin-top:5px}
-.gpRoundActions button{min-height:34px!important;padding:6px 9px!important;font-size:11px!important}#gpRoundClose{min-height:30px!important;padding:4px 8px!important}.gpRoundOrderPanel{margin:0 0 8px;padding:10px}
-@media(max-width:600px){.gpRoundLaunch{grid-template-columns:1fr 1fr}.gpRoundLaunch #gpRoundStart{grid-column:1/-1}.gpRoundLaunch button{width:auto}.gpRoundLaunch #gpRoundStart{width:100%}}
-</style>
-<style id="gp-v795-round-doc-css">
-.gpRoundTodayDoc{margin:12px 0;padding:12px;border:1px solid #d7e2de;border-radius:13px;background:#fff}.gpRoundTodayHead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:7px}
-.gpRoundTodayHead span{font-size:12px;font-weight:800}.gpRoundDocRow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #edf1ef;font-size:12px}.gpRoundDocRow:last-child{border-bottom:0}.gpRoundDocRow b{font-size:13px}.gpRoundDocOk{color:#176c56;font-weight:850}.gpRoundDocOpen{color:#a36c17;font-weight:850}
-</style>
-</head>
+<style id="gp-v710-device-round-css">.gpDeviceRoundLaunch{display:grid;grid-template-columns:1fr auto;gap:7px;margin:0 0 8px}.gpDeviceRoundLive,.gpDeviceRoundOrderPanel{margin:7px 0 9px;padding:9px 10px;border:1px solid #d6e1dd;border-radius:12px;background:#fff}.gpDeviceRoundTop,.gpDeviceRoundHead,.gpDeviceRoundOrderRow{display:flex;align-items:center;gap:7px}.gpDeviceRoundTop,.gpDeviceRoundHead{justify-content:space-between}.gpDeviceRoundCurrent{font-size:17px;font-weight:850;padding:5px 0}.gpDeviceRoundCurrent small{display:block;font-size:11px;font-weight:600;color:#68736f}.gpDeviceRoundDots{display:flex;gap:4px;flex-wrap:wrap;margin:5px 0}.gpDeviceRoundDot{width:8px;height:8px;border-radius:50%;background:#d9dfdc}.gpDeviceRoundDot.current{background:#d59028}.gpDeviceRoundDot.done{background:#22866f}.gpDeviceRoundActions{display:flex;justify-content:space-between;gap:6px}.gpDeviceRoundOrderRow{padding:7px 0;border-bottom:1px solid #edf1ef}.gpDeviceRoundOrderRow span{flex:1}</style></head>
 
 <body>
 
@@ -3461,17 +3446,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <div id="gpHaccpPaneMeasure" class="gpHaccpPane gpActive"><div class="gpQuickMeasureHead"><div><strong>🌡 Schnellmessung</strong><div class="muted">Auswählen → Temperatur → Speichern</div></div><button id="gpDeviceSettingsToggle" class="gpMiniSettings" type="button">⚙️ Geräte</button></div>
 <div class="gpQuickSteps"><span class="gpQuickStep gpOn">1 <b>Auswahl</b></span><span class="gpQuickStep">2 <b>Messen</b></span><span class="gpQuickStep">3 <b>Speichern</b></span></div>
 <label>Kontrollart<select id="haccpType"><option>Kühlung</option><option>Tiefkühlung</option><option>Speisentemperatur</option></select></label>
-<div class="gpRoundLaunch">
-  <button id="gpRoundStart" type="button" class="primary">▶ Messrunde starten</button>
-  <button id="gpRoundRefreshFoods" type="button" class="secondary">🍽 Speisen übernehmen</button>
-  <button id="gpRoundOrder" type="button" class="secondary">↕ Reihenfolge</button>
-</div>
-<div id="gpRoundOrderPanel" class="gpRoundOrderPanel" hidden>
-  <div class="gpRoundOrderHead"><strong>Messreihenfolge Geräte</strong><button id="gpRoundOrderClose" class="gpMiniSettings" type="button">✕</button></div>
-  <div class="muted">Mit ↑ und ↓ die Reihenfolge für die tägliche Messrunde festlegen.</div>
-  <div id="gpRoundOrderList"></div>
-</div>
-<div id="gpTargetGuide" class="gpTargetGuide" aria-live="polite">
+<div class="gpDeviceRoundLaunch"><button id="gpDeviceRoundStart" type="button" class="primary">▶ Geräte-Messrunde starten</button><button id="gpDeviceRoundOrder" type="button" class="secondary">Reihenfolge</button></div><div id="gpDeviceRoundOrderPanel" class="gpDeviceRoundOrderPanel" hidden><div class="gpDeviceRoundHead"><strong>Geräte-Reihenfolge</strong><button id="gpDeviceRoundOrderClose" type="button" class="secondary">Schließen</button></div><div id="gpDeviceRoundOrderList"></div></div><div id="gpTargetGuide" class="gpTargetGuide" aria-live="polite">
   <strong>Orientierungs-Sollwert:</strong>
   <span id="gpTargetGuideText">Kühlung: 2 bis 7 °C</span>
 </div>
@@ -3529,14 +3504,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <div id="gpManualMeasureFields"><label>Messstelle / Speise<input id="haccpLocation" placeholder="z. B. Kühlschrank 1"></label><div class="gpHaccpGrid"><label>Soll min. °C<input id="haccpMin" type="text" inputmode="decimal" step="0.1" value="2"></label><label>Soll max. °C<input id="haccpMax" type="text" inputmode="decimal" step="0.1" value="7"></label></div></div>
 <label id="haccpMeasureComponentWrap" hidden>Zu messende Komponente<select id="haccpMeasureComponent"><option value="">Komponente auswählen</option></select></label>
 <label>Gemessene Temperatur °C<input id="haccpActual" type="text" inputmode="decimal" step="0.1"  placeholder="z. B. 5,2"></label>
-<div id="haccpEvaluation" class="gpEval">Temperatur eingeben – GP bewertet automatisch.</div>
-<div id="gpRoundPanel" class="gpRoundPanel" hidden>
-  <div class="gpRoundTop"><div><strong id="gpRoundProgress">Messrunde</strong><div id="gpRoundKind" class="muted"></div></div><button id="gpRoundClose" class="gpMiniSettings" type="button">✕</button></div>
-  <div id="gpRoundDots" class="gpRoundDots"></div>
-  <div id="gpRoundCurrent" class="gpRoundCurrent"></div>
-  <div class="gpRoundActions"><button id="gpRoundBack" class="secondary" type="button">← Zurück</button><button id="gpRoundSkip" class="secondary" type="button">Überspringen →</button></div>
-</div>
-
+<div id="haccpEvaluation" class="gpEval">Temperatur eingeben – GP bewertet automatisch.</div><div id="gpDeviceRoundLive" class="gpDeviceRoundLive" hidden><div class="gpDeviceRoundTop"><strong id="gpDeviceRoundProgress"></strong><button id="gpDeviceRoundStop" type="button" class="secondary">Beenden</button></div><div id="gpDeviceRoundCurrent" class="gpDeviceRoundCurrent"></div><div id="gpDeviceRoundDots" class="gpDeviceRoundDots"></div><div class="gpDeviceRoundActions"><button id="gpDeviceRoundBack" type="button" class="secondary">← Zurück</button><button id="gpDeviceRoundSkip" type="button" class="secondary">Überspringen →</button></div></div>
 <label id="haccpActionWrap" hidden>Ergriffene Maßnahme<textarea id="haccpAction" rows="3" placeholder="z. B. Ware umgelagert, Kühlung geprüft"></textarea></label>
 <label>Mitarbeiter / Kürzel<input id="haccpEmployee" placeholder="Name oder Kürzel"></label>
 <button id="haccpSave" class="primary" type="button">Messung speichern</button><div id="haccpNotice" class="saveSuccess"></div>
@@ -3758,10 +3726,6 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   <div class="gpSimpleTodayTitle">📋 Heute</div>
   <div id="gpTodayProgress" class="gpTodayProgress"></div>
   <div id="haccpTodayChecks" class="gpTodayChecks"></div>
-  <div id="gpRoundTodayDoc" class="gpRoundTodayDoc" hidden>
-    <div class="gpRoundTodayHead"><strong>🔁 Messrunde</strong><span id="gpRoundTodaySummary"></span></div>
-    <div id="gpRoundTodayList"></div>
-  </div>
 
   <div class="gpSampleCollection">
     <div class="gpSampleCollectionHead">
@@ -9758,7 +9722,6 @@ if(saveDayDoc)saveDayDoc.addEventListener("click",()=>{
     sampleRows:JSON.parse(JSON.stringify(gpSampleRowsForDay(key))),
     cleaningRows:JSON.parse(JSON.stringify(window.gpCleaningRowsForDay?window.gpCleaningRowsForDay(key):[])),
     cleaningTasks:JSON.parse(JSON.stringify(window.gpCleaningTasksForDay?window.gpCleaningTasksForDay(key):[])),
-  roundPlan:(()=>{try{const x=JSON.parse(localStorage.getItem("gastropilot_haccp_round_plan_v1")||"{}");return JSON.parse(JSON.stringify(x[key]||null))}catch(e){return null}})(),
     reportVersion:"2.1"
   };
   gpSaveDayDocs(docs);notice.textContent="✓ HACCP-Tag abgeschlossen und gesichert.";gpRenderDayDocStatus();
@@ -10181,111 +10144,18 @@ document.querySelectorAll('[data-haccp-mode="cleaning"]').forEach(b=>b.addEventL
 })();
 </script>
 
-<script id="gp-v795-round-js">
-(function(){
-const $r=id=>document.getElementById(id),ORDER_KEY="gastropilot_haccp_round_order_v1",PLAN_KEY="gastropilot_haccp_round_plan_v1";
-let queue=[],idx=0,running=false,lastArchiveIds=new Set();
-const norm=s=>String(s||"").trim().toLowerCase(),dayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
-function arr(k){try{const a=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
-function loadDevices(){return arr("gastropilot_haccp_devices_v1")} function loadOrder(){return arr(ORDER_KEY)} function saveOrder(a){localStorage.setItem(ORDER_KEY,JSON.stringify(a))}
-function plans(){try{const x=JSON.parse(localStorage.getItem(PLAN_KEY)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}} function savePlans(x){localStorage.setItem(PLAN_KEY,JSON.stringify(x))}
-function orderedDevices(){const ds=loadDevices(),o=loadOrder(),rank=new Map(o.map((id,i)=>[id,i]));return ds.slice().sort((a,b)=>(rank.has(a.id)?rank.get(a.id):999)-(rank.has(b.id)?rank.get(b.id):999))}
-function todayFoods(){
- const out=[];
- try{
-   const wp=JSON.parse(localStorage.getItem("gastropilot_week_plan")||"{}");
-   const names=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"],day=names[new Date().getDay()],d=wp&&wp[day];
-   if(d&&typeof d==="object")Object.values(d).forEach(slot=>{const n=slot&&slot.recipeName;if(n&&!out.includes(n))out.push(n)});
- }catch(e){}
- const sel=$r("haccpMenuPick");if(sel)[...sel.options].filter(o=>o.value&&o.value!=="__manual__").forEach(o=>{if(!out.includes(o.value))out.push(o.value)});
- return out;
-}
-function components(dish){try{const x=JSON.parse(localStorage.getItem("gastropilot_haccp_components_v1")||"{}");const a=x[norm(dish)];return Array.isArray(a)?a.filter(Boolean):[]}catch(e){return[]}}
-function required(){const n=parseInt(localStorage.getItem("gastropilot_haccp_measure_count_v1")||"3",10);return n===2?2:3}
-function isDessert(name){return /pudding|dessert|joghurt|quark|milchreis|kompott/.test(norm(name))}
-function buildQueue(){
- const q=orderedDevices().map(d=>({key:"dev:"+d.id,kind:"device",id:d.id,name:d.name,type:d.type,min:d.min,max:d.max,required:1}));
- todayFoods().forEach(name=>{const cs=components(name);if(cs.length)cs.forEach(c=>q.push({key:"food:"+norm(name)+"|"+norm(c),kind:"food",name,component:c,required:required()}));else q.push({key:"food:"+norm(name),kind:"food",name,component:"",required:required()})});
- return q;
-}
-function archive(){return arr("gastropilot_haccp_archive_v1")}
-function matches(r,p){if(p.kind==="device")return (r.type==="Kühlung"||r.type==="Tiefkühlung")&&norm(r.location)===norm(p.name);return r.type==="Speisentemperatur"&&norm(r.dish||r.location)===norm(p.name)&&(!p.component||norm(r.component||r.location)===norm(p.component))}
-function syncPlan(){
- const ps=plans(),p=ps[dayKey()];if(!p)return null;
- const rows=archive();
- p.points.forEach(pt=>{
-   const ids=new Set(pt.recordIds||[]);
-   rows.forEach(r=>{if(matches(r,pt))ids.add(r.id)});
-   pt.recordIds=[...ids];
-   pt.count=pt.recordIds.length;
-   pt.done=pt.count>=(pt.required||1);
- });
- p.updatedAt=new Date().toISOString();ps[dayKey()]=p;savePlans(ps);renderTodayDoc();return p
-}
-function renderTodayDoc(){const box=$r("gpRoundTodayDoc"),sum=$r("gpRoundTodaySummary"),list=$r("gpRoundTodayList");if(!box)return;const p=plans()[dayKey()];if(!p){box.hidden=true;return}box.hidden=false;const done=p.points.filter(x=>x.done).length;sum.textContent=`${done}/${p.points.length} abgeschlossen`;list.innerHTML=p.points.map(x=>`<div class="gpRoundDocRow"><div><b>${x.kind==="device"?x.name:x.name+(x.component?" · "+x.component:"")}</b><br><span>${x.kind==="device"?x.type:"Speisentemperatur"} · ${x.count||0}/${x.required||1} Messung${(x.required||1)===1?"":"en"}</span></div><span class="${x.done?"gpRoundDocOk":"gpRoundDocOpen"}">${x.done?"✓ erledigt":"⚠ offen"}</span></div>`).join("")}
-function renderOrder(){const box=$r("gpRoundOrderList"),ds=orderedDevices();if(!box)return;box.innerHTML=ds.map((d,i)=>`<div class="gpRoundOrderRow"><span><strong>${d.name}</strong><br><small>${d.type}</small></span><button type="button" data-up="${d.id}" ${i===0?"disabled":""}>↑</button><button type="button" data-down="${d.id}" ${i===ds.length-1?"disabled":""}>↓</button></div>`).join("")||'<div class="muted">Keine Geräte angelegt.</div>'}
-function move(id,dir){const a=orderedDevices().map(d=>d.id),i=a.indexOf(id),j=i+dir;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];saveOrder(a);renderOrder()}
-$r("gpRoundOrderList")?.addEventListener("click",e=>{const u=e.target.closest("[data-up]"),d=e.target.closest("[data-down]");if(u)move(u.dataset.up,-1);if(d)move(d.dataset.down,1)});
-$r("gpRoundOrder")?.addEventListener("click",()=>{$r("gpRoundOrderPanel").hidden=false;renderOrder()});$r("gpRoundOrderClose")?.addEventListener("click",()=>{$r("gpRoundOrderPanel").hidden=true});
-function saveNewPlan(){const ps=plans();ps[dayKey()]={day:dayKey(),startedAt:new Date().toISOString(),points:queue.map(x=>({...x,count:0,done:false,recordIds:[]}))};savePlans(ps)}
-function currentPlanPoint(){const p=syncPlan();return p&&p.points[idx]}
-function setCurrent(){
- if(!running)return;const p=syncPlan();if(!p)return;if(idx>=p.points.length){finish();return}const x=p.points[idx],type=$r("haccpType"),act=$r("haccpActual");
- $r("gpRoundProgress").textContent=`Messrunde · ${idx+1} von ${p.points.length}`;$r("gpRoundDots").innerHTML=p.points.map((z,i)=>`<span class="gpRoundDot ${z.done?"done":i===idx?"current":""}"></span>`).join("");
- if(x.kind==="device"){type.value=x.type;type.dispatchEvent(new Event("change",{bubbles:true}));const pick=$r("gpDevicePick");if(pick){pick.value=x.id;pick.dispatchEvent(new Event("change",{bubbles:true}))}$r("gpRoundKind").textContent=x.type;$r("gpRoundCurrent").innerHTML=`${x.name}<small>Soll: ${x.min} bis ${x.max} °C · ${x.done?"✓ erledigt":"noch offen"}</small>`}
- else{type.value="Speisentemperatur";type.dispatchEvent(new Event("change",{bubbles:true}));const menu=$r("haccpMenuPick");if(menu){menu.value=x.name;menu.dispatchEvent(new Event("change",{bubbles:true}))}setTimeout(()=>{const mc=$r("haccpMeasureComponent");if(mc&&x.component){mc.value=x.component;mc.dispatchEvent(new Event("change",{bubbles:true}))}},30);if(isDessert(x.name)){const mn=$r("haccpMin"),mx=$r("haccpMax");if(mn&&mx){mn.value="1";mx.value="7";mn.dispatchEvent(new Event("input",{bubbles:true}));mx.dispatchEvent(new Event("input",{bubbles:true}))}}$r("gpRoundKind").textContent=isDessert(x.name)?"Kaltes Dessert":"Speisentemperatur";$r("gpRoundCurrent").innerHTML=`${x.name}${x.component?" · "+x.component:""}<small>${isDessert(x.name)?"Soll: 1 bis 7 °C · ":""}${x.count||0}/${x.required||1} Messungen</small>`}
- lastArchiveIds=new Set(archive().map(r=>r.id));if(act){act.value="";act.dispatchEvent(new Event("input",{bubbles:true}));setTimeout(()=>act.focus({preventScroll:true}),100)}
-}
-function nextOpen(from){const p=syncPlan();if(!p)return from+1;for(let i=from+1;i<p.points.length;i++)if(!p.points[i].done)return i;for(let i=0;i<=from;i++)if(!p.points[i].done)return i;return p.points.length}
-function finish(){running=false;const p=syncPlan(),done=p?p.points.filter(x=>x.done).length:0,total=p?p.points.length:0;$r("gpRoundProgress").textContent=done===total?"✓ Messrunde abgeschlossen":"Messrunde beendet";$r("gpRoundKind").textContent=`${done} von ${total} Messpunkten abgeschlossen`;$r("gpRoundCurrent").innerHTML=done===total?"Alle vorgesehenen Messpunkte dokumentiert.":"Offene Messpunkte bleiben in „Heute“ sichtbar.";$r("gpRoundDots").innerHTML=p?p.points.map(x=>`<span class="gpRoundDot ${x.done?"done":""}"></span>`).join(""):""}
-$r("gpRoundRefreshFoods")?.addEventListener("click",()=>{
- const fresh=buildQueue(),ps=plans(),old=ps[dayKey()];
- if(!old){queue=fresh;$r("haccpNotice").textContent=`${fresh.filter(x=>x.kind==="food").length} Speisen-Messpunkte gefunden. Messrunde kann gestartet werden.`;return}
- const oldMap=new Map(old.points.map(x=>[x.key,x]));
- old.points=fresh.map(x=>oldMap.has(x.key)?{...x,...oldMap.get(x.key),required:x.required}:{...x,count:0,done:false,recordIds:[]});
- ps[dayKey()]=old;savePlans(ps);queue=old.points;syncPlan();
- $r("haccpNotice").textContent=`✓ Messrunde aktualisiert: ${queue.filter(x=>x.kind==="food").length} Speisen-Messpunkte übernommen.`;
-});
-$r("gpRoundStart")?.addEventListener("click",()=>{queue=buildQueue();if(!queue.length){$r("haccpNotice").textContent="Keine Geräte oder Speisen für die Messrunde gefunden.";return}saveNewPlan();idx=0;running=true;$r("gpRoundPanel").hidden=false;
- const dc=queue.filter(x=>x.kind==="device").length,fc=queue.filter(x=>x.kind==="food").length;
- $r("haccpNotice").textContent=`Messrunde gestartet: ${dc} Geräte · ${fc} Speisen-Messpunkte.`;
- setCurrent()});
-$r("gpRoundClose")?.addEventListener("click",()=>{running=false;$r("gpRoundPanel").hidden=true;syncPlan()});
-$r("gpRoundBack")?.addEventListener("click",()=>{if(idx>0){idx--;setCurrent()}});$r("gpRoundSkip")?.addEventListener("click",()=>{if(running){idx=nextOpen(idx);if(idx>=queue.length)finish();else setCurrent()}});
-$r("haccpSave")?.addEventListener("click",()=>{
- if(!running){setTimeout(syncPlan,250);return}
- const pointIndex=idx;
- const point=queue[pointIndex];
- const knownIds=new Set(lastArchiveIds);
- setTimeout(()=>{
-   const rows=archive();
-   const added=rows.filter(r=>!knownIds.has(r.id));
-   const hit=added.find(r=>matches(r,point));
-   if(!hit)return;
-
-   // Die native HACCP-Speicherung ist der Beweis für diesen Messpunkt.
-   const ps=plans(),plan=ps[dayKey()];
-   if(!plan||!plan.points[pointIndex])return;
-   const pp=plan.points[pointIndex];
-   pp.recordIds=Array.from(new Set([...(pp.recordIds||[]),hit.id]));
-   pp.count=(pp.recordIds||[]).length;
-   pp.done=pp.count>=(pp.required||1);
-   plan.updatedAt=new Date().toISOString();
-   ps[dayKey()]=plan;savePlans(ps);
-   renderTodayDoc();
-
-   if(pp.done){
-     idx=nextOpen(pointIndex);
-   }else{
-     idx=pointIndex;
-   }
-   if(idx>=plan.points.length)finish();else setCurrent();
- },180);
-});
-document.querySelectorAll('[data-haccp-mode="today"]').forEach(b=>b.addEventListener("click",()=>setTimeout(syncPlan,50)));
-syncPlan();
-})();
-</script>
-</body>
+<script id="gp-v710-device-round-js">(function(){
+const $=id=>document.getElementById(id),OK="gastropilot_haccp_device_round_order_v1";let run=false,ds=[],i=0,before=new Set(),cur=null;
+function load(k){try{let x=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}}function norm(x){return String(x||"").trim().toLowerCase()}
+function ordered(){let a=load("gastropilot_haccp_devices_v1"),o=load(OK),r=new Map(o.map((x,j)=>[x,j]));return a.sort((x,y)=>(r.has(x.id)?r.get(x.id):999)-(r.has(y.id)?r.get(y.id):999))}
+function history(){return load("gastropilot_haccp_temperature_v1")}
+function orderUI(){let a=ordered(),b=$("gpDeviceRoundOrderList");b.innerHTML=a.map((d,j)=>`<div class="gpDeviceRoundOrderRow"><span><strong>${d.name}</strong><br><small>${d.type}</small></span><button data-up="${d.id}" ${j===0?"disabled":""}>↑</button><button data-down="${d.id}" ${j===a.length-1?"disabled":""}>↓</button></div>`).join("")}
+function move(id,n){let a=ordered().map(x=>x.id),j=a.indexOf(id),k=j+n;if(j<0||k<0||k>=a.length)return;[a[j],a[k]]=[a[k],a[j]];localStorage.setItem(OK,JSON.stringify(a));orderUI()}
+function show(){if(!run)return;cur=ds[i];$("gpDeviceRoundLive").hidden=false;$("gpDeviceRoundProgress").textContent=`Geräte · ${i+1}/${ds.length}`;$("gpDeviceRoundCurrent").innerHTML=`${cur.name}<small>${cur.type} · Soll ${cur.min} bis ${cur.max} °C</small>`;$("gpDeviceRoundDots").innerHTML=ds.map((x,j)=>`<span class="gpDeviceRoundDot ${j<i?"done":j===i?"current":""}"></span>`).join("");let t=$("haccpType"),p=$("haccpDevicePick"),a=$("haccpActual");t.value=cur.type;t.dispatchEvent(new Event("change",{bubbles:true}));setTimeout(()=>{p.value=cur.id;p.dispatchEvent(new Event("change",{bubbles:true}));a.value="";a.dispatchEvent(new Event("input",{bubbles:true}));a.focus({preventScroll:true})},0)}
+function next(){if(i<ds.length-1){i++;show()}else{run=false;$("gpDeviceRoundProgress").textContent="✓ Geräte-Messrunde abgeschlossen";$("gpDeviceRoundCurrent").textContent="Alle Geräte gemessen.";$("gpDeviceRoundDots").innerHTML=ds.map(()=>'<span class="gpDeviceRoundDot done"></span>').join("")}}
+$("gpDeviceRoundStart").onclick=()=>{ds=ordered();if(!ds.length)return;i=0;run=true;show()};$("gpDeviceRoundStop").onclick=()=>{run=false;$("gpDeviceRoundLive").hidden=true};$("gpDeviceRoundBack").onclick=()=>{if(run&&i>0){i--;show()}};$("gpDeviceRoundSkip").onclick=()=>{if(run)next()};
+$("gpDeviceRoundOrder").onclick=()=>{$("gpDeviceRoundOrderPanel").hidden=false;orderUI()};$("gpDeviceRoundOrderClose").onclick=()=>{$("gpDeviceRoundOrderPanel").hidden=true};$("gpDeviceRoundOrderList").onclick=e=>{let u=e.target.closest("[data-up]"),d=e.target.closest("[data-down]");if(u)move(u.dataset.up,-1);if(d)move(d.dataset.down,1)};
+let save=$("haccpSave");save.addEventListener("pointerdown",()=>{if(run&&cur)before=new Set(history().map(x=>x.id))},true);save.addEventListener("click",()=>{if(!run||!cur)return;let expected={name:cur.name,type:cur.type,index:i};setTimeout(()=>{if(!run||i!==expected.index)return;let added=history().filter(x=>!before.has(x.id));if(added.some(x=>x.type===expected.type&&norm(x.location)===norm(expected.name)))next()},120)});
+})();</script></body>
 </html>
   
