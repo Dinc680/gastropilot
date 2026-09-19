@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.20.1 Rollen & Rechte</title>
+<title>GastroPilot – V7.20.2 Mitarbeiter-Kürzel Fix</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10454,6 +10454,24 @@ $("gpStaffActive")?.addEventListener("change",()=>setTimeout(apply,20));
 $("gpStaffManageBtn")?.addEventListener("click",()=>setTimeout(draw,20));
 new MutationObserver(()=>draw()).observe($("gpStaffList"),{childList:true});
 draw();
+})();</script>
+<script id="gp-v7202-staff-autofill-fix-js">(function(){
+const AK="gastropilot_active_employee_v1";
+const ids=["haccpEmployee","gpCleaningEmployee","gpFryerEmployee"];
+function active(){return localStorage.getItem(AK)||""}
+function sync(force){
+ const v=active(); if(!v)return;
+ ids.forEach(id=>{const el=document.getElementById(id);if(!el)return;
+   const wasAuto=el.dataset.gpStaffAuto==="1";
+   if(force||!el.value.trim()||wasAuto){el.value=v;el.dataset.gpStaffAuto="1";el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}))}
+ });
+}
+document.getElementById("gpStaffActive")?.addEventListener("change",()=>setTimeout(()=>sync(true),30));
+document.addEventListener("click",e=>{
+ if(e.target.closest("[data-home-screen='haccpCard'],[data-day-target='haccpCard'],[data-haccp-mode]"))setTimeout(()=>sync(false),80);
+});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(()=>sync(false),30)});
+setTimeout(()=>sync(false),80);
 })();</script>
 </body>
 </html>
