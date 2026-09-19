@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.20.2 Mitarbeiter-Kürzel Fix</title>
+<title>GastroPilot – V7.21 Rechte</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2953,6 +2953,9 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
 .gpRolePicker{margin:8px 0 10px}.gpRolePicker label{display:block;font-size:10px;font-weight:850;margin-bottom:4px}.gpRolePicker select{margin:0}
 .gpRoleControls{display:flex;gap:6px;align-items:center;margin-top:5px}.gpRoleControls select{margin:0;min-height:32px;font-size:11px}.gpRoleControls button{width:auto!important;min-height:32px!important;padding:5px 8px!important;font-size:10px!important}
 body.gp-role-employee #gpBusinessToggle,body.gp-role-employee #gpDeviceSettingsToggle,body.gp-role-employee #gpFryerManageToggle{display:none!important}
+</style>
+<style id="gp-v721-permissions-css">
+body.gp-role-employee #gpBusinessToggle,body.gp-role-employee #gpStaffManageBtn,body.gp-role-employee #gpDeviceSettingsToggle,body.gp-role-employee #gpFryerManageToggle,body.gp-role-employee #gpCleaningManageToggle,body.gp-role-employee #gpCleaningManage,body.gp-role-employee [data-gp-admin-only="1"]{display:none!important}
 </style>
 </head>
 
@@ -10472,6 +10475,17 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(()=>sync(false),30)});
 setTimeout(()=>sync(false),80);
+})();</script>
+<script id="gp-v721-permissions-js">(function(){
+const AK="gastropilot_active_employee_v1",RK="gastropilot_staff_roles_v1";
+function roles(){try{return JSON.parse(localStorage.getItem(RK)||"{}")||{}}catch(e){return{}}}
+function active(){return localStorage.getItem(AK)||""}
+function manager(){let a=active();return !!a&&(roles()[a]||"employee")==="manager"}
+function mark(){document.querySelectorAll('[id*="Delete"],[id*="delete"],[id*="Clear"],[id*="clear"]').forEach(el=>{if(el.closest("#haccpCard"))el.dataset.gpAdminOnly="1"});["gpCleaningManageToggle","gpCleaningManage"].forEach(id=>{let x=document.getElementById(id);if(x)x.dataset.gpAdminOnly="1"})}
+function apply(){mark();let a=active(),m=manager();document.body.classList.toggle("gp-role-manager",m);document.body.classList.toggle("gp-role-employee",!!a&&!m)}
+document.getElementById("gpStaffActive")?.addEventListener("change",()=>setTimeout(apply,50));
+document.getElementById("gpStaffList")?.addEventListener("change",()=>setTimeout(apply,50));
+new MutationObserver(()=>apply()).observe(document.body,{childList:true,subtree:true});apply();
 })();</script>
 </body>
 </html>
