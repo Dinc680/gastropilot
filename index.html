@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.18.1 Abweichungszentrale</title>
+<title>GastroPilot – V7.19 Betrieb einrichten</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2945,6 +2945,9 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
 .gpDevWorkCard{border:1px solid #e2e7e4;border-radius:12px;background:#fff;padding:11px;margin:8px 0}.gpDevWorkCard.gpDevOpen{border-color:#e5c999;background:#fffaf2}.gpDevWorkCard.gpDevDone{background:#f5faf8}
 .gpDevWorkCard strong{display:block;font-size:13px}.gpDevWorkMeta{font-size:10px;color:#6c7672;margin:3px 0 8px}.gpDevWorkCard textarea{margin:7px 0!important;min-height:70px}.gpDevWorkCard button{margin:0!important}.gpDevWorkSectionTitle{margin:16px 0 6px;font-weight:900;font-size:13px}
 </style>
+<style id="gp-v719-business-css">
+.gpBusinessCard{margin:12px 0;padding:12px;border:1px solid #d7e2de;border-radius:15px;background:#fff}.gpBusinessHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.gpBusinessHead>div{min-width:0}.gpBusinessHead span{display:block;font-size:9px;font-weight:900;letter-spacing:.08em;color:var(--green2);margin-bottom:3px}.gpBusinessHead strong{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gpBusinessHead small{display:block;color:#6f7975;font-size:10px;margin-top:2px}#gpBusinessToggle{width:auto!important;min-height:31px!important;padding:5px 9px!important;font-size:11px!important}#gpBusinessSetup{margin-top:11px;padding-top:10px;border-top:1px solid #e6ebe8}#gpBusinessSetup label{display:block;margin:8px 0;font-size:11px;font-weight:750}#gpBusinessSetup input{margin-top:4px}
+</style>
 </head>
 
 <body>
@@ -3011,7 +3014,16 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
     </button>
   </div>
 
-  <div class="gpStaffCard">
+  <div class="gpBusinessCard">
+<div class="gpBusinessHead"><div><span>🏢 BETRIEB</span><strong id="gpBusinessDisplayName">Betrieb einrichten</strong><small id="gpBusinessDisplayMeta">Grunddaten für GastroPilot hinterlegen</small></div><button type="button" id="gpBusinessToggle">Einrichten</button></div>
+<div id="gpBusinessSetup" hidden>
+<label>Betriebsname<input id="gpBusinessName" type="text" placeholder="z. B. Mitarbeiterrestaurant Muster"></label>
+<label>Standort / Bezeichnung<input id="gpBusinessLocation" type="text" placeholder="z. B. Frankfurt – Haus A"></label>
+<label>Verantwortliche Leitung<input id="gpBusinessManager" type="text" placeholder="Name oder Funktion"></label>
+<label>Interne Betriebs-/Standortnummer <span class="muted">(optional)</span><input id="gpBusinessNumber" type="text" placeholder="optional"></label>
+<button type="button" class="primary" id="gpBusinessSave">Betriebsdaten speichern</button><div id="gpBusinessNotice" class="saveSuccess"></div>
+</div></div>
+<div class="gpStaffCard">
     <div class="gpStaffHead"><span>👤 Aktiver Mitarbeiter</span><button type="button" id="gpStaffManageBtn">Verwalten</button></div>
     <select id="gpStaffActive" aria-label="Aktiver Mitarbeiter"><option value="">Mitarbeiter auswählen …</option></select>
     <div id="gpStaffManage" hidden>
@@ -10393,6 +10405,14 @@ function activate(mode){
 document.querySelector('[data-haccp-mode="deviations"]')?.addEventListener("click",ev=>{ev.preventDefault();ev.stopImmediatePropagation();activate("deviations")},true);
 document.addEventListener("gpDeviationUpdated",()=>setTimeout(render,20));document.addEventListener("visibilitychange",()=>{if(!document.hidden)render()});render();
 })();</script>
+<script id="gp-v719-business-js">(function(){
+const KEY="gastropilot_business_v1",$=id=>document.getElementById(id);
+function load(){try{let x=JSON.parse(localStorage.getItem(KEY)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}}
+const val=id=>String($(id)?.value||"").trim();
+function render(){let x=load(),n=String(x.name||"").trim(),l=String(x.location||"").trim(),m=String(x.manager||"").trim();$("gpBusinessDisplayName").textContent=n||"Betrieb einrichten";$("gpBusinessDisplayMeta").textContent=[l,m?"Leitung: "+m:""].filter(Boolean).join(" · ")||(n?"Betriebsdaten gespeichert":"Grunddaten für GastroPilot hinterlegen");$("gpBusinessName").value=n;$("gpBusinessLocation").value=l;$("gpBusinessManager").value=m;$("gpBusinessNumber").value=String(x.number||"");$("gpBusinessToggle").textContent=n?"Bearbeiten":"Einrichten"}
+$("gpBusinessToggle")?.addEventListener("click",()=>{let p=$("gpBusinessSetup");p.hidden=!p.hidden});
+$("gpBusinessSave")?.addEventListener("click",()=>{let x={name:val("gpBusinessName"),location:val("gpBusinessLocation"),manager:val("gpBusinessManager"),number:val("gpBusinessNumber"),updatedAt:new Date().toISOString()};if(!x.name){$("gpBusinessNotice").textContent="Bitte einen Betriebsnamen eintragen.";return}localStorage.setItem(KEY,JSON.stringify(x));$("gpBusinessNotice").textContent="✓ Betriebsdaten gespeichert";render();setTimeout(()=>{$("gpBusinessNotice").textContent=""},2200)});
+render();})();</script>
 </body>
 </html>
   
