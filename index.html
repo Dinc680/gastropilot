@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.16 Mitarbeiter</title>
+<title>GastroPilot – V7.16.1 Mitarbeiterwechsel</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10259,22 +10259,20 @@ function refresh(){
 document.querySelectorAll(".gpDayTask").forEach(b=>b.addEventListener("click",()=>{let home=document.querySelector(`[data-home-screen="${b.dataset.dayTarget}"]`);if(home)home.click();setTimeout(()=>{let mb=document.querySelector(`[data-haccp-mode="${b.dataset.haccpOpen}"]`);if(mb)mb.click()},80)}));
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});document.addEventListener("click",()=>setTimeout(refresh,250));refresh();
 })();</script>
-<script id="gp-v716-staff-js">(function(){
+<script id="gp-v7161-staff-js">(function(){
 const KEY="gastropilot_staff_v1",ACTIVE="gastropilot_active_employee_v1";
 const $=id=>document.getElementById(id);
 function load(){try{let a=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
 function save(a){localStorage.setItem(KEY,JSON.stringify(a))}
 function active(){return localStorage.getItem(ACTIVE)||""}
-function setActive(v){v?localStorage.setItem(ACTIVE,v):localStorage.removeItem(ACTIVE);fillExisting(v)}
-function fillExisting(v){
- ["haccpEmployee","gpCleaningEmployee","gpFryerEmployee"].forEach(id=>{let e=$(id);if(e&&v)e.value=v});
-}
+function setActive(v){const previous=active();v?localStorage.setItem(ACTIVE,v):localStorage.removeItem(ACTIVE);fillExisting(v,previous)}
+function fillExisting(v,previous){["haccpEmployee","gpCleaningEmployee","gpFryerEmployee"].forEach(id=>{let e=$(id);if(!e)return;let auto=e.dataset.gpStaffAuto==="1";if(v&&(!e.value.trim()||auto||e.value===previous)){e.value=v;e.dataset.gpStaffAuto="1"}else if(!v&&auto){e.value="";delete e.dataset.gpStaffAuto}})}
 function render(){
  let a=load(),sel=$("gpStaffActive"),cur=active();
  sel.innerHTML='<option value="">Mitarbeiter auswählen …</option>'+a.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
  if(a.includes(cur))sel.value=cur;else if(cur){localStorage.removeItem(ACTIVE);cur=""}
  $("gpStaffList").innerHTML=a.length?a.map((n,i)=>`<div class="gpStaffPerson"><span>${esc(n)}</span><button type="button" data-del="${i}">Entfernen</button></div>`).join(""):'<div class="muted">Noch keine Mitarbeiter angelegt.</div>';
- fillExisting(cur);
+ fillExisting(cur,"");
 }
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 $("gpStaffManageBtn")?.addEventListener("click",()=>{let p=$("gpStaffManage");p.hidden=!p.hidden});
@@ -10282,8 +10280,8 @@ $("gpStaffAddBtn")?.addEventListener("click",()=>{let i=$("gpStaffNew"),n=i.valu
 $("gpStaffNew")?.addEventListener("keydown",e=>{if(e.key==="Enter"){$("gpStaffAddBtn").click()}});
 $("gpStaffActive")?.addEventListener("change",e=>setActive(e.target.value));
 $("gpStaffList")?.addEventListener("click",e=>{let b=e.target.closest("[data-del]");if(!b)return;let a=load(),n=a[Number(b.dataset.del)];a.splice(Number(b.dataset.del),1);save(a);if(active()===n)setActive("");render()});
-document.addEventListener("click",e=>{if(e.target.closest("[data-home-screen='haccpCard'],.gpDayTask,[data-haccp-mode]"))setTimeout(()=>fillExisting(active()),100)});
-document.addEventListener("visibilitychange",()=>{if(!document.hidden){render();fillExisting(active())}});
+document.addEventListener("click",e=>{if(e.target.closest("[data-home-screen='haccpCard'],.gpDayTask,[data-haccp-mode]"))setTimeout(()=>fillExisting(active(),""),100)});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){render();fillExisting(active(),"")}});
 render();
 })();</script>
 </body>
