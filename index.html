@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.20 Rollen & Rechte</title>
+<title>GastroPilot – V7.20.1 Rollen & Rechte</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2948,11 +2948,11 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
 <style id="gp-v719-business-css">
 .gpBusinessCard{margin:12px 0;padding:12px;border:1px solid #d7e2de;border-radius:15px;background:#fff}.gpBusinessHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.gpBusinessHead>div{min-width:0}.gpBusinessHead span{display:block;font-size:9px;font-weight:900;letter-spacing:.08em;color:var(--green2);margin-bottom:3px}.gpBusinessHead strong{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gpBusinessHead small{display:block;color:#6f7975;font-size:10px;margin-top:2px}#gpBusinessToggle{width:auto!important;min-height:31px!important;padding:5px 9px!important;font-size:11px!important}#gpBusinessSetup{margin-top:11px;padding-top:10px;border-top:1px solid #e6ebe8}#gpBusinessSetup label{display:block;margin:8px 0;font-size:11px;font-weight:750}#gpBusinessSetup input{margin-top:4px}
 </style>
-<style id="gp-v720-roles-css">
-.gpRoleStatus{margin-top:6px;padding:6px 8px;border-radius:9px;background:#f3f7f5;font-size:10px;font-weight:800;color:#56645e}
-.gpStaffAddRole{grid-template-columns:1fr!important}.gpStaffAddRole select{margin:0!important}.gpStaffRoleTag{font-size:9px;font-weight:900;padding:3px 6px;border-radius:99px;background:#edf3f0;margin-left:5px}
+<style id="gp-v7201-roles-css">
+.gpRoleStatus{margin-top:6px;padding:7px 9px;border-radius:9px;background:#f3f7f5;font-size:11px;font-weight:800;color:#56645e}
+.gpRolePicker{margin:8px 0 10px}.gpRolePicker label{display:block;font-size:10px;font-weight:850;margin-bottom:4px}.gpRolePicker select{margin:0}
+.gpRoleControls{display:flex;gap:6px;align-items:center;margin-top:5px}.gpRoleControls select{margin:0;min-height:32px;font-size:11px}.gpRoleControls button{width:auto!important;min-height:32px!important;padding:5px 8px!important;font-size:10px!important}
 body.gp-role-employee #gpBusinessToggle,body.gp-role-employee #gpDeviceSettingsToggle,body.gp-role-employee #gpFryerManageToggle{display:none!important}
-body.gp-role-employee #gpStaffManageBtn{display:none!important}
 </style>
 </head>
 
@@ -3031,9 +3031,11 @@ body.gp-role-employee #gpStaffManageBtn{display:none!important}
 </div></div>
 <div class="gpStaffCard">
     <div class="gpStaffHead"><span>👤 Aktiver Mitarbeiter</span><button type="button" id="gpStaffManageBtn">Verwalten</button></div>
-    <select id="gpStaffActive" aria-label="Aktiver Mitarbeiter"><option value="">Mitarbeiter auswählen …</option></select><div id="gpRoleStatus" class="gpRoleStatus">Rolle: –</div>
+    <select id="gpStaffActive" aria-label="Aktiver Mitarbeiter"><option value="">Mitarbeiter auswählen …</option></select>
+    <div id="gpRoleStatus" class="gpRoleStatus">Rolle: Mitarbeiter</div>
     <div id="gpStaffManage" hidden>
-      <div class="gpStaffAdd gpStaffAddRole"><input id="gpStaffNew" type="text" autocomplete="off" placeholder="Name oder Kürzel"><select id="gpStaffNewRole"><option value="employee">Mitarbeiter</option><option value="manager">Leitung / Admin</option></select><button type="button" id="gpStaffAddBtn">Hinzufügen</button></div>
+      <div class="gpStaffAdd"><input id="gpStaffNew" type="text" autocomplete="off" placeholder="Name oder Kürzel"><button type="button" id="gpStaffAddBtn">Hinzufügen</button></div>
+      <div class="gpRolePicker"><label>Rolle für neuen Mitarbeiter</label><select id="gpStaffNewRole"><option value="employee">👤 Mitarbeiter</option><option value="manager">👔 Leitung / Admin</option></select></div>
       <div id="gpStaffList"></div>
     </div>
   </div>
@@ -10306,39 +10308,27 @@ function refresh(){
 document.querySelectorAll(".gpDayTask").forEach(b=>b.addEventListener("click",()=>{let home=document.querySelector(`[data-home-screen="${b.dataset.dayTarget}"]`);if(home)home.click();setTimeout(()=>{let mb=document.querySelector(`[data-haccp-mode="${b.dataset.haccpOpen}"]`);if(mb)mb.click()},80)}));
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});document.addEventListener("click",()=>setTimeout(refresh,250));refresh();
 })();</script>
-<script id="gp-v720-staff-roles-js">(function(){
-const KEY="gastropilot_staff_v1",ACTIVE="gastropilot_active_employee_v1",ROLES="gastropilot_staff_roles_v1";
+<script id="gp-v7161-staff-js">(function(){
+const KEY="gastropilot_staff_v1",ACTIVE="gastropilot_active_employee_v1";
 const $=id=>document.getElementById(id);
 function load(){try{let a=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
 function save(a){localStorage.setItem(KEY,JSON.stringify(a))}
-function roles(){try{let x=JSON.parse(localStorage.getItem(ROLES)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}}
-function saveRoles(x){localStorage.setItem(ROLES,JSON.stringify(x))}
 function active(){return localStorage.getItem(ACTIVE)||""}
-function roleOf(n){return roles()[n]||"employee"}
-function applyRole(){
- const n=active(),r=n?roleOf(n):"";
- document.body.classList.toggle("gp-role-employee",r==="employee");
- document.body.classList.toggle("gp-role-manager",r==="manager");
- const st=$("gpRoleStatus");if(st)st.textContent=n?`Rolle: ${r==="manager"?"Leitung / Admin":"Mitarbeiter"}`:"Rolle: –";
-}
-function setActive(v){const previous=active();v?localStorage.setItem(ACTIVE,v):localStorage.removeItem(ACTIVE);fillExisting(v,previous);applyRole()}
+function setActive(v){const previous=active();v?localStorage.setItem(ACTIVE,v):localStorage.removeItem(ACTIVE);fillExisting(v,previous)}
 function fillExisting(v,previous){["haccpEmployee","gpCleaningEmployee","gpFryerEmployee"].forEach(id=>{let e=$(id);if(!e)return;let auto=e.dataset.gpStaffAuto==="1";if(v&&(!e.value.trim()||auto||e.value===previous)){e.value=v;e.dataset.gpStaffAuto="1"}else if(!v&&auto){e.value="";delete e.dataset.gpStaffAuto}})}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function render(){
- let a=load(),sel=$("gpStaffActive"),cur=active(),rm=roles();
+ let a=load(),sel=$("gpStaffActive"),cur=active();
  sel.innerHTML='<option value="">Mitarbeiter auswählen …</option>'+a.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
  if(a.includes(cur))sel.value=cur;else if(cur){localStorage.removeItem(ACTIVE);cur=""}
- $("gpStaffList").innerHTML=a.length?a.map((n,i)=>`<div class="gpStaffPerson"><span>${esc(n)} <span class="gpStaffRoleTag">${(rm[n]||"employee")==="manager"?"LEITUNG":"MITARBEITER"}</span></span><button type="button" data-role="${i}">${(rm[n]||"employee")==="manager"?"Zu Mitarbeiter":"Zu Leitung"}</button><button type="button" data-del="${i}">Entfernen</button></div>`).join(""):'<div class="muted">Noch keine Mitarbeiter angelegt.</div>';
- fillExisting(cur,"");applyRole();
+ $("gpStaffList").innerHTML=a.length?a.map((n,i)=>`<div class="gpStaffPerson"><span>${esc(n)}</span><button type="button" data-del="${i}">Entfernen</button></div>`).join(""):'<div class="muted">Noch keine Mitarbeiter angelegt.</div>';
+ fillExisting(cur,"");
 }
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 $("gpStaffManageBtn")?.addEventListener("click",()=>{let p=$("gpStaffManage");p.hidden=!p.hidden});
-$("gpStaffAddBtn")?.addEventListener("click",()=>{let i=$("gpStaffNew"),n=i.value.trim();if(!n)return;let a=load(),rm=roles();if(!a.some(x=>x.toLowerCase()===n.toLowerCase())){a.push(n);save(a);rm[n]=$("gpStaffNewRole")?.value||"employee";saveRoles(rm)}i.value="";render();if(!active()){setActive(n);render()}});
-$("gpStaffNew")?.addEventListener("keydown",e=>{if(e.key==="Enter")$("gpStaffAddBtn").click()});
-$("gpStaffActive")?.addEventListener("change",e=>{setActive(e.target.value);render()});
-$("gpStaffList")?.addEventListener("click",e=>{
- let rb=e.target.closest("[data-role]");if(rb){let a=load(),n=a[Number(rb.dataset.role)],rm=roles();rm[n]=(rm[n]||"employee")==="manager"?"employee":"manager";saveRoles(rm);render();return}
- let b=e.target.closest("[data-del]");if(!b)return;let a=load(),n=a[Number(b.dataset.del)],rm=roles();a.splice(Number(b.dataset.del),1);delete rm[n];save(a);saveRoles(rm);if(active()===n)setActive("");render()
-});
+$("gpStaffAddBtn")?.addEventListener("click",()=>{let i=$("gpStaffNew"),n=i.value.trim();if(!n)return;let a=load();if(!a.some(x=>x.toLowerCase()===n.toLowerCase())){a.push(n);save(a)}i.value="";render();if(!active()){setActive(n);render()}});
+$("gpStaffNew")?.addEventListener("keydown",e=>{if(e.key==="Enter"){$("gpStaffAddBtn").click()}});
+$("gpStaffActive")?.addEventListener("change",e=>setActive(e.target.value));
+$("gpStaffList")?.addEventListener("click",e=>{let b=e.target.closest("[data-del]");if(!b)return;let a=load(),n=a[Number(b.dataset.del)];a.splice(Number(b.dataset.del),1);save(a);if(active()===n)setActive("");render()});
 document.addEventListener("click",e=>{if(e.target.closest("[data-home-screen='haccpCard'],.gpDayTask,[data-haccp-mode]"))setTimeout(()=>fillExisting(active(),""),100)});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){render();fillExisting(active(),"")}});
 render();
@@ -10431,6 +10421,40 @@ function render(){let x=load(),n=String(x.name||"").trim(),l=String(x.location||
 $("gpBusinessToggle")?.addEventListener("click",()=>{let p=$("gpBusinessSetup");p.hidden=!p.hidden});
 $("gpBusinessSave")?.addEventListener("click",()=>{let x={name:val("gpBusinessName"),location:val("gpBusinessLocation"),manager:val("gpBusinessManager"),number:val("gpBusinessNumber"),updatedAt:new Date().toISOString()};if(!x.name){$("gpBusinessNotice").textContent="Bitte einen Betriebsnamen eintragen.";return}localStorage.setItem(KEY,JSON.stringify(x));$("gpBusinessNotice").textContent="✓ Betriebsdaten gespeichert";render();setTimeout(()=>{$("gpBusinessNotice").textContent=""},2200)});
 render();})();</script>
+<script id="gp-v7201-roles-js">(function(){
+const RK="gastropilot_staff_roles_v1",SK="gastropilot_staff_v1",AK="gastropilot_active_employee_v1",$=id=>document.getElementById(id);
+function staff(){try{let a=JSON.parse(localStorage.getItem(SK)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
+function roles(){try{let x=JSON.parse(localStorage.getItem(RK)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}}
+function save(x){localStorage.setItem(RK,JSON.stringify(x))}
+function active(){return localStorage.getItem(AK)||""}
+function role(n){return roles()[n]||"employee"}
+function apply(){
+ let n=active(),r=n?role(n):"employee",st=$("gpRoleStatus");
+ if(st)st.textContent=n?`Rolle: ${r==="manager"?"👔 Leitung / Admin":"👤 Mitarbeiter"}`:"Rolle: –";
+ document.body.classList.toggle("gp-role-employee",!!n&&r==="employee");
+ document.body.classList.toggle("gp-role-manager",!!n&&r==="manager");
+}
+function draw(){
+ let box=$("gpStaffList");if(!box)return;
+ let a=staff(),rm=roles();
+ // Stable staff script creates one row per employee with an Entfernen button. Add a visible role selector to each row.
+ [...box.children].forEach((row,i)=>{
+   let n=a[i]; if(!n||row.querySelector(".gpRoleControls"))return;
+   let c=document.createElement("div");c.className="gpRoleControls";
+   c.innerHTML=`<select data-gp-role-name="${String(n).replace(/"/g,"&quot;")}"><option value="employee">👤 Mitarbeiter</option><option value="manager">👔 Leitung / Admin</option></select>`;
+   row.appendChild(c);c.querySelector("select").value=rm[n]||"employee";
+ });
+ apply();
+}
+let pendingRole="employee";
+$("gpStaffAddBtn")?.addEventListener("pointerdown",()=>{pendingRole=$("gpStaffNewRole")?.value||"employee"},true);
+$("gpStaffAddBtn")?.addEventListener("click",()=>setTimeout(()=>{let a=staff(),n=a[a.length-1];if(n){let rm=roles();if(!rm[n]){rm[n]=pendingRole;save(rm)}}draw()},40));
+$("gpStaffList")?.addEventListener("change",e=>{let s=e.target.closest("[data-gp-role-name]");if(!s)return;let rm=roles();rm[s.dataset.gpRoleName]=s.value;save(rm);apply()});
+$("gpStaffActive")?.addEventListener("change",()=>setTimeout(apply,20));
+$("gpStaffManageBtn")?.addEventListener("click",()=>setTimeout(draw,20));
+new MutationObserver(()=>draw()).observe($("gpStaffList"),{childList:true});
+draw();
+})();</script>
 </body>
 </html>
   
