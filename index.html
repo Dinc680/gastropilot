@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.12 Ruhige Messrunde</title>
+<title>GastroPilot – V7.13 Klare Messführung</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2899,6 +2899,18 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 .gpDeviceRoundQuickSave{width:100%;margin:6px 0 4px;min-height:44px!important;font-size:15px!important;font-weight:850}
 body.gp-device-round-active #haccpEmployee{margin-bottom:0}
 </style>
+<style id="gp-v713-glance-ui-css">
+.gpActionSteps{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:6px!important;margin:8px 0 10px!important}
+.gpActionSteps .gpQuickStep{display:flex!important;flex-direction:column;align-items:flex-start!important;justify-content:center;min-height:48px;padding:7px 8px!important;border:1px solid #d8e1de;border-radius:10px;background:#fff}
+.gpActionSteps .gpQuickStep strong{font-size:11px;line-height:1.15;letter-spacing:.15px}.gpActionSteps .gpQuickStep small{font-size:9px;margin-top:3px;color:#6d7773;font-weight:650}
+.gpActionSteps .gpQuickStep.gpOn{border:2px solid var(--green2);background:#edf7f3}
+.gpControlTypeBox{margin:8px 0 10px;padding:10px;border:2px solid var(--green2);border-radius:13px;background:#f7fbf9}
+.gpControlTypeTitle{display:flex;align-items:center;gap:8px;margin-bottom:7px}.gpControlTypeTitle>span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;font-weight:900}
+.gpControlTypeTitle strong{display:block;font-size:13px;letter-spacing:.35px}.gpControlTypeTitle small{display:block;font-size:10px;color:#65716c;margin-top:1px}
+.gpControlTypeSelect{margin:0!important}.gpControlTypeSelect select{font-size:16px!important;font-weight:800!important;min-height:46px!important;border:1.5px solid #aebdb7!important;background:#fff!important}
+#gpDeviceRoundStart{font-weight:850!important}
+#gpDeviceRoundQuickSave{box-shadow:0 2px 7px rgba(0,0,0,.10)}
+</style>
 </head>
 
 <body>
@@ -3452,8 +3464,15 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 </div>
 <div class="gpHaccpForm">
 <div id="gpHaccpPaneMeasure" class="gpHaccpPane gpActive"><div class="gpQuickMeasureHead"><div><strong>🌡 Schnellmessung</strong><div class="muted">Auswählen → Temperatur → Speichern</div></div><button id="gpDeviceSettingsToggle" class="gpMiniSettings" type="button">⚙️ Geräte</button></div>
-<div class="gpQuickSteps"><span class="gpQuickStep gpOn">1 <b>Auswahl</b></span><span class="gpQuickStep">2 <b>Messen</b></span><span class="gpQuickStep">3 <b>Speichern</b></span></div>
-<label>Kontrollart<select id="haccpType"><option>Kühlung</option><option>Tiefkühlung</option><option>Speisentemperatur</option></select></label>
+<div class="gpQuickSteps gpActionSteps" aria-label="Messablauf">
+<span class="gpQuickStep gpOn"><strong>① AUSWÄHLEN</strong><small>Kontrollart</small></span>
+<span class="gpQuickStep"><strong>② 🌡 MESSEN</strong><small>Temperatur</small></span>
+<span class="gpQuickStep"><strong>③ ✓ SPEICHERN</strong><small>Dokumentieren</small></span>
+</div>
+<div class="gpControlTypeBox">
+<div class="gpControlTypeTitle"><span>①</span><div><strong>KONTROLLART</strong><small>Was wird jetzt gemessen?</small></div></div>
+<label class="gpControlTypeSelect"><select id="haccpType"><option>Kühlung</option><option>Tiefkühlung</option><option>Speisentemperatur</option></select></label>
+</div>
 <div class="gpDeviceRoundLaunch"><button id="gpDeviceRoundStart" type="button" class="primary">▶ Geräte-Messrunde starten</button><button id="gpDeviceRoundOrder" type="button" class="secondary">Reihenfolge</button></div><div id="gpDeviceRoundOrderPanel" class="gpDeviceRoundOrderPanel" hidden><div class="gpDeviceRoundHead"><strong>Geräte-Reihenfolge</strong><button id="gpDeviceRoundOrderClose" type="button" class="secondary">Schließen</button></div><div id="gpDeviceRoundOrderList"></div></div><div id="gpTargetGuide" class="gpTargetGuide" aria-live="polite">
   <strong>Orientierungs-Sollwert:</strong>
   <span id="gpTargetGuideText">Kühlung: 2 bis 7 °C</span>
