@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.21 Rechte</title>
+<title>GastroPilot – V7.21.1 Rechte</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2956,6 +2956,10 @@ body.gp-role-employee #gpBusinessToggle,body.gp-role-employee #gpDeviceSettingsT
 </style>
 <style id="gp-v721-permissions-css">
 body.gp-role-employee #gpBusinessToggle,body.gp-role-employee #gpStaffManageBtn,body.gp-role-employee #gpDeviceSettingsToggle,body.gp-role-employee #gpFryerManageToggle,body.gp-role-employee #gpCleaningManageToggle,body.gp-role-employee #gpCleaningManage,body.gp-role-employee [data-gp-admin-only="1"]{display:none!important}
+</style>
+<style id="gp-v7211-order-permission-css">
+body.gp-role-employee #gpDeviceRoundOrder,
+body.gp-role-employee #gpDeviceRoundOrderPanel{display:none!important}
 </style>
 </head>
 
@@ -10486,6 +10490,13 @@ function apply(){mark();let a=active(),m=manager();document.body.classList.toggl
 document.getElementById("gpStaffActive")?.addEventListener("change",()=>setTimeout(apply,50));
 document.getElementById("gpStaffList")?.addEventListener("change",()=>setTimeout(apply,50));
 new MutationObserver(()=>apply()).observe(document.body,{childList:true,subtree:true});apply();
+})();</script>
+<script id="gp-v7211-order-permission-js">(function(){
+function markOrderAdmin(){
+ ["gpDeviceRoundOrder","gpDeviceRoundOrderPanel"].forEach(id=>{let x=document.getElementById(id);if(x)x.dataset.gpAdminOnly="1"});
+}
+markOrderAdmin();
+new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtree:true});
 })();</script>
 </body>
 </html>
