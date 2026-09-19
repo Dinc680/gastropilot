@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.16.1 Mitarbeiterwechsel</title>
+<title>GastroPilot – V7.17 Persönlicher Arbeitstag</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2928,6 +2928,10 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
 .gpStaffAdd{display:grid;grid-template-columns:1fr auto;gap:7px}.gpStaffAdd input{margin:0!important}.gpStaffAdd button{width:auto!important;margin:0!important}
 .gpStaffPerson{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid #edf0ef;font-size:13px}.gpStaffPerson button{width:auto!important;min-height:28px!important;padding:4px 8px!important;font-size:11px!important}
 </style>
+<style id="gp-v717-employee-day-css">
+.gpEmployeeToday{margin:8px 0 10px;padding:9px 10px;border-radius:10px;background:#f3f7f5;border:1px solid #dde7e3;font-size:11px;line-height:1.35;color:#53605b}
+.gpEmployeeToday strong{color:var(--text)}
+</style>
 </head>
 
 <body>
@@ -3010,6 +3014,7 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
     <div class="gpDayHub">
       <div class="gpDayHubHead"><div><strong>Heute erledigen</strong><small id="gpDayHubDate"></small></div><span id="gpDayHubProgress">–</span></div>
       <div class="gpDayHubBar"><span id="gpDayHubBarFill"></span></div>
+      <div id="gpEmployeeToday" class="gpEmployeeToday">👤 Mitarbeiter auswählen, um persönlichen Tagesstand zu sehen.</div>
       <button class="gpDayTask" type="button" data-day-target="haccpCard" data-haccp-open="measure"><span>🌡️</span><span><strong>Geräte kontrollieren</strong><small id="gpDayDevices">Status wird geladen …</small></span><b>›</b></button>
       <button class="gpDayTask" type="button" data-day-target="haccpCard" data-haccp-open="cleaning"><span>🧹</span><span><strong>Reinigung</strong><small id="gpDayCleaning">Status wird geladen …</small></span><b>›</b></button>
       <button class="gpDayTask" type="button" data-day-target="haccpCard" data-haccp-open="fryer"><span>🍟</span><span><strong>Fritteuse</strong><small id="gpDayFryer">Status wird geladen …</small></span><b>›</b></button>
@@ -10283,6 +10288,31 @@ $("gpStaffList")?.addEventListener("click",e=>{let b=e.target.closest("[data-del
 document.addEventListener("click",e=>{if(e.target.closest("[data-home-screen='haccpCard'],.gpDayTask,[data-haccp-mode]"))setTimeout(()=>fillExisting(active(),""),100)});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){render();fillExisting(active(),"")}});
 render();
+})();</script>
+<script id="gp-v717-employee-day-js">(function(){
+const $=id=>document.getElementById(id), ACTIVE="gastropilot_active_employee_v1";
+function load(k,f=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))??f}catch(e){return f}}
+function key(d=new Date()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function recDay(r){if(r?.day)return String(r.day).slice(0,10);if(r?.isoDate)return String(r.isoDate).slice(0,10);let m=String(r?.date||"").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);return m?`${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`:""}
+const norm=s=>String(s||"").trim().toLowerCase();
+function refresh(){
+ const box=$("gpEmployeeToday"); if(!box)return;
+ const emp=localStorage.getItem(ACTIVE)||"";
+ if(!emp){box.textContent="👤 Mitarbeiter auswählen, um persönlichen Tagesstand zu sehen.";return}
+ const today=key(), who=norm(emp);
+ const temps=load("gastropilot_haccp_archive_v1").filter(r=>recDay(r)===today&&norm(r.employee)===who);
+ const cleaning=load("gastropilot_haccp_cleaning_log_v1").filter(r=>r?.day===today&&norm(r.employee)===who);
+ const fryer=load("gastropilot_haccp_fryer_log_v1").filter(r=>recDay(r)===today&&norm(r.employee)===who);
+ const deviations=temps.filter(r=>r.ok===false||String(r.status||"").toLowerCase().includes("abweich")).length+
+   fryer.filter(r=>r.oilState==="wechsel"||r.oilState==="beobachten").length;
+ const total=temps.length+cleaning.length+fryer.length;
+ box.innerHTML=`👤 <strong>${escapeHtml(emp)}</strong> heute: <strong>${total}</strong> Dokumentation${total===1?"":"en"} · 🌡 ${temps.length} · 🧹 ${cleaning.length} · 🍟 ${fryer.length}${deviations?` · ⚠️ ${deviations} Auffälligkeit${deviations===1?"":"en"}`:""}`;
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+$("gpStaffActive")?.addEventListener("change",()=>setTimeout(refresh,20));
+document.addEventListener("click",()=>setTimeout(refresh,300));
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
+refresh();
 })();</script>
 </body>
 </html>
