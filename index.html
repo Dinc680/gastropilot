@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.15 Intelligente Tageszentrale</title>
+<title>GastroPilot – V7.16 Mitarbeiter</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2919,6 +2919,15 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
 .gpDayTask>span:first-child{font-size:20px}.gpDayTask strong{display:block;font-size:13px}.gpDayTask small{display:block;font-size:10px;color:#6c7672;margin-top:2px}.gpDayTask>b{font-size:21px;color:#7b8782}
 .gpDayTask.gpDone{background:#f0f8f5!important;border-color:#bdd9cf!important}.gpDayTask.gpOpen{border-color:#ead5ad!important}
 </style>
+<style id="gp-v716-staff-css">
+.gpStaffCard{margin:12px 0;padding:12px;border:1px solid #d7e2de;border-radius:15px;background:#fff}
+.gpStaffHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;font-weight:850}
+#gpStaffManageBtn{width:auto!important;min-height:30px!important;padding:5px 9px!important;font-size:11px!important}
+#gpStaffActive{margin:0!important}
+#gpStaffManage{margin-top:10px;padding-top:10px;border-top:1px solid #e4e9e7}
+.gpStaffAdd{display:grid;grid-template-columns:1fr auto;gap:7px}.gpStaffAdd input{margin:0!important}.gpStaffAdd button{width:auto!important;margin:0!important}
+.gpStaffPerson{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid #edf0ef;font-size:13px}.gpStaffPerson button{width:auto!important;min-height:28px!important;padding:4px 8px!important;font-size:11px!important}
+</style>
 </head>
 
 <body>
@@ -2983,6 +2992,15 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
     <button type="button" class="gpHomeTile gpHomeTileWide" data-home-screen="haccpCard" data-home-label="HACCP">
       <span class="gpHomeIcon">✅</span><span><strong>HACCP kontrollieren</strong><small>Messen, prüfen & dokumentieren</small></span>
     </button>
+  </div>
+
+  <div class="gpStaffCard">
+    <div class="gpStaffHead"><span>👤 Aktiver Mitarbeiter</span><button type="button" id="gpStaffManageBtn">Verwalten</button></div>
+    <select id="gpStaffActive" aria-label="Aktiver Mitarbeiter"><option value="">Mitarbeiter auswählen …</option></select>
+    <div id="gpStaffManage" hidden>
+      <div class="gpStaffAdd"><input id="gpStaffNew" type="text" autocomplete="off" placeholder="Name oder Kürzel"><button type="button" id="gpStaffAddBtn">Hinzufügen</button></div>
+      <div id="gpStaffList"></div>
+    </div>
   </div>
 
   <div class="gpHomeToday">
@@ -10240,6 +10258,33 @@ function refresh(){
 }
 document.querySelectorAll(".gpDayTask").forEach(b=>b.addEventListener("click",()=>{let home=document.querySelector(`[data-home-screen="${b.dataset.dayTarget}"]`);if(home)home.click();setTimeout(()=>{let mb=document.querySelector(`[data-haccp-mode="${b.dataset.haccpOpen}"]`);if(mb)mb.click()},80)}));
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});document.addEventListener("click",()=>setTimeout(refresh,250));refresh();
+})();</script>
+<script id="gp-v716-staff-js">(function(){
+const KEY="gastropilot_staff_v1",ACTIVE="gastropilot_active_employee_v1";
+const $=id=>document.getElementById(id);
+function load(){try{let a=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
+function save(a){localStorage.setItem(KEY,JSON.stringify(a))}
+function active(){return localStorage.getItem(ACTIVE)||""}
+function setActive(v){v?localStorage.setItem(ACTIVE,v):localStorage.removeItem(ACTIVE);fillExisting(v)}
+function fillExisting(v){
+ ["haccpEmployee","gpCleaningEmployee","gpFryerEmployee"].forEach(id=>{let e=$(id);if(e&&v)e.value=v});
+}
+function render(){
+ let a=load(),sel=$("gpStaffActive"),cur=active();
+ sel.innerHTML='<option value="">Mitarbeiter auswählen …</option>'+a.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+ if(a.includes(cur))sel.value=cur;else if(cur){localStorage.removeItem(ACTIVE);cur=""}
+ $("gpStaffList").innerHTML=a.length?a.map((n,i)=>`<div class="gpStaffPerson"><span>${esc(n)}</span><button type="button" data-del="${i}">Entfernen</button></div>`).join(""):'<div class="muted">Noch keine Mitarbeiter angelegt.</div>';
+ fillExisting(cur);
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+$("gpStaffManageBtn")?.addEventListener("click",()=>{let p=$("gpStaffManage");p.hidden=!p.hidden});
+$("gpStaffAddBtn")?.addEventListener("click",()=>{let i=$("gpStaffNew"),n=i.value.trim();if(!n)return;let a=load();if(!a.some(x=>x.toLowerCase()===n.toLowerCase())){a.push(n);save(a)}i.value="";render();if(!active()){setActive(n);render()}});
+$("gpStaffNew")?.addEventListener("keydown",e=>{if(e.key==="Enter"){$("gpStaffAddBtn").click()}});
+$("gpStaffActive")?.addEventListener("change",e=>setActive(e.target.value));
+$("gpStaffList")?.addEventListener("click",e=>{let b=e.target.closest("[data-del]");if(!b)return;let a=load(),n=a[Number(b.dataset.del)];a.splice(Number(b.dataset.del),1);save(a);if(active()===n)setActive("");render()});
+document.addEventListener("click",e=>{if(e.target.closest("[data-home-screen='haccpCard'],.gpDayTask,[data-haccp-mode]"))setTimeout(()=>fillExisting(active()),100)});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){render();fillExisting(active())}});
+render();
 })();</script>
 </body>
 </html>
