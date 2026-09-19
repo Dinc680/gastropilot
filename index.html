@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.13 Klare Messführung</title>
+<title>GastroPilot – V7.14 Tageszentrale</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2911,6 +2911,14 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
 #gpDeviceRoundStart{font-weight:850!important}
 #gpDeviceRoundQuickSave{box-shadow:0 2px 7px rgba(0,0,0,.10)}
 </style>
+<style id="gp-v714-dayhub-css">
+.gpDayHub{margin-top:12px;padding:12px;border:1px solid #d7e2de;border-radius:15px;background:#fff}
+.gpDayHubHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.gpDayHubHead strong{display:block;font-size:15px}.gpDayHubHead small{display:block;color:#727b77;font-size:10px;margin-top:2px}.gpDayHubHead>span{font-weight:900;font-size:13px}
+.gpDayHubBar{height:7px;border-radius:99px;background:#e8eeeb;overflow:hidden;margin-bottom:8px}.gpDayHubBar span{display:block;height:100%;width:0;background:var(--green2);border-radius:99px;transition:width .2s}
+.gpDayTask{width:100%;display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:8px;text-align:left;background:#f8faf9!important;color:var(--text)!important;border:1px solid #e2e8e5!important;border-radius:11px!important;margin:6px 0!important;padding:9px 10px!important;min-height:52px!important;box-shadow:none!important}
+.gpDayTask>span:first-child{font-size:20px}.gpDayTask strong{display:block;font-size:13px}.gpDayTask small{display:block;font-size:10px;color:#6c7672;margin-top:2px}.gpDayTask>b{font-size:21px;color:#7b8782}
+.gpDayTask.gpDone{background:#f0f8f5!important;border-color:#bdd9cf!important}.gpDayTask.gpOpen{border-color:#ead5ad!important}
+</style>
 </head>
 
 <body>
@@ -2981,6 +2989,14 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
     <div class="gpHomeTodayTitle"><span>Heute im Blick</span><small>Dein aktueller Stand</small></div>
     <div id="gpHomeWeekStatus" class="gpHomeStatus">📅 Wochenplan wird geladen …</div>
     <div id="gpHomeHaccpStatus" class="gpHomeStatus">✅ HACCP wird geladen …</div>
+    <div class="gpDayHub">
+      <div class="gpDayHubHead"><div><strong>Heute erledigen</strong><small id="gpDayHubDate"></small></div><span id="gpDayHubProgress">–</span></div>
+      <div class="gpDayHubBar"><span id="gpDayHubBarFill"></span></div>
+      <button class="gpDayTask" type="button" data-day-target="haccpCard" data-haccp-open="measure"><span>🌡️</span><span><strong>Geräte kontrollieren</strong><small id="gpDayDevices">Status wird geladen …</small></span><b>›</b></button>
+      <button class="gpDayTask" type="button" data-day-target="haccpCard" data-haccp-open="cleaning"><span>🧹</span><span><strong>Reinigung</strong><small id="gpDayCleaning">Status wird geladen …</small></span><b>›</b></button>
+      <button class="gpDayTask" type="button" data-day-target="haccpCard" data-haccp-open="fryer"><span>🍟</span><span><strong>Fritteuse</strong><small id="gpDayFryer">Status wird geladen …</small></span><b>›</b></button>
+      <button class="gpDayTask" type="button" data-day-target="haccpCard" data-haccp-open="today"><span>📋</span><span><strong>Tagesübersicht</strong><small>Kontrollen & offene Punkte ansehen</small></span><b>›</b></button>
+    </div>
   </div>
 </section>
 
@@ -10192,6 +10208,41 @@ document.addEventListener("touchstart",e=>{if(e.touches.length!==1)return;let t=
 document.addEventListener("touchmove",e=>{if(!tracking||e.touches.length!==1)return;let t=e.touches[0];if(Math.abs(t.clientX-sx)>8||Math.abs(t.clientY-sy)>8)moved=true},{passive:true,capture:true});
 document.addEventListener("touchend",()=>setTimeout(()=>tracking=false,0),{passive:true,capture:true});
 document.addEventListener("click",e=>{if(!moved)return;let el=e.target.closest("button,a,[role='button'],[data-recipe-name],[data-recipe],[data-dish],[data-remove],[data-delete]");if(!el)return;let area=el.closest("#mengenrechner,#gerichte,#weekPlannerCard,#shoppingCard");if(!area)return;e.preventDefault();e.stopImmediatePropagation();moved=false},true);
+})();</script>
+<script id="gp-v714-dayhub-js">(function(){
+const $=id=>document.getElementById(id);
+function load(k,f=[]){try{const x=JSON.parse(localStorage.getItem(k)||JSON.stringify(f));return x??f}catch(e){return f}}
+function key(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function recDay(r){if(r.isoDate)return String(r.isoDate).slice(0,10);let m=String(r.date||"").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);return m?`${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`:""}
+function setTask(id,text,done){let el=$(id);if(!el)return;el.textContent=text;let b=el.closest(".gpDayTask");b?.classList.toggle("gpDone",!!done);b?.classList.toggle("gpOpen",!done)}
+function refresh(){
+ const d=new Date();$("gpDayHubDate").textContent=d.toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"2-digit"});
+ const today=key(),temps=load("gastropilot_haccp_archive_v1"),dev=load("gastropilot_haccp_devices_v1");
+ let measured=new Set(temps.filter(r=>recDay(r)===today&&(r.type==="Kühlung"||r.type==="Tiefkühlung")).map(r=>String(r.location||"").trim().toLowerCase()));
+ let dd=dev.filter(x=>x.type==="Kühlung"||x.type==="Tiefkühlung"),dc=dd.filter(x=>measured.has(String(x.name||"").trim().toLowerCase())).length,dDone=dd.length>0&&dc>=dd.length;
+ setTask("gpDayDevices",dd.length?`${dc}/${dd.length} Geräte kontrolliert`:"Keine Geräte angelegt",dDone);
+
+ let tasks=load("gastropilot_haccp_cleaning_tasks_v1"),logs=load("gastropilot_haccp_cleaning_log_v1"),todayLogs=logs.filter(x=>x.day===today),cDone=tasks.length>0&&todayLogs.length>=tasks.length;
+ setTask("gpDayCleaning",tasks.length?`${todayLogs.length} Einträge heute`:"Keine Aufgaben angelegt",cDone);
+
+ let fry=load("gastropilot_haccp_fryer_log_v1").filter(x=>x.day===today||recDay(x)===today),fDone=fry.length>0;
+ setTask("gpDayFryer",fDone?`${fry.length} Kontrolle${fry.length===1?"":"n"} dokumentiert`:"Noch offen",fDone);
+
+ let vals=[dDone,cDone,fDone],done=vals.filter(Boolean).length,total=vals.length;
+ $("gpDayHubProgress").textContent=`${done}/${total} Bereiche`;
+ $("gpDayHubBarFill").style.width=(done/total*100)+"%";
+}
+document.querySelectorAll(".gpDayTask").forEach(b=>b.addEventListener("click",()=>{
+ const target=b.dataset.dayTarget;
+ const home=document.querySelector(`[data-home-screen="${target}"]`);if(home)home.click();
+ setTimeout(()=>{
+   const mode=b.dataset.haccpOpen;
+   const mb=document.querySelector(`[data-haccp-mode="${mode}"]`);if(mb)mb.click();
+ },80);
+}));
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
+document.addEventListener("click",()=>setTimeout(refresh,250));
+refresh();
 })();</script>
 </body>
 </html>
