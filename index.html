@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.17 Persönlicher Arbeitstag</title>
+<title>GastroPilot – V7.18.1 Abweichungszentrale</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2932,6 +2932,19 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
 .gpEmployeeToday{margin:8px 0 10px;padding:9px 10px;border-radius:10px;background:#f3f7f5;border:1px solid #dde7e3;font-size:11px;line-height:1.35;color:#53605b}
 .gpEmployeeToday strong{color:var(--text)}
 </style>
+<style id="gp-v718-deviation-css">
+.gpDeviationCenter{margin:8px 0 10px;padding:10px;border-radius:12px;border:1px solid #e5e7e5;background:#fff}
+.gpDeviationHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.gpDeviationHead>span{min-width:25px;text-align:center;border-radius:99px;padding:3px 7px;background:#f1f3f2;font-size:11px;font-weight:900}
+.gpDeviationItem{padding:8px 0;border-top:1px solid #edf0ef;font-size:11px;line-height:1.35}.gpDeviationItem:first-child{border-top:0}
+.gpDeviationItem strong{display:block;font-size:12px}.gpDeviationItem small{display:block;color:#68736e;margin-top:2px}
+.gpDeviationItem.gpResolved strong{color:#356d59}.gpDeviationItem.gpUnresolved strong{color:#9a5b22}
+</style>
+<style id="gp-v7181-devwork-css">
+.gpDevWorkHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}.gpDevWorkHead>span{white-space:nowrap;padding:5px 8px;border-radius:99px;background:#fff1dc;color:#8a561c;font-size:11px;font-weight:900}
+.gpDevWorkCard{border:1px solid #e2e7e4;border-radius:12px;background:#fff;padding:11px;margin:8px 0}.gpDevWorkCard.gpDevOpen{border-color:#e5c999;background:#fffaf2}.gpDevWorkCard.gpDevDone{background:#f5faf8}
+.gpDevWorkCard strong{display:block;font-size:13px}.gpDevWorkMeta{font-size:10px;color:#6c7672;margin:3px 0 8px}.gpDevWorkCard textarea{margin:7px 0!important;min-height:70px}.gpDevWorkCard button{margin:0!important}.gpDevWorkSectionTitle{margin:16px 0 6px;font-weight:900;font-size:13px}
+</style>
 </head>
 
 <body>
@@ -3015,6 +3028,10 @@ body.gp-device-round-active #haccpEmployee{margin-bottom:0}
       <div class="gpDayHubHead"><div><strong>Heute erledigen</strong><small id="gpDayHubDate"></small></div><span id="gpDayHubProgress">–</span></div>
       <div class="gpDayHubBar"><span id="gpDayHubBarFill"></span></div>
       <div id="gpEmployeeToday" class="gpEmployeeToday">👤 Mitarbeiter auswählen, um persönlichen Tagesstand zu sehen.</div>
+      <div class="gpDeviationCenter">
+        <div class="gpDeviationHead"><strong>⚠️ Abweichungen</strong><span id="gpDeviationCount">0</span></div>
+        <div id="gpDeviationList" class="gpDeviationList"><div class="muted">Heute keine Abweichungen.</div></div>
+      </div>
       <button class="gpDayTask" type="button" data-day-target="haccpCard" data-haccp-open="measure"><span>🌡️</span><span><strong>Geräte kontrollieren</strong><small id="gpDayDevices">Status wird geladen …</small></span><b>›</b></button>
       <button class="gpDayTask" type="button" data-day-target="haccpCard" data-haccp-open="cleaning"><span>🧹</span><span><strong>Reinigung</strong><small id="gpDayCleaning">Status wird geladen …</small></span><b>›</b></button>
       <button class="gpDayTask" type="button" data-day-target="haccpCard" data-haccp-open="fryer"><span>🍟</span><span><strong>Fritteuse</strong><small id="gpDayFryer">Status wird geladen …</small></span><b>›</b></button>
@@ -3498,6 +3515,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   <button type="button" class="gpHaccpModeBtn gpActive" data-haccp-mode="measure">🌡 Messen</button>
   <button type="button" class="gpHaccpModeBtn" data-haccp-mode="today">📋 Heute</button>
   <button type="button" class="gpHaccpModeBtn" data-haccp-mode="docs">📁 Dokumentation</button>
+  <button type="button" class="gpHaccpModeBtn" data-haccp-mode="deviations">⚠️ Abweichungen</button>
   <button type="button" class="gpHaccpModeBtn" data-haccp-mode="fryer">🍟 Fritteuse</button>
   <button type="button" class="gpHaccpModeBtn" data-haccp-mode="cleaning">🧹 Reinigung</button>
 </div>
@@ -3631,6 +3649,12 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
   </div>
 </div>
 
+<div id="gpHaccpPaneDeviations" class="gpHaccpPane" hidden>
+  <div class="gpDevWorkHead"><div><strong>⚠️ Abweichungszentrale</strong><div class="muted">Offene Abweichungen bearbeiten und Maßnahmen nachvollziehbar dokumentieren.</div></div><span id="gpDevWorkBadge">0 offen</span></div>
+  <div id="gpDevWorkOpen"></div>
+  <div class="gpDevWorkSectionTitle">✅ Bearbeitet</div>
+  <div id="gpDevWorkDone"></div>
+</div>
 <div id="gpHaccpPaneFryer" class="gpHaccpPane">
   <div class="gpFryerHead">
     <div><strong>🍟 Frittierkontrolle</strong><div class="muted">Temperatur, Ölzustand, Ölwechsel und Reinigung dokumentieren.</div></div>
@@ -10313,6 +10337,61 @@ $("gpStaffActive")?.addEventListener("change",()=>setTimeout(refresh,20));
 document.addEventListener("click",()=>setTimeout(refresh,300));
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
 refresh();
+})();</script>
+<script id="gp-v718-deviation-js">(function(){
+const $=id=>document.getElementById(id);
+function load(k,f=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))??f}catch(e){return f}}
+function dayKey(d=new Date()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function recDay(r){if(r?.day)return String(r.day).slice(0,10);if(r?.isoDate)return String(r.isoDate).slice(0,10);let m=String(r?.date||"").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);return m?`${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`:""}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function refresh(){
+ const list=$("gpDeviationList"),badge=$("gpDeviationCount");if(!list||!badge)return;
+ const today=dayKey(),items=[];
+ load("gastropilot_haccp_archive_v1").filter(r=>recDay(r)===today&&r.ok===false).forEach(r=>{
+   const title=r.dish?`${r.dish}${r.component?" – "+r.component:""}`:(r.location||r.type||"Temperaturkontrolle");
+   const action=String(r.action||"").trim();
+   items.push({title,detail:`${r.actual??"—"} °C · Soll ${r.min??"—"}–${r.max??"—"} °C`,action,employee:r.employee||"",time:r.time||"",resolved:!!action});
+ });
+ load("gastropilot_haccp_fryer_log_v1").filter(r=>recDay(r)===today&&(r.oilState==="wechsel"||r.oilState==="beobachten")).forEach(r=>{
+   const action=[r.cleaned?"Reinigung durchgeführt":"",r.oilChanged?"Öl gewechselt":"",r.note||""].filter(Boolean).join(" · ");
+   items.push({title:r.device||r.fryerName||r.name||"Fritteuse",detail:r.oilState==="wechsel"?"Ölwechsel erforderlich":"Öl beobachten",action,employee:r.employee||"",time:r.time||"",resolved:!!action});
+ });
+ const open=items.filter(x=>!x.resolved).length;badge.textContent=String(items.length);
+ badge.title=`${open} offen`;
+ if(!items.length){list.innerHTML='<div class="muted">✅ Heute keine Abweichungen.</div>';return}
+ list.innerHTML=items.map(x=>`<div class="gpDeviationItem ${x.resolved?"gpResolved":"gpUnresolved"}"><strong>${x.resolved?"✅ Bearbeitet":"⚠️ Maßnahme offen"} · ${esc(x.title)}</strong><small>${esc(x.detail)}${x.time?" · "+esc(x.time):""}${x.employee?" · "+esc(x.employee):""}</small>${x.action?`<small><b>Maßnahme:</b> ${esc(x.action)}</small>`:""}</div>`).join("");
+}
+document.addEventListener("click",()=>setTimeout(refresh,300));
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
+refresh();
+})();</script>
+<script id="gp-v7181-devwork-js">(function(){
+const $=id=>document.getElementById(id),AK="gastropilot_haccp_archive_v1",FK="gastropilot_haccp_fryer_log_v1";
+function load(k){try{let a=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
+function save(k,a){localStorage.setItem(k,JSON.stringify(a))}
+function day(){let d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function rd(r){if(r?.day)return String(r.day).slice(0,10);if(r?.isoDate)return String(r.isoDate).slice(0,10);let m=String(r?.date||"").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);return m?`${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`:""}
+function e(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function render(){
+ let t=day(),temps=load(AK).filter(x=>rd(x)===t&&x.ok===false),fry=load(FK).filter(x=>rd(x)===t&&(x.oilState==="wechsel"||x.oilState==="beobachten"));
+ let all=[];
+ temps.forEach(x=>all.push({kind:"temp",id:x.id,title:x.dish?x.dish+(x.component?" – "+x.component:""):(x.location||x.type||"Temperatur"),meta:`Ist ${x.actual??"—"} °C · Soll ${x.min??"—"}–${x.max??"—"} °C${x.time?" · "+x.time:""}`,action:String(x.action||"").trim(),employee:x.employee||""}));
+ fry.forEach(x=>{let a=[x.cleaned?"Reinigung durchgeführt":"",x.oilChanged?"Öl gewechselt":"",x.note||""].filter(Boolean).join(" · ");all.push({kind:"fryer",id:x.id,title:x.device||x.fryerName||x.name||"Fritteuse",meta:(x.oilState==="wechsel"?"Ölwechsel erforderlich":"Öl beobachten")+(x.time?" · "+x.time:""),action:a,employee:x.employee||""})});
+ let open=all.filter(x=>!x.action),done=all.filter(x=>x.action);$("gpDevWorkBadge").textContent=`${open.length} offen`;
+ $("gpDevWorkOpen").innerHTML=open.length?open.map(cardOpen).join(""):'<div class="muted">✅ Keine offenen Abweichungen.</div>';
+ $("gpDevWorkDone").innerHTML=done.length?done.map(cardDone).join(""):'<div class="muted">Noch keine bearbeiteten Abweichungen heute.</div>';
+}
+function cardOpen(x){return `<div class="gpDevWorkCard gpDevOpen"><strong>⚠️ ${e(x.title)}</strong><div class="gpDevWorkMeta">${e(x.meta)}${x.employee?" · "+e(x.employee):""}</div>${x.kind==="temp"?`<textarea data-dev-action="${e(x.id)}" placeholder="Ergriffene Maßnahme eintragen …"></textarea><button type="button" class="primary" data-dev-save="${e(x.id)}">Maßnahme speichern</button>`:`<div class="muted">Maßnahme bitte in der Frittierkontrolle dokumentieren.</div>`}</div>`}
+function cardDone(x){return `<div class="gpDevWorkCard gpDevDone"><strong>✅ ${e(x.title)}</strong><div class="gpDevWorkMeta">${e(x.meta)}${x.employee?" · "+e(x.employee):""}</div><div><b>Maßnahme:</b> ${e(x.action)}</div></div>`}
+$("gpDevWorkOpen")?.addEventListener("click",ev=>{let b=ev.target.closest("[data-dev-save]");if(!b)return;let id=b.dataset.devSave,ta=document.querySelector(`[data-dev-action="${CSS.escape(id)}"]`),action=ta?.value.trim();if(!action)return;let a=load(AK),r=a.find(x=>String(x.id)===String(id));if(!r)return;r.action=action;save(AK,a);render();document.dispatchEvent(new Event("gpDeviationUpdated"))});
+function activate(mode){
+ document.querySelectorAll(".gpHaccpModeBtn").forEach(b=>b.classList.toggle("gpActive",b.dataset.haccpMode===mode));
+ const map={measure:"gpHaccpPaneMeasure",today:"gpHaccpPaneToday",docs:"gpHaccpPaneDocs",fryer:"gpHaccpPaneFryer",cleaning:"gpHaccpPaneCleaning",deviations:"gpHaccpPaneDeviations"};
+ Object.entries(map).forEach(([k,id])=>{let p=$(id);if(p){p.hidden=k!==mode;p.classList.toggle("gpActive",k===mode)}});
+ if(mode==="deviations")render();
+}
+document.querySelector('[data-haccp-mode="deviations"]')?.addEventListener("click",ev=>{ev.preventDefault();ev.stopImmediatePropagation();activate("deviations")},true);
+document.addEventListener("gpDeviationUpdated",()=>setTimeout(render,20));document.addEventListener("visibilitychange",()=>{if(!document.hidden)render()});render();
 })();</script>
 </body>
 </html>
