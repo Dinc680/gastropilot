@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.14 Tageszentrale</title>
+<title>GastroPilot – V7.15 Intelligente Tageszentrale</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10209,40 +10209,37 @@ document.addEventListener("touchmove",e=>{if(!tracking||e.touches.length!==1)ret
 document.addEventListener("touchend",()=>setTimeout(()=>tracking=false,0),{passive:true,capture:true});
 document.addEventListener("click",e=>{if(!moved)return;let el=e.target.closest("button,a,[role='button'],[data-recipe-name],[data-recipe],[data-dish],[data-remove],[data-delete]");if(!el)return;let area=el.closest("#mengenrechner,#gerichte,#weekPlannerCard,#shoppingCard");if(!area)return;e.preventDefault();e.stopImmediatePropagation();moved=false},true);
 })();</script>
-<script id="gp-v714-dayhub-js">(function(){
+<script id="gp-v715-dayhub-js">(function(){
 const $=id=>document.getElementById(id);
-function load(k,f=[]){try{const x=JSON.parse(localStorage.getItem(k)||JSON.stringify(f));return x??f}catch(e){return f}}
-function key(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-function recDay(r){if(r.isoDate)return String(r.isoDate).slice(0,10);let m=String(r.date||"").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);return m?`${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`:""}
-function setTask(id,text,done){let el=$(id);if(!el)return;el.textContent=text;let b=el.closest(".gpDayTask");b?.classList.toggle("gpDone",!!done);b?.classList.toggle("gpOpen",!done)}
-function refresh(){
- const d=new Date();$("gpDayHubDate").textContent=d.toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"2-digit"});
- const today=key(),temps=load("gastropilot_haccp_archive_v1"),dev=load("gastropilot_haccp_devices_v1");
- let measured=new Set(temps.filter(r=>recDay(r)===today&&(r.type==="Kühlung"||r.type==="Tiefkühlung")).map(r=>String(r.location||"").trim().toLowerCase()));
- let dd=dev.filter(x=>x.type==="Kühlung"||x.type==="Tiefkühlung"),dc=dd.filter(x=>measured.has(String(x.name||"").trim().toLowerCase())).length,dDone=dd.length>0&&dc>=dd.length;
- setTask("gpDayDevices",dd.length?`${dc}/${dd.length} Geräte kontrolliert`:"Keine Geräte angelegt",dDone);
-
- let tasks=load("gastropilot_haccp_cleaning_tasks_v1"),logs=load("gastropilot_haccp_cleaning_log_v1"),todayLogs=logs.filter(x=>x.day===today),cDone=tasks.length>0&&todayLogs.length>=tasks.length;
- setTask("gpDayCleaning",tasks.length?`${todayLogs.length} Einträge heute`:"Keine Aufgaben angelegt",cDone);
-
- let fry=load("gastropilot_haccp_fryer_log_v1").filter(x=>x.day===today||recDay(x)===today),fDone=fry.length>0;
- setTask("gpDayFryer",fDone?`${fry.length} Kontrolle${fry.length===1?"":"n"} dokumentiert`:"Noch offen",fDone);
-
- let vals=[dDone,cDone,fDone],done=vals.filter(Boolean).length,total=vals.length;
- $("gpDayHubProgress").textContent=`${done}/${total} Bereiche`;
- $("gpDayHubBarFill").style.width=(done/total*100)+"%";
+function load(k,f=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))??f}catch(e){return f}}
+function key(d=new Date()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function recDay(r){if(r?.day)return String(r.day).slice(0,10);if(r?.isoDate)return String(r.isoDate).slice(0,10);let m=String(r?.date||"").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);return m?`${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`:""}
+const norm=s=>String(s||"").trim().toLowerCase();
+function setTask(id,text,state){let e=$(id);if(!e)return;e.textContent=text;let b=e.closest(".gpDayTask");b?.classList.remove("gpDone","gpOpen");if(state==="done")b?.classList.add("gpDone");if(state==="open")b?.classList.add("gpOpen")}
+function dateOf(k){let [y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d,12)}
+function lastWorkday(y,m){let d=new Date(y,m+1,0,12);while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()-1);return d.getDate()}
+function due(t,k){
+ let d=dateOf(k),iv=String(t.interval||"daily");
+ if(iv==="daily")return true;
+ if(iv==="weekly")return d.getDay()===Number(t.weekday===""||t.weekday==null?1:t.weekday);
+ if(iv==="monthly"){let x=String(t.monthday==null||t.monthday===""?1:t.monthday);return x==="lastworkday"?d.getDate()===lastWorkday(d.getFullYear(),d.getMonth()):d.getDate()===Number(x)}
+ return false;
 }
-document.querySelectorAll(".gpDayTask").forEach(b=>b.addEventListener("click",()=>{
- const target=b.dataset.dayTarget;
- const home=document.querySelector(`[data-home-screen="${target}"]`);if(home)home.click();
- setTimeout(()=>{
-   const mode=b.dataset.haccpOpen;
-   const mb=document.querySelector(`[data-haccp-mode="${mode}"]`);if(mb)mb.click();
- },80);
-}));
-document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
-document.addEventListener("click",()=>setTimeout(refresh,250));
-refresh();
+function refresh(){
+ let now=new Date(),today=key(now);$("gpDayHubDate").textContent=now.toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"2-digit"});
+ let temps=load("gastropilot_haccp_archive_v1"),dev=load("gastropilot_haccp_devices_v1"),dd=dev.filter(x=>x&&(x.type==="Kühlung"||x.type==="Tiefkühlung")),tr=temps.filter(r=>recDay(r)===today);
+ let dc=dd.filter(x=>tr.some(r=>r.type===x.type&&norm(r.location)===norm(x.name))).length,ds=dd.length?(dc>=dd.length?"done":"open"):"neutral";
+ setTask("gpDayDevices",dd.length?`${dc}/${dd.length} Geräte kontrolliert`:"Keine Geräte angelegt",ds);
+ let tasks=load("gastropilot_haccp_cleaning_tasks_v1"),logs=load("gastropilot_haccp_cleaning_log_v1"),dueToday=tasks.filter(t=>due(t,today)),tl=logs.filter(x=>x?.day===today);
+ let cc=dueToday.filter(t=>tl.some(l=>l.taskId===t.id&&(l.status==="done"||l.status==="not_required"||!l.status))).length,cs=dueToday.length?(cc>=dueToday.length?"done":"open"):"neutral";
+ setTask("gpDayCleaning",dueToday.length?`${cc}/${dueToday.length} heute fällig erledigt`:"Heute keine planmäßige Aufgabe",cs);
+ let fry=load("gastropilot_haccp_fryer_log_v1").filter(x=>recDay(x)===today);
+ setTask("gpDayFryer",fry.length?`${fry.length} Kontrolle${fry.length===1?"":"n"} dokumentiert`:"Bei Nutzung dokumentieren",fry.length?"done":"neutral");
+ let scheduled=[];if(dd.length)scheduled.push(ds==="done");if(dueToday.length)scheduled.push(cs==="done");if(fry.length)scheduled.push(true);
+ let done=scheduled.filter(Boolean).length,total=scheduled.length;$("gpDayHubProgress").textContent=total?`${done}/${total} fällige Bereiche`:"Keine Pflicht offen";$("gpDayHubBarFill").style.width=(total?done/total*100:100)+"%";
+}
+document.querySelectorAll(".gpDayTask").forEach(b=>b.addEventListener("click",()=>{let home=document.querySelector(`[data-home-screen="${b.dataset.dayTarget}"]`);if(home)home.click();setTimeout(()=>{let mb=document.querySelector(`[data-haccp-mode="${b.dataset.haccpOpen}"]`);if(mb)mb.click()},80)}));
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});document.addEventListener("click",()=>setTimeout(refresh,250));refresh();
 })();</script>
 </body>
 </html>
