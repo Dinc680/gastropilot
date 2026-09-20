@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.21.1 Rechte</title>
+<title>GastroPilot – V7.22 Cloud Login</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10498,6 +10498,137 @@ function markOrderAdmin(){
 markOrderAdmin();
 new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtree:true});
 })();</script>
+
+<!-- GastroPilot V7.22 – Supabase Cloud Login (stabile lokale Funktionen bleiben erhalten) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="gp-v722-cloud-auth-css">
+#gpCloudAccount{margin:0 0 14px;padding:14px;border:1px solid #dce7e3;border-radius:17px;background:#fff;box-shadow:0 6px 20px rgba(19,88,71,.06)}
+#gpCloudAccount .gpCloudHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#gpCloudAccount .gpCloudTitle{font-weight:900;color:#173f35;font-size:16px}
+#gpCloudAccount .gpCloudState{font-size:12px;font-weight:850;padding:6px 9px;border-radius:999px;background:#eef3f1;color:#66756f;white-space:nowrap}
+#gpCloudAccount .gpCloudState.ok{background:#e8f5f0;color:#135847}
+#gpCloudAccount .gpCloudMeta{margin-top:6px;color:#6f7c77;font-size:13px;line-height:1.4}
+#gpCloudAccount .gpCloudActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+#gpCloudAccount .gpCloudActions button{min-height:42px!important;padding:9px 11px!important;font-size:13px!important}
+#gpCloudAccount .gpCloudPanel{display:none;margin-top:12px;padding-top:12px;border-top:1px solid #e5ebe8}
+#gpCloudAccount .gpCloudPanel.open{display:block}
+#gpCloudAccount .gpCloudField{margin-bottom:9px}
+#gpCloudAccount .gpCloudField label{display:block;margin-bottom:5px;font-size:12px;font-weight:850;color:#52615c}
+#gpCloudAccount .gpCloudField input{width:100%;min-height:44px!important;padding:10px 12px!important;border:1px solid #cedbd6!important;border-radius:12px!important;background:#fff!important;font-size:16px!important}
+#gpCloudAccount .gpCloudButtons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+#gpCloudAccount .gpCloudNotice{min-height:18px;margin-top:9px;font-size:12px;font-weight:750;color:#6b7873;line-height:1.4}
+#gpCloudAccount .gpCloudNotice.error{color:#a53636}
+@media(max-width:430px){#gpCloudAccount .gpCloudActions,#gpCloudAccount .gpCloudButtons{grid-template-columns:1fr}}
+</style>
+<script id="gp-v722-cloud-auth-js">
+(function(){
+  const SUPABASE_URL="https://xtzieoyylfkjgfwtczup.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY="sb_publishable_82DxmzNX6EunHh2TU6ctRQ_Ky0YvCoU";
+  let client=null;
+  const esc=v=>String(v??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c]));
+  const $=id=>document.getElementById(id);
+
+  function mount(){
+    const home=$("homeCard");
+    if(!home || $("gpCloudAccount")) return;
+    const box=document.createElement("section");
+    box.id="gpCloudAccount";
+    box.innerHTML=`
+      <div class="gpCloudHead">
+        <div><div class="gpCloudTitle">☁️ GastroPilot Cloud</div><div class="gpCloudMeta" id="gpCloudMeta">Noch nicht angemeldet</div></div>
+        <div class="gpCloudState" id="gpCloudState">LOKAL</div>
+      </div>
+      <div class="gpCloudActions">
+        <button type="button" id="gpCloudOpen">Anmelden</button>
+        <button type="button" class="secondary" id="gpCloudLogout" style="display:none">Abmelden</button>
+      </div>
+      <div class="gpCloudPanel" id="gpCloudPanel">
+        <div class="gpCloudField"><label for="gpCloudEmail">E-Mail</label><input id="gpCloudEmail" type="email" autocomplete="email" placeholder="name@betrieb.de"></div>
+        <div class="gpCloudField"><label for="gpCloudPassword">Passwort</label><input id="gpCloudPassword" type="password" autocomplete="current-password" placeholder="Passwort"></div>
+        <div class="gpCloudButtons">
+          <button type="button" id="gpCloudLogin">Anmelden</button>
+          <button type="button" class="secondary" id="gpCloudSignup">Neues Konto</button>
+        </div>
+        <div class="gpCloudNotice" id="gpCloudNotice"></div>
+      </div>`;
+    const lead=home.querySelector(".sectionLead");
+    if(lead && lead.nextSibling) home.insertBefore(box,lead.nextSibling); else home.prepend(box);
+
+    $("gpCloudOpen")?.addEventListener("click",()=>$("gpCloudPanel")?.classList.toggle("open"));
+    $("gpCloudLogin")?.addEventListener("click",login);
+    $("gpCloudSignup")?.addEventListener("click",signup);
+    $("gpCloudLogout")?.addEventListener("click",logout);
+  }
+
+  function notice(msg,error=false){const n=$("gpCloudNotice");if(!n)return;n.textContent=msg||"";n.classList.toggle("error",!!error)}
+  function friendly(err){return err?.message||"Unbekannter Fehler"}
+
+  async function membership(userId){
+    try{
+      const {data,error}=await client.from("memberships").select("business_id,role").eq("user_id",userId).limit(1).maybeSingle();
+      if(error) return {error};
+      return {data};
+    }catch(error){return {error}}
+  }
+
+  async function renderSession(session){
+    const user=session?.user;
+    const state=$("gpCloudState"),meta=$("gpCloudMeta"),open=$("gpCloudOpen"),logout=$("gpCloudLogout"),panel=$("gpCloudPanel");
+    if(!state||!meta)return;
+    if(!user){
+      state.textContent="LOKAL";state.classList.remove("ok");meta.textContent="Noch nicht angemeldet";
+      if(open){open.style.display="";open.textContent="Anmelden"} if(logout)logout.style.display="none";
+      document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";
+      return;
+    }
+    state.textContent="CLOUD";state.classList.add("ok");
+    if(open)open.style.display="none";if(logout)logout.style.display="";if(panel)panel.classList.remove("open");
+    const m=await membership(user.id);
+    if(m.data){
+      const role=m.data.role||"employee";
+      meta.innerHTML=`${esc(user.email||"Angemeldet")} · ${role==="admin"||role==="manager"?"Leitung / Admin":"Mitarbeiter"}`;
+      document.body.dataset.gpCloudRole=role;
+      document.body.dataset.gpBusinessId=m.data.business_id||"";
+    }else{
+      meta.textContent=(user.email||"Angemeldet")+" · noch keinem Betrieb zugeordnet";
+      document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";
+    }
+  }
+
+  async function login(){
+    const email=$("gpCloudEmail")?.value.trim(),password=$("gpCloudPassword")?.value||"";
+    if(!email||!password){notice("Bitte E-Mail und Passwort eingeben.",true);return}
+    notice("Anmeldung läuft …");
+    const {data,error}=await client.auth.signInWithPassword({email,password});
+    if(error){notice("Anmeldung nicht möglich: "+friendly(error),true);return}
+    notice("");await renderSession(data.session);
+  }
+
+  async function signup(){
+    const email=$("gpCloudEmail")?.value.trim(),password=$("gpCloudPassword")?.value||"";
+    if(!email||!password){notice("Bitte E-Mail und Passwort eingeben.",true);return}
+    if(password.length<6){notice("Das Passwort muss mindestens 6 Zeichen haben.",true);return}
+    notice("Konto wird angelegt …");
+    const {data,error}=await client.auth.signUp({email,password});
+    if(error){notice("Konto konnte nicht angelegt werden: "+friendly(error),true);return}
+    if(data.session){notice("✓ Konto angelegt und angemeldet.");await renderSession(data.session)}
+    else notice("✓ Konto angelegt. Bitte bestätige ggf. die E-Mail und melde dich danach an.");
+  }
+
+  async function logout(){await client.auth.signOut();notice("");await renderSession(null)}
+
+  async function init(){
+    mount();
+    if(!window.supabase?.createClient){notice("Cloud-Verbindung konnte nicht geladen werden.",true);return}
+    client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    window.gpSupabase=client;
+    const {data}=await client.auth.getSession();
+    await renderSession(data?.session||null);
+    client.auth.onAuthStateChange((_event,session)=>setTimeout(()=>renderSession(session),0));
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
+})();
+</script>
 </body>
 </html>
   
