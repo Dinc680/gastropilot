@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.23 Cloud Betrieb & Standort</title>
+<title>GastroPilot – V7.23.1 RLS Sicherheitstest</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10499,7 +10499,7 @@ markOrderAdmin();
 new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtree:true});
 })();</script>
 
-<!-- GastroPilot V7.23 – Supabase Cloud Login + Betrieb/Standort -->
+<!-- GastroPilot V7.23.1 – Supabase Cloud + echter RLS Sicherheitstest -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style id="gp-v7221-cloud-auth-css">
 #gpCloudAccount{margin:0 0 14px;padding:14px;border:1px solid #dce7e3;border-radius:17px;background:#fff;box-shadow:0 6px 20px rgba(19,88,71,.06)}
@@ -10524,6 +10524,11 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
 #gpCloudRecovery.open{display:block}
 #gpCloudRecovery .gpCloudRecoveryTitle{font-size:14px;font-weight:900;color:#5d4919;margin-bottom:5px}
 #gpCloudRecovery .gpCloudRecoveryText{font-size:12px;color:#78683e;line-height:1.4;margin-bottom:10px}
+#gpCloudSecurity{display:none;margin-top:12px;padding:12px;border:1px solid #dce7e3;border-radius:14px;background:#f8fbfa;font-size:12px;line-height:1.45;color:#53635d}
+#gpCloudSecurity.open{display:block}
+#gpCloudSecurity.ok{border-color:#b9ddcf;background:#f0faf6;color:#135847}
+#gpCloudSecurity.bad{border-color:#e4b8b8;background:#fff5f5;color:#963737}
+#gpCloudSecurity strong{display:block;font-size:13px;margin-bottom:5px}
 @media(max-width:430px){#gpCloudAccount .gpCloudActions,#gpCloudAccount .gpCloudButtons{grid-template-columns:1fr}}
 </style>
 <script id="gp-v7221-cloud-auth-js">
@@ -10550,6 +10555,8 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
         <button type="button" id="gpCloudOpen">Anmelden</button>
         <button type="button" class="secondary" id="gpCloudLogout" style="display:none">Abmelden</button>
       </div>
+      <button type="button" class="secondary" id="gpCloudSecurityTest" style="display:none;width:100%;margin-top:8px">🔒 Mandantentrennung prüfen</button>
+      <div id="gpCloudSecurity"></div>
       <div class="gpCloudPanel" id="gpCloudPanel">
         <div class="gpCloudField"><label for="gpCloudEmail">E-Mail</label><input id="gpCloudEmail" type="email" autocomplete="email" placeholder="name@betrieb.de"></div>
         <div class="gpCloudField"><label for="gpCloudPassword">Passwort</label><input id="gpCloudPassword" type="password" autocomplete="current-password" placeholder="Passwort"></div>
@@ -10577,6 +10584,7 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     $("gpCloudForgot")?.addEventListener("click",forgotPassword);
     $("gpCloudSavePassword")?.addEventListener("click",saveNewPassword);
     $("gpCloudLogout")?.addEventListener("click",logout);
+    $("gpCloudSecurityTest")?.addEventListener("click",runSecurityTest);
   }
 
   function notice(msg,error=false,id="gpCloudNotice"){const n=$(id);if(!n)return;n.textContent=msg||"";n.classList.toggle("error",!!error)}
@@ -10627,6 +10635,7 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     if(!user){
       if(!recoveryMode){state.textContent="LOKAL";state.classList.remove("ok","recovery");meta.textContent="Noch nicht angemeldet"}
       if(open){open.style.display="";open.textContent="Anmelden"} if(logout)logout.style.display="none";
+      const securityBtn=$("gpCloudSecurityTest"),securityBox=$("gpCloudSecurity"); if(securityBtn)securityBtn.style.display="none"; if(securityBox){securityBox.className="";securityBox.textContent=""}
       document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";document.body.dataset.gpLocationId="";
       return;
     }
@@ -10638,6 +10647,7 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     }
     state.textContent="CLOUD";state.classList.remove("recovery");state.classList.add("ok");
     if(open)open.style.display="none";if(logout)logout.style.display="";if(panel)panel.classList.remove("open");
+    const securityBtn=$("gpCloudSecurityTest"); if(securityBtn)securityBtn.style.display="";
     meta.textContent=(user.email||"Angemeldet")+" · Cloud-Zuordnung wird geladen …";
     const ctx=await cloudContext(user.id);
     if(ctx.error){
@@ -10661,6 +10671,40 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
       meta.textContent=(user.email||"Angemeldet")+" · noch keinem Betrieb zugeordnet";
       document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";document.body.dataset.gpLocationId="";
     }
+  }
+
+  async function runSecurityTest(){
+    const box=$("gpCloudSecurity"),btn=$("gpCloudSecurityTest");
+    if(!box||!btn)return;
+    box.className="open";box.textContent="RLS-Prüfung läuft …";btn.disabled=true;
+    try{
+      const {data:{user},error:userError}=await client.auth.getUser();
+      if(userError||!user) throw userError||new Error("Keine aktive Anmeldung");
+      const m=await membership(user.id);
+      if(m.error) throw m.error;
+      const expected=m.data?.business_id;
+      if(!expected) throw new Error("Keine Betriebszuordnung für diesen Benutzer");
+      const [bRes,lRes,mRes]=await Promise.all([
+        client.from("businesses").select("id,name").order("name"),
+        client.from("locations").select("id,business_id,name").order("name"),
+        client.from("memberships").select("business_id,user_id,role")
+      ]);
+      const err=bRes.error||lRes.error||mRes.error;if(err)throw err;
+      const businesses=bRes.data||[],locations=lRes.data||[],memberships=mRes.data||[];
+      const foreignBusinesses=businesses.filter(x=>x.id!==expected);
+      const foreignLocations=locations.filter(x=>x.business_id!==expected);
+      const foreignMemberships=memberships.filter(x=>x.business_id!==expected);
+      const ownBusiness=businesses.find(x=>x.id===expected);
+      const ok=!!ownBusiness && foreignBusinesses.length===0 && foreignLocations.length===0 && foreignMemberships.length===0;
+      box.className="open "+(ok?"ok":"bad");
+      if(ok){
+        box.innerHTML=`<strong>✅ RLS-Mandantentrennung bestanden</strong>Sichtbarer Betrieb: ${esc(ownBusiness.name)}<br>Standorte sichtbar: ${locations.length}<br>Memberships sichtbar: ${memberships.length}<br><br>Keine Daten eines fremden Betriebs wurden über diese Benutzer-Session zurückgegeben.`;
+      }else{
+        box.innerHTML=`<strong>⚠️ RLS-Prüfung nicht bestanden</strong>Eigener Betrieb sichtbar: ${ownBusiness?"Ja":"Nein"}<br>Fremde Betriebe sichtbar: ${foreignBusinesses.length}<br>Fremde Standorte sichtbar: ${foreignLocations.length}<br>Fremde Memberships sichtbar: ${foreignMemberships.length}<br><br>Wir migrieren noch keine echten Betriebsdaten, bevor das geklärt ist.`;
+      }
+    }catch(error){
+      box.className="open bad";box.innerHTML=`<strong>⚠️ RLS-Test konnte nicht abgeschlossen werden</strong>${esc(friendly(error))}`;
+    }finally{btn.disabled=false}
   }
 
   async function login(){
