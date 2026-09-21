@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.22.1 Cloud Login & Passwort</title>
+<title>GastroPilot – V7.23 Cloud Betrieb & Standort</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10499,7 +10499,7 @@ markOrderAdmin();
 new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtree:true});
 })();</script>
 
-<!-- GastroPilot V7.22.1 – Supabase Cloud Login + Passwort-Recovery -->
+<!-- GastroPilot V7.23 – Supabase Cloud Login + Betrieb/Standort -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style id="gp-v7221-cloud-auth-css">
 #gpCloudAccount{margin:0 0 14px;padding:14px;border:1px solid #dce7e3;border-radius:17px;background:#fff;box-shadow:0 6px 20px rgba(19,88,71,.06)}
@@ -10603,6 +10603,23 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     }catch(error){return {error}}
   }
 
+  async function cloudContext(userId){
+    const m=await membership(userId);
+    if(m.error) return {error:m.error};
+    if(!m.data?.business_id) return {membership:null};
+    const businessId=m.data.business_id;
+    try{
+      const [businessRes,locationRes,profileRes]=await Promise.all([
+        client.from("businesses").select("id,name").eq("id",businessId).maybeSingle(),
+        client.from("locations").select("id,name,business_id").eq("business_id",businessId).order("name",{ascending:true}).limit(1).maybeSingle(),
+        client.from("profiles").select("id,display_name").eq("id",userId).maybeSingle()
+      ]);
+      const error=businessRes.error||locationRes.error||profileRes.error;
+      if(error) return {error,membership:m.data};
+      return {membership:m.data,business:businessRes.data,location:locationRes.data,profile:profileRes.data};
+    }catch(error){return {error,membership:m.data}}
+  }
+
   async function renderSession(session){
     const user=session?.user;
     const state=$("gpCloudState"),meta=$("gpCloudMeta"),open=$("gpCloudOpen"),logout=$("gpCloudLogout"),panel=$("gpCloudPanel");
@@ -10610,7 +10627,7 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     if(!user){
       if(!recoveryMode){state.textContent="LOKAL";state.classList.remove("ok","recovery");meta.textContent="Noch nicht angemeldet"}
       if(open){open.style.display="";open.textContent="Anmelden"} if(logout)logout.style.display="none";
-      document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";
+      document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";document.body.dataset.gpLocationId="";
       return;
     }
     if(recoveryMode){
@@ -10621,15 +10638,28 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     }
     state.textContent="CLOUD";state.classList.remove("recovery");state.classList.add("ok");
     if(open)open.style.display="none";if(logout)logout.style.display="";if(panel)panel.classList.remove("open");
-    const m=await membership(user.id);
-    if(m.data){
-      const role=m.data.role||"employee";
-      meta.innerHTML=`${esc(user.email||"Angemeldet")} · ${role==="admin"||role==="manager"?"Leitung / Admin":"Mitarbeiter"}`;
+    meta.textContent=(user.email||"Angemeldet")+" · Cloud-Zuordnung wird geladen …";
+    const ctx=await cloudContext(user.id);
+    if(ctx.error){
+      meta.innerHTML=`${esc(user.email||"Angemeldet")}<br><span style="color:#a53636">Cloud-Zuordnung konnte nicht vollständig geladen werden: ${esc(friendly(ctx.error))}</span>`;
+      document.body.dataset.gpCloudRole=ctx.membership?.role||"";
+      document.body.dataset.gpBusinessId=ctx.membership?.business_id||"";
+      document.body.dataset.gpLocationId="";
+      return;
+    }
+    if(ctx.membership){
+      const role=ctx.membership.role||"employee";
+      const roleLabel=role==="admin"||role==="manager"?"Leitung / Admin":"Mitarbeiter";
+      const businessName=ctx.business?.name||"Betrieb nicht gefunden";
+      const locationName=ctx.location?.name||"Kein Standort hinterlegt";
+      const displayName=ctx.profile?.display_name?.trim();
+      meta.innerHTML=`${displayName?esc(displayName)+" · ":""}${esc(user.email||"Angemeldet")} · ${esc(roleLabel)}<br><strong>${esc(businessName)}</strong> · ${esc(locationName)}`;
       document.body.dataset.gpCloudRole=role;
-      document.body.dataset.gpBusinessId=m.data.business_id||"";
+      document.body.dataset.gpBusinessId=ctx.membership.business_id||"";
+      document.body.dataset.gpLocationId=ctx.location?.id||"";
     }else{
       meta.textContent=(user.email||"Angemeldet")+" · noch keinem Betrieb zugeordnet";
-      document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";
+      document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";document.body.dataset.gpLocationId="";
     }
   }
 
