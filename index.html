@@ -10647,9 +10647,11 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     const state=$("gpCloudState"),meta=$("gpCloudMeta"),open=$("gpCloudOpen"),logout=$("gpCloudLogout"),panel=$("gpCloudPanel");
     if(!state||!meta)return;
     if(!user){
-      state.textContent="LOKAL";state.classList.remove("ok");meta.textContent="Noch nicht angemeldet";
+      state.textContent="ANMELDEN";state.classList.remove("ok");meta.textContent="Noch nicht angemeldet";
       if(open){open.style.display="";open.textContent="Anmelden"} if(logout)logout.style.display="none";
       document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";
+      document.body.dataset.gpAuthState="loggedout";
+      document.dispatchEvent(new CustomEvent("gpAuthStateChanged",{detail:{authenticated:false}}));
       return;
     }
     state.textContent="CLOUD";state.classList.add("ok");
@@ -10660,9 +10662,17 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
       meta.innerHTML=`${esc(user.email||"Angemeldet")} · ${role==="admin"||role==="manager"?"Leitung / Admin":"Mitarbeiter"}`;
       document.body.dataset.gpCloudRole=role;
       document.body.dataset.gpBusinessId=m.data.business_id||"";
+      if(document.body.dataset.gpBusinessId){
+        document.body.dataset.gpAuthState="authenticated";
+        document.dispatchEvent(new CustomEvent("gpAuthStateChanged",{detail:{authenticated:true,businessId:m.data.business_id,role}}));
+      }else{
+        document.body.dataset.gpAuthState="unassigned";
+      }
     }else{
       meta.textContent=(user.email||"Angemeldet")+" · noch keinem Betrieb zugeordnet";
       document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";
+      document.body.dataset.gpAuthState="unassigned";
+      document.dispatchEvent(new CustomEvent("gpAuthStateChanged",{detail:{authenticated:false,unassigned:true}}));
     }
   }
 
@@ -10689,8 +10699,9 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
   async function logout(){await client.auth.signOut();notice("");await renderSession(null)}
 
   async function init(){
+    document.body.dataset.gpAuthState="checking";
     mount();
-    if(!window.supabase?.createClient){notice("Cloud-Verbindung konnte nicht geladen werden.",true);return}
+    if(!window.supabase?.createClient){document.body.dataset.gpAuthState="loggedout";notice("Cloud-Verbindung konnte nicht geladen werden.",true);return}
     client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     window.gpSupabase=client;
     const {data}=await client.auth.getSession();
@@ -10698,6 +10709,41 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     client.auth.onAuthStateChange((_event,session)=>setTimeout(()=>renderSession(session),0));
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
+})();
+</script>
+
+
+<!-- GastroPilot V7.26 – zentrale Login-Sperre -->
+<style id="gp-v726-auth-gate-css">
+/* Ohne bestätigte Cloud-Session bleibt ausschließlich der Login auf der Startseite erreichbar. */
+body:not([data-gp-auth-state="authenticated"]) #gpAppNav,
+body:not([data-gp-auth-state="authenticated"]) .gpScreenBar,
+body:not([data-gp-auth-state="authenticated"]) .quickNav{display:none!important}
+body:not([data-gp-auth-state="authenticated"]) .appSection{display:none!important}
+body:not([data-gp-auth-state="authenticated"]) #homeCard.appSection{display:block!important}
+body:not([data-gp-auth-state="authenticated"]) #homeCard > *:not(#gpCloudAccount){display:none!important}
+body:not([data-gp-auth-state="authenticated"]) #gpCloudAccount{display:block!important;margin-top:8px!important}
+</style>
+<script id="gp-v726-auth-gate-js">
+(function(){
+  const AUTH="authenticated";
+  function locked(){return document.body.dataset.gpAuthState!==AUTH}
+  function forceLoginScreen(){
+    if(!locked())return;
+    document.querySelectorAll(".appSection").forEach(el=>el.classList.remove("gp-screen-active"));
+    document.getElementById("homeCard")?.classList.add("gp-screen-active");
+    const manage=document.getElementById("gpStaffManage");if(manage)manage.hidden=true;
+  }
+  document.addEventListener("click",e=>{
+    if(!locked())return;
+    const allowed=e.target.closest("#gpCloudAccount");
+    if(allowed)return;
+    const appAction=e.target.closest("#gpAppNav,.quickNav,.appSection button,.appSection input,.appSection select,.appSection textarea");
+    if(appAction){e.preventDefault();e.stopImmediatePropagation();forceLoginScreen()}
+  },true);
+  document.addEventListener("gpAuthStateChanged",forceLoginScreen);
+  new MutationObserver(forceLoginScreen).observe(document.body,{attributes:true,attributeFilter:["data-gp-auth-state"]});
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",forceLoginScreen,{once:true});else forceLoginScreen();
 })();
 </script>
 \n<!-- GastroPilot V7.25 – Cloud-Mitarbeiter mit betrieblichen Rollen -->
