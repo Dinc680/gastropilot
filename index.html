@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.24 Cloud Mitarbeiter</title>
+<title>GastroPilot – V7.27 HACCP Geräte Cloud</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10812,6 +10812,120 @@ body[data-gp-cloud-staff="1"] #gpStaffList .gpRoleControls{display:flex!importan
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)watchCloud()});setInterval(watchCloud,1200);watchCloud();
 })();
 </script>
+
+<!-- GastroPilot V7.27 – HACCP Geräte mandantenfähig in Supabase -->
+<style id="gp-v727-cloud-devices-css">
+body[data-gp-cloud-devices="loading"] #haccpDeviceStatus::after{content:" · ☁️ lädt …";color:#6f7c77}
+body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁️ Cloud";color:#135847;font-weight:800}
+</style>
+<script id="gp-v727-cloud-devices-js">
+(function(){
+  const DEVICE_KEY="gastropilot_haccp_devices_v1";
+  const DEVICE_INIT_KEY="gastropilot_haccp_devices_initialized_v1";
+  const BACKUP_KEY="gastropilot_haccp_devices_legacy_backup_v1";
+  const BACKUP_INIT="gastropilot_haccp_devices_init_legacy_backup_v1";
+  let cloudRows=[],lastBusiness="",loading=false,cloudEditId="";
+  const $=id=>document.getElementById(id);
+  const isCloud=()=>!!document.body.dataset.gpBusinessId&&!!window.gpSupabase&&document.body.dataset.gpAuthState==="authenticated";
+  const role=()=>document.body.dataset.gpCloudRole||"";
+  const canManage=()=>role()==="admin"||role()==="manager";
+  const uiToDb=t=>t==="Tiefkühlung"?"freezer":t==="Kühlung"?"cooling":t==="Heißhaltung"?"hot_holding":"other";
+  const dbToUi=t=>t==="freezer"?"Tiefkühlung":t==="cooling"?"Kühlung":t==="hot_holding"?"Heißhaltung":"Kühlung";
+  const numberValue=id=>{const v=String($(id)?.value??"").replace(",",".").trim();if(v==="")return null;const n=Number(v);return Number.isFinite(n)?n:null};
+
+  function backupLegacyOnce(){
+    if(localStorage.getItem(BACKUP_KEY)===null)localStorage.setItem(BACKUP_KEY,localStorage.getItem(DEVICE_KEY)||"[]");
+    if(localStorage.getItem(BACKUP_INIT)===null)localStorage.setItem(BACKUP_INIT,localStorage.getItem(DEVICE_INIT_KEY)||"");
+  }
+  function refreshNativeUi(){
+    const type=$("haccpType");if(type)type.dispatchEvent(new Event("change",{bubbles:true}));
+    const manage=$("gpDeviceSettingsToggle");if(manage&&isCloud())manage.style.display=canManage()?"":"none";
+    const admin=$("gpDeviceAdmin");if(admin&&isCloud()&&!canManage())admin.hidden=true;
+  }
+  function mirrorCloud(){
+    const mapped=cloudRows.filter(r=>r&&r.active!==false).map(r=>({
+      id:r.id,name:String(r.name||"").trim(),type:dbToUi(r.device_type),
+      min:r.target_min==null?"":Number(r.target_min),max:r.target_max==null?"":Number(r.target_max),gpCloud:true
+    }));
+    localStorage.setItem(DEVICE_KEY,JSON.stringify(mapped));
+    localStorage.setItem(DEVICE_INIT_KEY,"1");
+    document.body.dataset.gpCloudDevices="ready";
+    refreshNativeUi();
+  }
+  function restoreLegacy(){
+    const old=localStorage.getItem(BACKUP_KEY),init=localStorage.getItem(BACKUP_INIT);
+    if(old!==null)localStorage.setItem(DEVICE_KEY,old);
+    if(init) localStorage.setItem(DEVICE_INIT_KEY,init); else localStorage.removeItem(DEVICE_INIT_KEY);
+    cloudRows=[];lastBusiness="";cloudEditId="";delete document.body.dataset.gpCloudDevices;refreshNativeUi();
+  }
+  async function loadCloudDevices(){
+    if(loading||!isCloud())return;
+    const businessId=document.body.dataset.gpBusinessId;loading=true;document.body.dataset.gpCloudDevices="loading";
+    try{
+      backupLegacyOnce();
+      const {data,error}=await window.gpSupabase.from("haccp_devices")
+        .select("id,business_id,name,device_type,target_min,target_max,active,created_at")
+        .eq("business_id",businessId).eq("active",true).order("name",{ascending:true});
+      if(error)throw error;
+      cloudRows=Array.isArray(data)?data:[];lastBusiness=businessId;mirrorCloud();
+    }catch(err){
+      console.error("GastroPilot Cloud HACCP devices:",err);
+      cloudRows=[];localStorage.setItem(DEVICE_KEY,"[]");localStorage.setItem(DEVICE_INIT_KEY,"1");
+      document.body.dataset.gpCloudDevices="error";refreshNativeUi();
+      const n=$("haccpDeviceNotice");if(n)n.textContent="Cloud-Geräte konnten nicht geladen werden.";
+    }finally{loading=false}
+  }
+  async function saveCloudDevice(){
+    if(!isCloud()||!canManage())return;
+    const name=String($("haccpDeviceName")?.value||"").trim(),lo=numberValue("haccpDeviceMin"),hi=numberValue("haccpDeviceMax");
+    const typ=$("haccpDeviceType")?.value||"Kühlung",notice=$("haccpDeviceNotice");
+    if(!name){if(notice)notice.textContent="Bitte Gerätenamen eintragen.";return}
+    if(lo===null||hi===null){if(notice)notice.textContent="Bitte gültige Solltemperaturen eintragen.";return}
+    let error=null;
+    if(cloudEditId){
+      ({error}=await window.gpSupabase.from("haccp_devices").update({name,device_type:uiToDb(typ),target_min:lo,target_max:hi})
+        .eq("id",cloudEditId).eq("business_id",document.body.dataset.gpBusinessId));
+    }else{
+      ({error}=await window.gpSupabase.from("haccp_devices").insert({
+        business_id:document.body.dataset.gpBusinessId,name,device_type:uiToDb(typ),target_min:lo,target_max:hi,active:true
+      }));
+    }
+    if(error){if(notice)notice.textContent="Gerät konnte nicht gespeichert werden: "+error.message;return}
+    cloudEditId="";await loadCloudDevices();if(notice)notice.textContent="✓ Gerät in der Cloud gespeichert.";
+  }
+  async function deleteCloudDevice(){
+    if(!isCloud()||!canManage())return;
+    const id=$("haccpDevicePick")?.value||cloudEditId,row=cloudRows.find(r=>r.id===id);
+    if(!id||!row)return;
+    if(!confirm(`Gerät „${row.name}“ aus der Geräteliste löschen? Bereits gespeicherte HACCP-Messungen bleiben erhalten.`))return;
+    const {error}=await window.gpSupabase.from("haccp_devices").delete().eq("id",id).eq("business_id",document.body.dataset.gpBusinessId);
+    const notice=$("haccpDeviceNotice");
+    if(error){if(notice)notice.textContent="Gerät konnte nicht entfernt werden: "+error.message;return}
+    cloudEditId="";await loadCloudDevices();if(notice)notice.textContent="Gerät aus der Cloud-Liste gelöscht.";
+  }
+
+  document.addEventListener("click",async e=>{
+    if(!isCloud())return;
+    if(e.target.closest("#haccpToggleDeviceForm")){cloudEditId="";return}
+    if(e.target.closest("#haccpEditDevice")){cloudEditId=$("haccpDevicePick")?.value||"";return}
+    if(e.target.closest("#haccpSaveDevice")){e.preventDefault();e.stopImmediatePropagation();await saveCloudDevice();return}
+    if(e.target.closest("#haccpDeleteDevice")){e.preventDefault();e.stopImmediatePropagation();await deleteCloudDevice();return}
+  },true);
+
+  async function watchCloud(){
+    const businessId=document.body.dataset.gpBusinessId||"";
+    if(businessId&&window.gpSupabase&&document.body.dataset.gpAuthState==="authenticated"){
+      if(businessId!==lastBusiness)await loadCloudDevices();
+      refreshNativeUi();
+    }else if(lastBusiness)restoreLegacy();
+  }
+  document.addEventListener("gpAuthStateChanged",watchCloud);
+  new MutationObserver(watchCloud).observe(document.body,{attributes:true,attributeFilter:["data-gp-business-id","data-gp-cloud-role","data-gp-auth-state"]});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)watchCloud()});
+  setInterval(watchCloud,1500);watchCloud();
+})();
+</script>
+
 </body>
 </html>
   
