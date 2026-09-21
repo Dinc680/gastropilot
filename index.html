@@ -10700,115 +10700,70 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
 </script>
-\n<!-- GastroPilot V7.24 – mandantenfähige Cloud-Mitarbeiter -->
-<style id="gp-v724-cloud-staff-css">
-body[data-gp-cloud-staff="1"] #gpStaffList .gpRoleControls{display:none!important}
-body[data-gp-cloud-staff="1"] #gpStaffNewRole{display:none!important}
+\n<!-- GastroPilot V7.25 – Cloud-Mitarbeiter mit betrieblichen Rollen -->
+<style id="gp-v725-cloud-staff-css">
+body[data-gp-cloud-staff="1"] #gpStaffList .gpRoleControls{display:flex!important}
 .gpCloudStaffNote{font-size:11px;color:#6f7c77;margin:7px 0 0;line-height:1.35}
+.gpCloudStaffRow{display:grid;grid-template-columns:1fr;gap:8px;padding:11px 0;border-bottom:1px solid #e6ece9}
+.gpCloudStaffTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.gpCloudStaffTop>span{font-weight:800}
+.gpCloudStaffActions{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.gpCloudStaffActions select{min-height:42px!important;font-size:14px!important;padding:8px 10px!important}
+.gpCloudStaffActions button{width:auto!important;min-height:42px!important;padding:8px 12px!important;font-size:13px!important;background:#fff!important;color:#a33!important;border:1px solid #d9b7b7!important}
 </style>
-<script id="gp-v724-cloud-staff-js">
+<script id="gp-v725-cloud-staff-js">
 (function(){
-  const STAFF_KEY="gastropilot_staff_v1";
-  const ACTIVE_KEY="gastropilot_active_employee_v1";
-  const ROLES_KEY="gastropilot_staff_roles_v1";
-  const BACKUP_STAFF="gastropilot_staff_legacy_backup_v1";
-  const BACKUP_ROLES="gastropilot_staff_roles_legacy_backup_v1";
-  let cloudRows=[];
-  let lastBusiness="";
-  let syncing=false;
+  const STAFF_KEY="gastropilot_staff_v1", ACTIVE_KEY="gastropilot_active_employee_v1", ROLES_KEY="gastropilot_staff_roles_v1";
+  const BACKUP_STAFF="gastropilot_staff_legacy_backup_v1", BACKUP_ROLES="gastropilot_staff_roles_legacy_backup_v1";
+  let cloudRows=[],lastBusiness="",syncing=false;
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c]));
-
-  function isCloud(){return !!document.body.dataset.gpBusinessId && !!window.gpSupabase}
-  function role(){return document.body.dataset.gpCloudRole||""}
-  function canManage(){return role()==="admin"||role()==="manager"}
-  function backupLegacyOnce(){
-    if(localStorage.getItem(BACKUP_STAFF)===null)localStorage.setItem(BACKUP_STAFF,localStorage.getItem(STAFF_KEY)||"[]");
-    if(localStorage.getItem(BACKUP_ROLES)===null)localStorage.setItem(BACKUP_ROLES,localStorage.getItem(ROLES_KEY)||"{}");
-  }
-  function restoreLegacy(){
-    const a=localStorage.getItem(BACKUP_STAFF),r=localStorage.getItem(BACKUP_ROLES);
-    if(a!==null)localStorage.setItem(STAFF_KEY,a);
-    if(r!==null)localStorage.setItem(ROLES_KEY,r);
-    document.body.dataset.gpCloudStaff="";
-    cloudRows=[];lastBusiness="";
-    renderLegacyMirror();
-  }
+  const isCloud=()=>!!document.body.dataset.gpBusinessId&&!!window.gpSupabase;
+  const accountRole=()=>document.body.dataset.gpCloudRole||"";
+  const canManage=()=>accountRole()==="admin"||accountRole()==="manager";
+  function backupLegacyOnce(){if(localStorage.getItem(BACKUP_STAFF)===null)localStorage.setItem(BACKUP_STAFF,localStorage.getItem(STAFF_KEY)||"[]");if(localStorage.getItem(BACKUP_ROLES)===null)localStorage.setItem(BACKUP_ROLES,localStorage.getItem(ROLES_KEY)||"{}");}
+  function restoreLegacy(){const a=localStorage.getItem(BACKUP_STAFF),r=localStorage.getItem(BACKUP_ROLES);if(a!==null)localStorage.setItem(STAFF_KEY,a);if(r!==null)localStorage.setItem(ROLES_KEY,r);document.body.dataset.gpCloudStaff="";cloudRows=[];lastBusiness="";renderLegacyMirror();}
   function mirrorCloud(){
-    const names=cloudRows.filter(x=>x&&x.active!==false).map(x=>String(x.name||"").trim()).filter(Boolean);
+    const rows=cloudRows.filter(x=>x&&x.active!==false),names=rows.map(x=>String(x.name||"").trim()).filter(Boolean);
     localStorage.setItem(STAFF_KEY,JSON.stringify(names));
-    localStorage.setItem(ROLES_KEY,JSON.stringify(Object.fromEntries(names.map(n=>[n,"employee"]))));
-    const active=localStorage.getItem(ACTIVE_KEY)||"";
-    if(active&&!names.includes(active))localStorage.removeItem(ACTIVE_KEY);
+    localStorage.setItem(ROLES_KEY,JSON.stringify(Object.fromEntries(rows.map(x=>[String(x.name||"").trim(),x.role==="manager"?"manager":"employee"]))));
+    const active=localStorage.getItem(ACTIVE_KEY)||"";if(active&&!names.includes(active))localStorage.removeItem(ACTIVE_KEY);
     document.body.dataset.gpCloudStaff="1";
   }
   function renderLegacyMirror(){
     const names=(()=>{try{const x=JSON.parse(localStorage.getItem(STAFF_KEY)||"[]");return Array.isArray(x)?x:[]}catch{return[]}})();
     const sel=$("gpStaffActive"),list=$("gpStaffList"),active=localStorage.getItem(ACTIVE_KEY)||"";
-    if(sel){sel.innerHTML='<option value="">Mitarbeiter auswählen …</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");if(names.includes(active))sel.value=active;else sel.value=""}
-    if(list)list.innerHTML=names.length?names.map((n,i)=>`<div class="gpStaffPerson" data-cloud-staff-index="${i}"><span>${esc(n)}</span>${isCloud()&&canManage()?`<button type="button" data-cloud-del="${i}">Entfernen</button>`:(!isCloud()?`<button type="button" data-del="${i}">Entfernen</button>`:"")}</div>`).join(""):'<div class="muted">Noch keine Mitarbeiter angelegt.</div>';
+    if(sel){sel.innerHTML='<option value="">Mitarbeiter auswählen …</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");sel.value=names.includes(active)?active:"";}
+    if(list){
+      if(isCloud()) list.innerHTML=cloudRows.length?cloudRows.map((row,i)=>`<div class="gpCloudStaffRow"><div class="gpCloudStaffTop"><span>${esc(row.name)}</span><small>${row.role==="manager"?"👔 Leitung / Admin":"👤 Mitarbeiter"}</small></div>${canManage()?`<div class="gpCloudStaffActions"><select data-cloud-role="${i}" aria-label="Rolle von ${esc(row.name)}"><option value="employee"${row.role!=="manager"?" selected":""}>👤 Mitarbeiter</option><option value="manager"${row.role==="manager"?" selected":""}>👔 Leitung / Admin</option></select><button type="button" data-cloud-del="${i}">Entfernen</button></div>`:""}</div>`).join(""):'<div class="muted">Noch keine Mitarbeiter angelegt.</div>';
+      else list.innerHTML=names.length?names.map((n,i)=>`<div class="gpStaffPerson"><span>${esc(n)}</span><button type="button" data-del="${i}">Entfernen</button></div>`).join(""):'<div class="muted">Noch keine Mitarbeiter angelegt.</div>';
+    }
     const manage=$("gpStaffManageBtn");if(manage&&isCloud())manage.style.display=canManage()?"":"none";
     const panel=$("gpStaffManage");if(panel&&isCloud()&&!canManage())panel.hidden=true;
-    let note=$("gpCloudStaffNote");
-    if(isCloud()&&panel&&!note){note=document.createElement("div");note.id="gpCloudStaffNote";note.className="gpCloudStaffNote";note.textContent="☁️ Mitarbeiter dieses Betriebs werden sicher aus der GastroPilot Cloud geladen.";panel.appendChild(note)}
+    const picker=$("gpStaffNewRole");if(picker)picker.disabled=isCloud()&&!canManage();
+    let note=$("gpCloudStaffNote");if(isCloud()&&panel&&!note){note=document.createElement("div");note.id="gpCloudStaffNote";note.className="gpCloudStaffNote";note.textContent="☁️ Mitarbeiter und betriebliche Rollen dieses Betriebs werden aus der GastroPilot Cloud geladen.";panel.appendChild(note)}
     document.dispatchEvent(new CustomEvent("gpCloudStaffUpdated",{detail:{businessId:document.body.dataset.gpBusinessId||"",count:names.length}}));
   }
   async function loadCloudStaff(){
-    if(syncing||!isCloud())return;
-    const businessId=document.body.dataset.gpBusinessId;
-    syncing=true;
-    try{
-      backupLegacyOnce();
-      const {data,error}=await window.gpSupabase.from("staff").select("id,business_id,name,active,user_id,created_at").eq("business_id",businessId).eq("active",true).order("name",{ascending:true});
-      if(error)throw error;
-      cloudRows=Array.isArray(data)?data:[];lastBusiness=businessId;
-      mirrorCloud();renderLegacyMirror();
-    }catch(err){
-      console.error("GastroPilot Cloud staff:",err);
-      const list=$("gpStaffList");if(list)list.innerHTML='<div class="muted">Cloud-Mitarbeiter konnten nicht geladen werden.</div>';
-    }finally{syncing=false}
+    if(syncing||!isCloud())return;const businessId=document.body.dataset.gpBusinessId;syncing=true;
+    try{backupLegacyOnce();const {data,error}=await window.gpSupabase.from("staff").select("id,business_id,name,active,user_id,role,created_at").eq("business_id",businessId).eq("active",true).order("name",{ascending:true});if(error)throw error;cloudRows=Array.isArray(data)?data:[];lastBusiness=businessId;mirrorCloud();renderLegacyMirror();}
+    catch(err){console.error("GastroPilot Cloud staff:",err);const list=$("gpStaffList");if(list)list.innerHTML='<div class="muted">Cloud-Mitarbeiter konnten nicht geladen werden.</div>';}
+    finally{syncing=false}
   }
-  async function addCloudStaff(name){
-    name=String(name||"").trim();if(!name||!isCloud()||!canManage())return;
-    if(cloudRows.some(x=>String(x.name||"").trim().toLowerCase()===name.toLowerCase()))return;
-    const {error}=await window.gpSupabase.from("staff").insert({business_id:document.body.dataset.gpBusinessId,name,active:true});
-    if(error){alert("Mitarbeiter konnte nicht gespeichert werden: "+error.message);return}
-    const input=$("gpStaffNew");if(input)input.value="";
-    await loadCloudStaff();
+  async function addCloudStaff(name,staffRole){
+    name=String(name||"").trim();staffRole=staffRole==="manager"?"manager":"employee";if(!name||!isCloud()||!canManage())return;
+    if(cloudRows.some(x=>String(x.name||"").trim().toLowerCase()===name.toLowerCase())){alert("Dieser Mitarbeiter ist bereits angelegt.");return}
+    const {error}=await window.gpSupabase.from("staff").insert({business_id:document.body.dataset.gpBusinessId,name,active:true,role:staffRole});if(error){alert("Mitarbeiter konnte nicht gespeichert werden: "+error.message);return}
+    if($("gpStaffNew"))$("gpStaffNew").value="";await loadCloudStaff();
   }
-  async function deleteCloudStaff(index){
-    if(!isCloud()||!canManage())return;
-    const row=cloudRows[Number(index)];if(!row?.id)return;
-    const {error}=await window.gpSupabase.from("staff").delete().eq("id",row.id).eq("business_id",document.body.dataset.gpBusinessId);
-    if(error){alert("Mitarbeiter konnte nicht entfernt werden: "+error.message);return}
-    await loadCloudStaff();
-  }
-
-  document.addEventListener("click",async e=>{
-    if(!isCloud())return;
-    const add=e.target.closest("#gpStaffAddBtn");
-    if(add){e.preventDefault();e.stopImmediatePropagation();await addCloudStaff($("gpStaffNew")?.value);return}
-    const del=e.target.closest("[data-cloud-del]");
-    if(del){e.preventDefault();e.stopImmediatePropagation();await deleteCloudStaff(del.dataset.cloudDel);return}
-  },true);
-  document.addEventListener("keydown",async e=>{
-    if(!isCloud()||e.key!=="Enter"||e.target?.id!=="gpStaffNew")return;
-    e.preventDefault();e.stopImmediatePropagation();await addCloudStaff(e.target.value);
-  },true);
-  $("gpStaffActive")?.addEventListener("change",e=>{
-    if(!isCloud())return;
-    const v=e.target.value||"";v?localStorage.setItem(ACTIVE_KEY,v):localStorage.removeItem(ACTIVE_KEY);
-  },true);
-
-  async function watchCloud(){
-    const businessId=document.body.dataset.gpBusinessId||"";
-    if(businessId&&window.gpSupabase){if(businessId!==lastBusiness)await loadCloudStaff()}
-    else if(lastBusiness)restoreLegacy();
-  }
+  async function deleteCloudStaff(index){if(!isCloud()||!canManage())return;const row=cloudRows[Number(index)];if(!row?.id)return;if(!confirm(`Mitarbeiter „${row.name}“ entfernen?`))return;const {error}=await window.gpSupabase.from("staff").delete().eq("id",row.id).eq("business_id",document.body.dataset.gpBusinessId);if(error){alert("Mitarbeiter konnte nicht entfernt werden: "+error.message);return}await loadCloudStaff();}
+  async function updateCloudRole(index,newRole){if(!isCloud()||!canManage())return;const row=cloudRows[Number(index)];if(!row?.id)return;newRole=newRole==="manager"?"manager":"employee";const {error}=await window.gpSupabase.from("staff").update({role:newRole}).eq("id",row.id).eq("business_id",document.body.dataset.gpBusinessId);if(error){alert("Rolle konnte nicht gespeichert werden: "+error.message);await loadCloudStaff();return}await loadCloudStaff();}
+  document.addEventListener("click",async e=>{if(!isCloud())return;const add=e.target.closest("#gpStaffAddBtn");if(add){e.preventDefault();e.stopImmediatePropagation();await addCloudStaff($("gpStaffNew")?.value,$("gpStaffNewRole")?.value);return}const del=e.target.closest("[data-cloud-del]");if(del){e.preventDefault();e.stopImmediatePropagation();await deleteCloudStaff(del.dataset.cloudDel);}},true);
+  document.addEventListener("change",async e=>{if(!isCloud())return;const rs=e.target.closest("[data-cloud-role]");if(rs){e.preventDefault();e.stopImmediatePropagation();await updateCloudRole(rs.dataset.cloudRole,rs.value);return}if(e.target?.id==="gpStaffActive"){const v=e.target.value||"";v?localStorage.setItem(ACTIVE_KEY,v):localStorage.removeItem(ACTIVE_KEY);}},true);
+  document.addEventListener("keydown",async e=>{if(!isCloud()||e.key!=="Enter"||e.target?.id!=="gpStaffNew")return;e.preventDefault();e.stopImmediatePropagation();await addCloudStaff(e.target.value,$("gpStaffNewRole")?.value);},true);
+  async function watchCloud(){const businessId=document.body.dataset.gpBusinessId||"";if(businessId&&window.gpSupabase){if(businessId!==lastBusiness)await loadCloudStaff()}else if(lastBusiness)restoreLegacy();}
   new MutationObserver(()=>watchCloud()).observe(document.body,{attributes:true,attributeFilter:["data-gp-business-id","data-gp-cloud-role"]});
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden)watchCloud()});
-  setInterval(watchCloud,1200);
-  watchCloud();
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)watchCloud()});setInterval(watchCloud,1200);watchCloud();
 })();
 </script>
 </body>
