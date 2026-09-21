@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.23.1 RLS Sicherheitstest</title>
+<title>GastroPilot – V7.23 Speiseplan PDF</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2961,6 +2961,15 @@ body.gp-role-employee #gpBusinessToggle,body.gp-role-employee #gpStaffManageBtn,
 body.gp-role-employee #gpDeviceRoundOrder,
 body.gp-role-employee #gpDeviceRoundOrderPanel{display:none!important}
 </style>
+
+<style id="gp-week-print-v723">
+#weekPlannerCard .gpWeekPrintTools{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 14px;padding:13px 14px;border:1px solid #dce7e3;border-radius:17px;background:linear-gradient(180deg,#fff,#f7fbf9);box-shadow:0 6px 20px rgba(19,88,71,.05)}
+#weekPlannerCard .gpWeekPrintToolsText{min-width:0}
+#weekPlannerCard .gpWeekPrintToolsText strong{display:block;color:#173f35;font-size:14px;margin-bottom:3px}
+#weekPlannerCard .gpWeekPrintToolsText span{display:block;color:#6f7c77;font-size:11px;line-height:1.4}
+#weekPlannerCard #gpWeekPrintPdf{flex:0 0 auto;min-height:42px!important;padding:9px 13px!important;font-size:13px!important}
+@media(max-width:520px){#weekPlannerCard .gpWeekPrintTools{align-items:stretch;flex-direction:column}#weekPlannerCard #gpWeekPrintPdf{width:100%}}
+</style>
 </head>
 
 <body>
@@ -3462,6 +3471,14 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
     <strong id="gpWeekFilledCount">0 von 25 Menüplätzen belegt</strong>
   </div>
   <div class="gpWeekSummaryBadge" id="gpWeekPortionTotal">0 Portionen</div>
+</div>
+
+<div class="gpWeekPrintTools" id="gpWeekPrintTools">
+  <div class="gpWeekPrintToolsText">
+    <strong>📄 Speiseplan ausgeben</strong>
+    <span>Erstellt eine saubere A4-Ansicht zum Drucken oder als PDF speichern.</span>
+  </div>
+  <button id="gpWeekPrintPdf" type="button">PDF / Drucken</button>
 </div>
 
 <div id="weekPlannerRows"></div>
@@ -10499,15 +10516,68 @@ markOrderAdmin();
 new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtree:true});
 })();</script>
 
-<!-- GastroPilot V7.23.1 – Supabase Cloud + echter RLS Sicherheitstest -->
+<script id="gp-week-print-v723-js">
+(function(){
+  const $=id=>document.getElementById(id);
+  const esc=v=>String(v??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c]));
+  function businessName(){
+    try{
+      const b=JSON.parse(localStorage.getItem("gastropilot_business_v1")||"{}");
+      return b.name||b.businessName||"GastroPilot";
+    }catch(e){return "GastroPilot"}
+  }
+  function mondayOfCurrentWeek(){
+    const d=new Date(),day=d.getDay()||7;
+    d.setHours(12,0,0,0);d.setDate(d.getDate()-day+1);return d;
+  }
+  function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+  function fmtDate(d){return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})}
+  function isoWeek(d){
+    const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+    const day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);
+    const y=new Date(Date.UTC(x.getUTCFullYear(),0,1));return Math.ceil((((x-y)/86400000)+1)/7);
+  }
+  function plan(){
+    try{return JSON.parse(localStorage.getItem("gastropilot_week_plan")||"{}")||{}}catch(e){return{}}
+  }
+  function openPrint(){
+    const p=plan(),days=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
+    const labels=["Suppe","Hauptgericht 1","Hauptgericht 2","Hauptgericht 3","Dessert"];
+    const mon=mondayOfCurrentWeek(),fri=addDays(mon,4);
+    let filled=0;
+    const cards=days.map((day,di)=>{
+      const slots=Array.isArray(p[day])?p[day]:[];
+      const rows=labels.map((label,i)=>{
+        const item=slots[i]||{},name=String(item.recipeName||"").trim();
+        if(name)filled++;
+        return `<div class="meal ${name?'filled':''}"><div class="label">${esc(label)}</div><div class="dish">${name?esc(name):'<span class="empty">—</span>'}</div></div>`;
+      }).join("");
+      return `<section class="day"><div class="dayhead"><div><strong>${esc(day)}</strong><span>${fmtDate(addDays(mon,di))}</span></div><b>${day.slice(0,2).toUpperCase()}</b></div>${rows}</section>`;
+    }).join("");
+    if(!filled){alert("Der Wochenplan ist noch leer. Bitte zuerst Gerichte eintragen.");return}
+    const w=window.open("","_blank");
+    if(!w){alert("Speiseplan konnte nicht geöffnet werden. Bitte Pop-ups für GastroPilot erlauben.");return}
+    const title=`Speiseplan KW ${isoWeek(mon)}`;
+    w.document.open();
+    w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>
+      *{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;margin:0;color:#1d332c;background:#fff}.actions{padding:14px;position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;z-index:2}.actions button{border:0;border-radius:10px;background:#135847;color:#fff;font-weight:800;font-size:16px;padding:11px 15px}.page{max-width:210mm;margin:0 auto;padding:12mm}.hero{background:#135847;color:#fff;border-radius:12px;padding:11mm 10mm;margin-bottom:7mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}.kicker{font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:900;color:#ffd184}.hero h1{font-size:28px;margin:3px 0 5px}.meta{font-size:12px;opacity:.9}.week{display:grid;grid-template-columns:1fr;gap:4mm}.day{border:1px solid #cfdcd7;border-radius:10px;overflow:hidden;break-inside:avoid}.dayhead{display:flex;justify-content:space-between;align-items:center;background:#eef6f3;padding:3.5mm 4mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}.dayhead strong{font-size:16px}.dayhead span{display:block;font-size:9px;color:#6d7b76;margin-top:1px}.dayhead b{display:flex;align-items:center;justify-content:center;width:9mm;height:9mm;border-radius:3mm;background:#d9ece5;color:#135847;font-size:9px}.meal{display:grid;grid-template-columns:34mm 1fr;border-top:1px solid #e7ecea;min-height:9mm}.meal:first-of-type{border-top:0}.label{padding:2.4mm 4mm;font-size:9px;font-weight:800;color:#66756f;background:#fbfcfc}.dish{padding:2.4mm 4mm;font-size:11px;font-weight:750}.empty{color:#b1bab6;font-weight:500}.foot{margin-top:6mm;padding-top:3mm;border-top:1px solid #dfe6e3;font-size:8px;color:#7b8782;display:flex;justify-content:space-between;gap:10px}
+      @page{size:A4 portrait;margin:0}@media print{.actions{display:none}.page{padding:10mm}.hero{margin-bottom:5mm}.week{gap:3mm}.dayhead{padding:2.5mm 3.5mm}.meal{min-height:8mm}.label,.dish{padding:2mm 3.5mm}}
+    </style></head><body><div class="actions"><button onclick="window.print()">PDF speichern / Drucken</button></div><main class="page"><header class="hero"><div class="kicker">GastroPilot · Wochenplan</div><h1>${esc(businessName())}</h1><div class="meta">${esc(title)} · ${fmtDate(mon)} bis ${fmtDate(fri)}</div></header><div class="week">${cards}</div><footer class="foot"><span>Erstellt mit GastroPilot</span><span>Änderungen vorbehalten</span></footer></main></body></html>`);
+    w.document.close();
+  }
+  function init(){const b=$("gpWeekPrintPdf");if(b&&!b.dataset.bound){b.dataset.bound="1";b.addEventListener("click",openPrint)}}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
+})();
+</script>
+
+<!-- GastroPilot V7.22 – Supabase Cloud Login (stabile lokale Funktionen bleiben erhalten) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style id="gp-v7221-cloud-auth-css">
+<style id="gp-v722-cloud-auth-css">
 #gpCloudAccount{margin:0 0 14px;padding:14px;border:1px solid #dce7e3;border-radius:17px;background:#fff;box-shadow:0 6px 20px rgba(19,88,71,.06)}
 #gpCloudAccount .gpCloudHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
 #gpCloudAccount .gpCloudTitle{font-weight:900;color:#173f35;font-size:16px}
 #gpCloudAccount .gpCloudState{font-size:12px;font-weight:850;padding:6px 9px;border-radius:999px;background:#eef3f1;color:#66756f;white-space:nowrap}
 #gpCloudAccount .gpCloudState.ok{background:#e8f5f0;color:#135847}
-#gpCloudAccount .gpCloudState.recovery{background:#fff3d9;color:#805d10}
 #gpCloudAccount .gpCloudMeta{margin-top:6px;color:#6f7c77;font-size:13px;line-height:1.4}
 #gpCloudAccount .gpCloudActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 #gpCloudAccount .gpCloudActions button{min-height:42px!important;padding:9px 11px!important;font-size:13px!important}
@@ -10517,27 +10587,15 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
 #gpCloudAccount .gpCloudField label{display:block;margin-bottom:5px;font-size:12px;font-weight:850;color:#52615c}
 #gpCloudAccount .gpCloudField input{width:100%;min-height:44px!important;padding:10px 12px!important;border:1px solid #cedbd6!important;border-radius:12px!important;background:#fff!important;font-size:16px!important}
 #gpCloudAccount .gpCloudButtons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-#gpCloudAccount .gpCloudLink{width:auto!important;min-height:0!important;padding:8px 2px!important;margin:2px 0 0!important;border:0!important;background:transparent!important;color:#135847!important;box-shadow:none!important;text-align:left;font-size:13px!important;font-weight:850!important}
 #gpCloudAccount .gpCloudNotice{min-height:18px;margin-top:9px;font-size:12px;font-weight:750;color:#6b7873;line-height:1.4}
 #gpCloudAccount .gpCloudNotice.error{color:#a53636}
-#gpCloudRecovery{display:none;margin-top:12px;padding:13px;border:1px solid #ead7a5;border-radius:14px;background:#fffaf0}
-#gpCloudRecovery.open{display:block}
-#gpCloudRecovery .gpCloudRecoveryTitle{font-size:14px;font-weight:900;color:#5d4919;margin-bottom:5px}
-#gpCloudRecovery .gpCloudRecoveryText{font-size:12px;color:#78683e;line-height:1.4;margin-bottom:10px}
-#gpCloudSecurity{display:none;margin-top:12px;padding:12px;border:1px solid #dce7e3;border-radius:14px;background:#f8fbfa;font-size:12px;line-height:1.45;color:#53635d}
-#gpCloudSecurity.open{display:block}
-#gpCloudSecurity.ok{border-color:#b9ddcf;background:#f0faf6;color:#135847}
-#gpCloudSecurity.bad{border-color:#e4b8b8;background:#fff5f5;color:#963737}
-#gpCloudSecurity strong{display:block;font-size:13px;margin-bottom:5px}
 @media(max-width:430px){#gpCloudAccount .gpCloudActions,#gpCloudAccount .gpCloudButtons{grid-template-columns:1fr}}
 </style>
-<script id="gp-v7221-cloud-auth-js">
+<script id="gp-v722-cloud-auth-js">
 (function(){
   const SUPABASE_URL="https://xtzieoyylfkjgfwtczup.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY="sb_publishable_82DxmzNX6EunHh2TU6ctRQ_Ky0YvCoU";
-  const APP_URL="https://dinc680.github.io/gastropilot/";
   let client=null;
-  let recoveryMode=false;
   const esc=v=>String(v??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c]));
   const $=id=>document.getElementById(id);
 
@@ -10555,8 +10613,6 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
         <button type="button" id="gpCloudOpen">Anmelden</button>
         <button type="button" class="secondary" id="gpCloudLogout" style="display:none">Abmelden</button>
       </div>
-      <button type="button" class="secondary" id="gpCloudSecurityTest" style="display:none;width:100%;margin-top:8px">🔒 Mandantentrennung prüfen</button>
-      <div id="gpCloudSecurity"></div>
       <div class="gpCloudPanel" id="gpCloudPanel">
         <div class="gpCloudField"><label for="gpCloudEmail">E-Mail</label><input id="gpCloudEmail" type="email" autocomplete="email" placeholder="name@betrieb.de"></div>
         <div class="gpCloudField"><label for="gpCloudPassword">Passwort</label><input id="gpCloudPassword" type="password" autocomplete="current-password" placeholder="Passwort"></div>
@@ -10564,16 +10620,7 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
           <button type="button" id="gpCloudLogin">Anmelden</button>
           <button type="button" class="secondary" id="gpCloudSignup">Neues Konto</button>
         </div>
-        <button type="button" class="gpCloudLink" id="gpCloudForgot">Passwort vergessen?</button>
         <div class="gpCloudNotice" id="gpCloudNotice"></div>
-      </div>
-      <div id="gpCloudRecovery">
-        <div class="gpCloudRecoveryTitle">🔐 Neues Passwort festlegen</div>
-        <div class="gpCloudRecoveryText">Du bist über den sicheren Link aus deiner E-Mail zurückgekehrt. Vergib jetzt dein neues Passwort.</div>
-        <div class="gpCloudField"><label for="gpCloudNewPassword">Neues Passwort</label><input id="gpCloudNewPassword" type="password" autocomplete="new-password" placeholder="Mindestens 8 Zeichen"></div>
-        <div class="gpCloudField"><label for="gpCloudNewPassword2">Passwort wiederholen</label><input id="gpCloudNewPassword2" type="password" autocomplete="new-password" placeholder="Noch einmal eingeben"></div>
-        <button type="button" id="gpCloudSavePassword">Neues Passwort speichern</button>
-        <div class="gpCloudNotice" id="gpCloudRecoveryNotice"></div>
       </div>`;
     const lead=home.querySelector(".sectionLead");
     if(lead && lead.nextSibling) home.insertBefore(box,lead.nextSibling); else home.prepend(box);
@@ -10581,27 +10628,11 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     $("gpCloudOpen")?.addEventListener("click",()=>$("gpCloudPanel")?.classList.toggle("open"));
     $("gpCloudLogin")?.addEventListener("click",login);
     $("gpCloudSignup")?.addEventListener("click",signup);
-    $("gpCloudForgot")?.addEventListener("click",forgotPassword);
-    $("gpCloudSavePassword")?.addEventListener("click",saveNewPassword);
     $("gpCloudLogout")?.addEventListener("click",logout);
-    $("gpCloudSecurityTest")?.addEventListener("click",runSecurityTest);
   }
 
-  function notice(msg,error=false,id="gpCloudNotice"){const n=$(id);if(!n)return;n.textContent=msg||"";n.classList.toggle("error",!!error)}
+  function notice(msg,error=false){const n=$("gpCloudNotice");if(!n)return;n.textContent=msg||"";n.classList.toggle("error",!!error)}
   function friendly(err){return err?.message||"Unbekannter Fehler"}
-  function showRecovery(){
-    recoveryMode=true;
-    $("gpCloudRecovery")?.classList.add("open");
-    $("gpCloudPanel")?.classList.remove("open");
-    const state=$("gpCloudState");
-    if(state){state.textContent="PASSWORT";state.classList.add("recovery")}
-    setTimeout(()=>$("gpCloudNewPassword")?.focus(),100);
-  }
-  function hideRecovery(){
-    recoveryMode=false;
-    $("gpCloudRecovery")?.classList.remove("open");
-    $("gpCloudState")?.classList.remove("recovery");
-  }
 
   async function membership(userId){
     try{
@@ -10611,100 +10642,28 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     }catch(error){return {error}}
   }
 
-  async function cloudContext(userId){
-    const m=await membership(userId);
-    if(m.error) return {error:m.error};
-    if(!m.data?.business_id) return {membership:null};
-    const businessId=m.data.business_id;
-    try{
-      const [businessRes,locationRes,profileRes]=await Promise.all([
-        client.from("businesses").select("id,name").eq("id",businessId).maybeSingle(),
-        client.from("locations").select("id,name,business_id").eq("business_id",businessId).order("name",{ascending:true}).limit(1).maybeSingle(),
-        client.from("profiles").select("id,display_name").eq("id",userId).maybeSingle()
-      ]);
-      const error=businessRes.error||locationRes.error||profileRes.error;
-      if(error) return {error,membership:m.data};
-      return {membership:m.data,business:businessRes.data,location:locationRes.data,profile:profileRes.data};
-    }catch(error){return {error,membership:m.data}}
-  }
-
   async function renderSession(session){
     const user=session?.user;
     const state=$("gpCloudState"),meta=$("gpCloudMeta"),open=$("gpCloudOpen"),logout=$("gpCloudLogout"),panel=$("gpCloudPanel");
     if(!state||!meta)return;
     if(!user){
-      if(!recoveryMode){state.textContent="LOKAL";state.classList.remove("ok","recovery");meta.textContent="Noch nicht angemeldet"}
+      state.textContent="LOKAL";state.classList.remove("ok");meta.textContent="Noch nicht angemeldet";
       if(open){open.style.display="";open.textContent="Anmelden"} if(logout)logout.style.display="none";
-      const securityBtn=$("gpCloudSecurityTest"),securityBox=$("gpCloudSecurity"); if(securityBtn)securityBtn.style.display="none"; if(securityBox){securityBox.className="";securityBox.textContent=""}
-      document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";document.body.dataset.gpLocationId="";
+      document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";
       return;
     }
-    if(recoveryMode){
-      state.textContent="PASSWORT";state.classList.remove("ok");state.classList.add("recovery");
-      meta.textContent=(user.email||"Konto")+" · neues Passwort festlegen";
-      if(open)open.style.display="none";if(logout)logout.style.display="";if(panel)panel.classList.remove("open");
-      return;
-    }
-    state.textContent="CLOUD";state.classList.remove("recovery");state.classList.add("ok");
+    state.textContent="CLOUD";state.classList.add("ok");
     if(open)open.style.display="none";if(logout)logout.style.display="";if(panel)panel.classList.remove("open");
-    const securityBtn=$("gpCloudSecurityTest"); if(securityBtn)securityBtn.style.display="";
-    meta.textContent=(user.email||"Angemeldet")+" · Cloud-Zuordnung wird geladen …";
-    const ctx=await cloudContext(user.id);
-    if(ctx.error){
-      meta.innerHTML=`${esc(user.email||"Angemeldet")}<br><span style="color:#a53636">Cloud-Zuordnung konnte nicht vollständig geladen werden: ${esc(friendly(ctx.error))}</span>`;
-      document.body.dataset.gpCloudRole=ctx.membership?.role||"";
-      document.body.dataset.gpBusinessId=ctx.membership?.business_id||"";
-      document.body.dataset.gpLocationId="";
-      return;
-    }
-    if(ctx.membership){
-      const role=ctx.membership.role||"employee";
-      const roleLabel=role==="admin"||role==="manager"?"Leitung / Admin":"Mitarbeiter";
-      const businessName=ctx.business?.name||"Betrieb nicht gefunden";
-      const locationName=ctx.location?.name||"Kein Standort hinterlegt";
-      const displayName=ctx.profile?.display_name?.trim();
-      meta.innerHTML=`${displayName?esc(displayName)+" · ":""}${esc(user.email||"Angemeldet")} · ${esc(roleLabel)}<br><strong>${esc(businessName)}</strong> · ${esc(locationName)}`;
+    const m=await membership(user.id);
+    if(m.data){
+      const role=m.data.role||"employee";
+      meta.innerHTML=`${esc(user.email||"Angemeldet")} · ${role==="admin"||role==="manager"?"Leitung / Admin":"Mitarbeiter"}`;
       document.body.dataset.gpCloudRole=role;
-      document.body.dataset.gpBusinessId=ctx.membership.business_id||"";
-      document.body.dataset.gpLocationId=ctx.location?.id||"";
+      document.body.dataset.gpBusinessId=m.data.business_id||"";
     }else{
       meta.textContent=(user.email||"Angemeldet")+" · noch keinem Betrieb zugeordnet";
-      document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";document.body.dataset.gpLocationId="";
+      document.body.dataset.gpCloudRole="";document.body.dataset.gpBusinessId="";
     }
-  }
-
-  async function runSecurityTest(){
-    const box=$("gpCloudSecurity"),btn=$("gpCloudSecurityTest");
-    if(!box||!btn)return;
-    box.className="open";box.textContent="RLS-Prüfung läuft …";btn.disabled=true;
-    try{
-      const {data:{user},error:userError}=await client.auth.getUser();
-      if(userError||!user) throw userError||new Error("Keine aktive Anmeldung");
-      const m=await membership(user.id);
-      if(m.error) throw m.error;
-      const expected=m.data?.business_id;
-      if(!expected) throw new Error("Keine Betriebszuordnung für diesen Benutzer");
-      const [bRes,lRes,mRes]=await Promise.all([
-        client.from("businesses").select("id,name").order("name"),
-        client.from("locations").select("id,business_id,name").order("name"),
-        client.from("memberships").select("business_id,user_id,role")
-      ]);
-      const err=bRes.error||lRes.error||mRes.error;if(err)throw err;
-      const businesses=bRes.data||[],locations=lRes.data||[],memberships=mRes.data||[];
-      const foreignBusinesses=businesses.filter(x=>x.id!==expected);
-      const foreignLocations=locations.filter(x=>x.business_id!==expected);
-      const foreignMemberships=memberships.filter(x=>x.business_id!==expected);
-      const ownBusiness=businesses.find(x=>x.id===expected);
-      const ok=!!ownBusiness && foreignBusinesses.length===0 && foreignLocations.length===0 && foreignMemberships.length===0;
-      box.className="open "+(ok?"ok":"bad");
-      if(ok){
-        box.innerHTML=`<strong>✅ RLS-Mandantentrennung bestanden</strong>Sichtbarer Betrieb: ${esc(ownBusiness.name)}<br>Standorte sichtbar: ${locations.length}<br>Memberships sichtbar: ${memberships.length}<br><br>Keine Daten eines fremden Betriebs wurden über diese Benutzer-Session zurückgegeben.`;
-      }else{
-        box.innerHTML=`<strong>⚠️ RLS-Prüfung nicht bestanden</strong>Eigener Betrieb sichtbar: ${ownBusiness?"Ja":"Nein"}<br>Fremde Betriebe sichtbar: ${foreignBusinesses.length}<br>Fremde Standorte sichtbar: ${foreignLocations.length}<br>Fremde Memberships sichtbar: ${foreignMemberships.length}<br><br>Wir migrieren noch keine echten Betriebsdaten, bevor das geklärt ist.`;
-      }
-    }catch(error){
-      box.className="open bad";box.innerHTML=`<strong>⚠️ RLS-Test konnte nicht abgeschlossen werden</strong>${esc(friendly(error))}`;
-    }finally{btn.disabled=false}
   }
 
   async function login(){
@@ -10716,70 +10675,31 @@ new MutationObserver(markOrderAdmin).observe(document.body,{childList:true,subtr
     notice("");await renderSession(data.session);
   }
 
-  async function forgotPassword(){
-    const email=$("gpCloudEmail")?.value.trim();
-    if(!email){notice("Bitte zuerst deine E-Mail-Adresse eingeben.",true);$("gpCloudEmail")?.focus();return}
-    notice("E-Mail zum Zurücksetzen wird angefordert …");
-    const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:APP_URL});
-    if(error){notice("Reset-E-Mail konnte nicht gesendet werden: "+friendly(error),true);return}
-    notice("✓ Wenn die Adresse zu einem Konto gehört, wurde eine E-Mail gesendet. Öffne darin den Link und kehre zu GastroPilot zurück.");
-  }
-
-  async function saveNewPassword(){
-    const p1=$("gpCloudNewPassword")?.value||"",p2=$("gpCloudNewPassword2")?.value||"";
-    if(p1.length<8){notice("Bitte mindestens 8 Zeichen verwenden.",true,"gpCloudRecoveryNotice");return}
-    if(p1!==p2){notice("Die beiden Passwörter stimmen nicht überein.",true,"gpCloudRecoveryNotice");return}
-    notice("Neues Passwort wird gespeichert …",false,"gpCloudRecoveryNotice");
-    const {error}=await client.auth.updateUser({password:p1});
-    if(error){notice("Passwort konnte nicht gespeichert werden: "+friendly(error),true,"gpCloudRecoveryNotice");return}
-    notice("✓ Passwort gespeichert. Du wirst jetzt abgemeldet – danach bitte normal mit dem neuen Passwort anmelden.",false,"gpCloudRecoveryNotice");
-    $("gpCloudNewPassword").value="";$("gpCloudNewPassword2").value="";
-    setTimeout(async()=>{
-      hideRecovery();
-      await client.auth.signOut();
-      await renderSession(null);
-      $("gpCloudPanel")?.classList.add("open");
-      notice("✓ Neues Passwort gespeichert. Jetzt bitte mit E-Mail und neuem Passwort anmelden.");
-    },900);
-  }
-
   async function signup(){
     const email=$("gpCloudEmail")?.value.trim(),password=$("gpCloudPassword")?.value||"";
     if(!email||!password){notice("Bitte E-Mail und Passwort eingeben.",true);return}
-    if(password.length<8){notice("Das Passwort muss mindestens 8 Zeichen haben.",true);return}
+    if(password.length<6){notice("Das Passwort muss mindestens 6 Zeichen haben.",true);return}
     notice("Konto wird angelegt …");
-    const {data,error}=await client.auth.signUp({email,password,options:{emailRedirectTo:APP_URL}});
+    const {data,error}=await client.auth.signUp({email,password});
     if(error){notice("Konto konnte nicht angelegt werden: "+friendly(error),true);return}
     if(data.session){notice("✓ Konto angelegt und angemeldet.");await renderSession(data.session)}
     else notice("✓ Konto angelegt. Bitte bestätige ggf. die E-Mail und melde dich danach an.");
   }
 
-  async function logout(){
-    hideRecovery();
-    const {error}=await client.auth.signOut();
-    if(error){notice("Abmeldung nicht möglich: "+friendly(error),true);return}
-    notice("");await renderSession(null);
-  }
+  async function logout(){await client.auth.signOut();notice("");await renderSession(null)}
 
   async function init(){
     mount();
     if(!window.supabase?.createClient){notice("Cloud-Verbindung konnte nicht geladen werden.",true);return}
     client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     window.gpSupabase=client;
-    client.auth.onAuthStateChange((event,session)=>{
-      if(event==="PASSWORD_RECOVERY"){
-        showRecovery();
-        setTimeout(()=>renderSession(session),0);
-        return;
-      }
-      setTimeout(()=>renderSession(session),0);
-    });
-    const {data,error}=await client.auth.getSession();
-    if(error){notice("Sitzung konnte nicht geprüft werden: "+friendly(error),true);return}
+    const {data}=await client.auth.getSession();
     await renderSession(data?.session||null);
+    client.auth.onAuthStateChange((_event,session)=>setTimeout(()=>renderSession(session),0));
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
 </script>
 </body>
 </html>
+  
