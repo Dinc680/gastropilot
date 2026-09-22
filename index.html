@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.29.2 Rückstellproben Mandantentrennung</title>
+<title>GastroPilot – V7.30 Funktionsstabilisierung</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -9633,7 +9633,7 @@ let s=state(),isFood=type.value==="Speisentemperatur";
 let selectedDevice=(!isFood&&devicePick&&devicePick.value)?gpDeviceById(devicePick.value):null;
 let place=selectedDevice?selectedDevice.name:loc.value.trim();
 let dish=(isFood&&menuPick&&menuPick.value!=="__manual__"?menuPick.value:"");
-let component=(isFood&&dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();let rec={id:String(Date.now()),type:type.value,location:(isFood?(component||place):place),dish:(isFood?(dish||""):""),component:(isFood?(component||""):""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()};a.unshift(rec);store(a);gpArchiveRecord(rec);act.value="";action.value="";
+let component=(isFood&&dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();let rec={id:String(Date.now()),type:type.value,location:(isFood?(component||place):place),dish:(isFood?(dish||""):""),component:(isFood?(component||""):""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),measuredAt:now.toISOString(),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()};a.unshift(rec);store(a);gpArchiveRecord(rec);act.value="";action.value="";
 if(rec.type==="Speisentemperatur"){
   const n=gpComponentMeasureCount(rec.dish||rec.location,rec.component||rec.location),required=gpRequiredMeasureCount();
   notice.textContent=`✓ Messung gespeichert · ${Math.min(n,required)}/${required} für ${rec.component||rec.location}`;
@@ -10935,7 +10935,6 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
     "gastropilot_shopping_list",
     "gastropilot_haccp_temperature_v1",
     "gastropilot_haccp_components_v1",
-    "gastropilot_haccp_archive_v1",
     "gastropilot_haccp_daydocs_v1",
     "gastropilot_haccp_quickprefs_v1",
     "gastropilot_haccp_measure_count_v1",
@@ -10952,7 +10951,6 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
     "gastropilot_shopping_list":"[]",
     "gastropilot_haccp_temperature_v1":"[]",
     "gastropilot_haccp_components_v1":"{}",
-    "gastropilot_haccp_archive_v1":"[]",
     "gastropilot_haccp_daydocs_v1":"{}",
     "gastropilot_haccp_quickprefs_v1":"{}",
     "gastropilot_haccp_measure_count_v1":"{}",
@@ -11147,12 +11145,13 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
       }
     }catch(e){}
     const d=new Date(r.measured_at||Date.now());
+    const food=r.measurement_type==="food", parts=food?String(r.item_name||"").split(" – "):[];
     return {
-      id:String(r.id),type:uiType(r.measurement_type),location:r.item_name||"",
-      dish:r.measurement_type==="food"?(r.item_name||""):"",component:"",
+      id:String(r.id),type:uiType(r.measurement_type),location:food?(parts[1]||parts[0]||""):(r.item_name||""),
+      dish:food?(parts[0]||""):"",component:food?(parts[1]||""):"",
       min:"",max:"",actual:Number(r.temperature),ok:!r.deviation,
       action:r.action_taken||"",employee:r.employee_name||"",
-      date:d.toLocaleString("de-DE"),isoDate:d.toISOString().slice(0,10)
+      date:d.toLocaleString("de-DE"),measuredAt:d.toISOString(),isoDate:d.toISOString().slice(0,10)
     };
   }
   async function pushRecord(rec){
@@ -11172,7 +11171,7 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
         if(d)deviceId=d.id;
       }catch(e){}
     }
-    const measuredAt=rec.isoDate ? new Date(rec.isoDate+"T12:00:00").toISOString() : new Date().toISOString();
+    const measuredAt=rec.measuredAt || (rec.isoDate ? new Date(rec.isoDate+"T12:00:00").toISOString() : new Date().toISOString());
     const payload={
       business_id:bid,device_id:deviceId,measurement_type:dbType(rec.type),
       item_name:rec.dish?(rec.component?rec.dish+" – "+rec.component:rec.dish):(rec.location||rec.type||"Temperatur"),
@@ -11199,15 +11198,17 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
         if(error)throw error;
       }
       const rows=(data||[]).map(recFromRow);
+      /* Dauerarchiv kommt aus haccp_temperature_logs.
+         TEMP_KEY bleibt die unabhängige aktuelle Arbeitsliste des Betriebs
+         und wird durch die zentrale Mandantenschicht geladen. */
       localStorage.setItem(ARCHIVE_KEY,JSON.stringify(rows));
-      localStorage.setItem(TEMP_KEY,JSON.stringify(rows));
       business=bid;
       document.body.dataset.gpTempCloud="ready";
       document.dispatchEvent(new CustomEvent("gpTenantDataLoaded",{detail:{businessId:bid,haccp:true}}));
       window.dispatchEvent(new Event("storage"));
     }catch(err){
       console.error("HACCP Cloud laden:",err);
-      localStorage.setItem(ARCHIVE_KEY,"[]");localStorage.setItem(TEMP_KEY,"[]");
+      localStorage.setItem(ARCHIVE_KEY,"[]");
       document.body.dataset.gpTempCloud="error";
     }finally{loading=false}
   }
