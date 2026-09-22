@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.33 Speisentemperatur Einblock</title>
+<title>GastroPilot – V7.34 Speisenmodul konsolidiert</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11688,7 +11688,7 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
 #gp733RoundActions button{flex:1;min-width:100px}
 #gp733Notice,#gp733RoundInfo{font-weight:700;margin-top:8px;min-height:22px}
 </style>
-<script id="gp-v733-js">
+<script type="text/plain" id="gp-v733-js-old">
 (function(){
  const $=id=>document.getElementById(id), CUR="gastropilot_haccp_temperature_v1", ARC="gastropilot_haccp_archive_v1";
  let round=[],ri=-1;
@@ -11770,6 +11770,108 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
    if(e.target.closest("#gp733Back")&&ri>0){ri--;show();return}
    if(e.target.closest("#gp733Skip")&&ri>=0){ri++;if(ri>=round.length)finish();else show();return}
    if(e.target.closest("#gp733Stop"))finish();
+ });
+ function init(){create();mode()}
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+})();
+</script>
+
+
+<!-- GastroPilot V7.34 – genau ein Speisenmodul -->
+<style id="gp-v734-css">
+#gpFoodV732,#gpFood733{display:none!important}
+body.gp734-food #haccpForm > *:not(#gpFood734):not(.haccp-step-card){display:none!important}
+#gpFood734{display:none}
+body.gp734-food #gpFood734{display:block!important}
+#gpFood734 .card{background:#fff;border:1px solid #d4dfdb;border-radius:16px;padding:14px;margin:10px 0}
+#gpFood734 label{display:block;font-weight:800;margin:9px 0 6px}
+#gpFood734 select,#gpFood734 input{width:100%;min-height:50px;border:1px solid #cbd7d3;border-radius:13px;padding:10px 12px;font-size:18px;background:#fff}
+#gpFood734 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#gpFood734 .inline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+#gpFood734 .component-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+#gp734ComponentsList{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+#gp734ComponentsList button{padding:7px 10px;border-radius:999px}
+#gp734Save{min-height:54px;font-weight:800;font-size:18px;padding:10px 16px}
+#gp734RoundActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+#gp734RoundActions button{flex:1;min-width:100px}
+#gp734Notice,#gp734RoundInfo{font-weight:700;min-height:22px;margin-top:8px}
+</style>
+<script id="gp-v734-js">
+(function(){
+ const $=id=>document.getElementById(id), CUR="gastropilot_haccp_temperature_v1", ARC="gastropilot_haccp_archive_v1", CK="gastropilot_haccp_components_v1";
+ let round=[],ri=-1;
+ const get=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}}, put=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+ const norm=x=>String(x||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");
+ const esc=x=>String(x).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+ function today(){
+  const p=get("gastropilot_week_plan",{}),a=[],days=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"],d=new Date();
+  const raw=p[days[d.getDay()]]||p[days[d.getDay()].toLowerCase()]||p[String(d.getDay())]||[];
+  (Array.isArray(raw)?raw:[]).forEach(x=>{const n=typeof x==="string"?x:String(x?.recipeName||x?.dish||x?.name||"").trim();if(n&&!a.includes(n))a.push(n)});return a;
+ }
+ function cmap(){return get(CK,{})||{}}
+ function comps(d){const m=cmap(),k=Object.keys(m).find(k=>norm(k)===norm(d));const a=m[d]||m[norm(d)]||(k?m[k]:[]);return Array.isArray(a)?a.filter(Boolean):[]}
+ function setComps(d,a){const m=cmap(),k=Object.keys(m).find(k=>norm(k)===norm(d))||d;m[k]=a;put(CK,m)}
+ function create(){
+  if($("gpFood734"))return;const type=$("haccpType");if(!type)return;
+  const s=document.createElement("section");s.id="gpFood734";
+  s.innerHTML=`<div class="card"><label>Speise</label><select id="gp734Dish"><option value="">Bitte Speise auswählen</option></select>
+   <div id="gp734ManualWrap" hidden><label>Speise manuell eintragen</label><div class="inline"><input id="gp734Manual" type="text" placeholder="z. B. Rindergulasch"><button id="gp734ManualUse" type="button">Übernehmen</button></div></div>
+   <div id="gp734CompArea" hidden><label>Zu messende Komponente</label><select id="gp734Comp"><option value="">Komponente auswählen</option></select><div id="gp734ComponentsList"></div></div>
+   <label>Komponente hinzufügen</label><div class="component-row"><input id="gp734CompNew" type="text" placeholder="z. B. Fleisch, Sauce, Beilage"><button id="gp734CompAdd" type="button">+ Hinzufügen</button></div>
+   <label>Speisenart / Sollwerte</label><select id="gp734Kind"><option value="hot">Warme Speise</option><option value="cold">Kalte Speise</option><option value="custom">Eigene Sollwerte</option></select>
+   <div class="row"><div><label>Soll min. °C</label><input id="gp734Min" type="number" inputmode="decimal" value="65"></div><div><label>Soll max. °C</label><input id="gp734Max" type="number" inputmode="decimal" value="100"></div></div>
+   <label>Gemessene Temperatur °C</label><div class="inline"><input id="gp734Actual" type="number" inputmode="decimal" step="0.1" placeholder="Temperatur"><button id="gp734Save" class="primary" type="button">✓ Speichern</button></div>
+   <label>Maßnahme bei Abweichung</label><input id="gp734Action" type="text" placeholder="Nur bei Abweichung erforderlich"><div id="gp734Notice"></div></div>
+   <div class="card"><button id="gp734RoundStart" class="primary" type="button">🍽️ Speisenrunde starten</button><div id="gp734RoundInfo"></div><div id="gp734RoundActions" hidden><button id="gp734Back" type="button">← Zurück</button><button id="gp734Skip" type="button">Überspringen</button><button id="gp734Stop" type="button">Beenden</button></div></div>`;
+  const form=$("haccpForm")||type.closest("form")||type.parentElement.parentElement;form.appendChild(s);
+ }
+ function fillDishes(){
+  const s=$("gp734Dish"),old=s.value;
+  s.innerHTML='<option value="">Bitte Speise auswählen</option>'+today().map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("")+'<option value="__manual__">Andere Speise manuell eintragen</option>';
+  if([...s.options].some(o=>o.value===old))s.value=old;
+ }
+ function dish(){const v=$("gp734Dish").value;return v==="__manual__"?$("gp734Manual").value.trim():v}
+ function renderComps(d,chosen=""){
+  const a=comps(d),area=$("gp734CompArea"),sel=$("gp734Comp"),list=$("gp734ComponentsList");
+  area.hidden=!a.length;sel.innerHTML='<option value="">Komponente auswählen</option>'+a.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  if(chosen&&a.includes(chosen))sel.value=chosen;
+  list.innerHTML=a.map(c=>`<button type="button" data-gp734-remove="${esc(c)}">× ${esc(c)}</button>`).join("");
+ }
+ function choose(d,c=""){const s=$("gp734Dish");if(![...s.options].some(o=>o.value===d))s.add(new Option(d,d));s.value=d;$("gp734ManualWrap").hidden=true;renderComps(d,c);$("gp734Actual").focus()}
+ function kind(){if($("gp734Kind").value==="hot"){$("gp734Min").value=65;$("gp734Max").value=100}else if($("gp734Kind").value==="cold"){$("gp734Min").value=1;$("gp734Max").value=7}}
+ function mode(){
+  create();const food=$("haccpType")?.value==="Speisentemperatur";document.body.classList.toggle("gp734-food",food);
+  if(food){fillDishes();renderComps(dish()); /* explicitly hide all legacy food/round blocks */
+   ["gpFoodV732","gpFood733","gpFoodRoundStart","gpFoodRoundBox","gpFoodSave","gpDeviceRoundStart","gpDeviceRoundOrder","gpDeviceRoundOrderPanel"].forEach(id=>{const e=$(id);if(e)e.style.setProperty("display","none","important")});
+  }
+ }
+ async function save(){
+  const d=dish(),a=comps(d),c=$("gp734Comp").value,actual=Number(String($("gp734Actual").value).replace(",",".")),mn=Number($("gp734Min").value),mx=Number($("gp734Max").value),action=$("gp734Action").value.trim(),n=$("gp734Notice");
+  if(!d){n.textContent="Bitte Speise auswählen oder manuell eintragen.";return}if(a.length&&!c){n.textContent="Bitte Komponente auswählen.";return}if(!Number.isFinite(actual)){n.textContent="Bitte Temperatur eingeben.";return}
+  const ok=actual>=Math.min(mn,mx)&&actual<=Math.max(mn,mx);if(!ok&&!action){n.textContent="Bei Abweichung bitte Maßnahme eintragen.";return}
+  const now=new Date(),rec={id:String(Date.now()),type:"Speisentemperatur",foodKind:$("gp734Kind").value,location:c||d,dish:d,component:c,min:mn,max:mx,actual,ok,action,employee:String($("haccpEmployee")?.value||"").trim(),date:now.toLocaleString("de-DE"),measuredAt:now.toISOString(),isoDate:now.toISOString().slice(0,10)};
+  const cur=get(CUR,[]);cur.unshift(rec);put(CUR,cur);const ar=get(ARC,[]);if(!ar.some(x=>String(x.id)===rec.id)){ar.unshift(rec);put(ARC,ar)}
+  if(typeof window.gpPushHaccpTemperatureRecord==="function"){try{await window.gpPushHaccpTemperatureRecord(rec)}catch(e){}}
+  $("gp734Actual").value="";$("gp734Action").value="";n.textContent=`✓ Gespeichert: ${d}${c?" · "+c:""}`;
+  if(ri>=0){ri++;ri>=round.length?finish():show()}else $("gp734Actual").focus();
+ }
+ function build(){round=[];today().forEach(d=>{const a=comps(d);a.length?a.forEach(c=>round.push({d,c})):round.push({d,c:""})})}
+ function show(){const x=round[ri];choose(x.d,x.c);$("gp734RoundActions").hidden=false;$("gp734RoundInfo").textContent=`${ri+1} von ${round.length} · ${x.d}${x.c?" · "+x.c:""}`;$("gp734Back").disabled=ri===0}
+ function finish(){round=[];ri=-1;$("gp734RoundActions").hidden=true;$("gp734RoundInfo").textContent="✓ Speisenrunde abgeschlossen"}
+ document.addEventListener("change",e=>{
+  if(e.target?.id==="haccpType"){mode();return}
+  if(e.target?.id==="gp734Dish"){const man=e.target.value==="__manual__";$("gp734ManualWrap").hidden=!man;renderComps(man?"":e.target.value);if(man)setTimeout(()=>$("gp734Manual").focus(),0)}
+  if(e.target?.id==="gp734Kind")kind();
+ });
+ document.addEventListener("click",e=>{
+  if(e.target.closest("#gp734ManualUse")){const d=$("gp734Manual").value.trim();if(d)choose(d);return}
+  if(e.target.closest("#gp734CompAdd")){const d=dish(),v=$("gp734CompNew").value.trim();if(!d){$("gp734Notice").textContent="Bitte zuerst eine Speise auswählen.";return}if(v){const a=comps(d);if(!a.some(x=>norm(x)===norm(v))){a.push(v);setComps(d,a)}$("gp734CompNew").value="";renderComps(d,v)}return}
+  const rem=e.target.closest("[data-gp734-remove]");if(rem){const d=dish(),v=rem.dataset.gp734Remove;setComps(d,comps(d).filter(x=>norm(x)!==norm(v)));renderComps(d);return}
+  if(e.target.closest("#gp734Save")){save();return}
+  if(e.target.closest("#gp734RoundStart")){build();if(!round.length){$("gp734RoundInfo").textContent="Für heute sind keine Gerichte eingetragen.";return}ri=0;show();return}
+  if(e.target.closest("#gp734Back")&&ri>0){ri--;show();return}
+  if(e.target.closest("#gp734Skip")&&ri>=0){ri++;ri>=round.length?finish():show();return}
+  if(e.target.closest("#gp734Stop"))finish();
  });
  function init(){create();mode()}
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
