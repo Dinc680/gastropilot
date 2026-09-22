@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.41 Speisenmessung Clean Core</title>
+<title>GastroPilot – V7.42 Native Speisenmessung</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12098,85 +12098,6 @@ body.gp734-food #gpFood734{display:block!important}
 </script>
 
 
-<script id="gp-v741-food-core">
-(function(){
-"use strict";
-const $=id=>document.getElementById(id);
-const KEYS={plan:"gastropilot_week_plan",components:"gastropilot_haccp_components_v1",current:"gastropilot_haccp_temperature_v1",archive:"gastropilot_haccp_archive_v1"};
-const load=(k,f)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??f}catch(_){return f}};
-const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-const norm=s=>String(s||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");
-function todayDishes(){
- const p=load(KEYS.plan,{}),names=[],days=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"],raw=p[days[new Date().getDay()]]||p[days[new Date().getDay()].toLowerCase()]||p[String(new Date().getDay())]||[];
- const add=x=>{if(Array.isArray(x))return x.forEach(add);const n=typeof x==="string"?x:String(x?.recipeName||x?.dish||x?.recipe||x?.name||x?.title||"").trim();if(n&&!names.includes(n))names.push(n)};
- add(raw);return names;
-}
-function componentMap(){return load(KEYS.components,{})||{}}
-function componentsFor(dish){
- const m=componentMap(),k=Object.keys(m).find(x=>norm(x)===norm(dish)),v=m[dish]??m[norm(dish)]??(k?m[k]:[]);
- if(Array.isArray(v))return v.map(x=>typeof x==="string"?x:(x?.name||x?.component||x?.label||"")).map(String).map(x=>x.trim()).filter(Boolean);
- if(v&&Array.isArray(v.components))return v.components.map(x=>typeof x==="string"?x:(x?.name||x?.component||x?.label||"")).map(String).map(x=>x.trim()).filter(Boolean);
- return [];
-}
-function storeComponents(dish,list){const m=componentMap(),k=Object.keys(m).find(x=>norm(x)===norm(dish))||dish;m[k]=list;save(KEYS.components,m)}
-function currentDish(){const s=$("gp737Dish");if(!s)return"";return s.value==="__manual__"?String($("gp737Manual")?.value||"").trim():String(s.value||"").trim()}
-function currentComponent(){return String($("gp737Comp")?.value||"").trim()}
-function renderDishes(){
- const s=$("gp737Dish");if(!s)return;const old=s.value;s.replaceChildren(new Option("Bitte auswählen",""));todayDishes().forEach(n=>s.add(new Option(n,n)));s.add(new Option("Andere Speise manuell eintragen","__manual__"));if([...s.options].some(o=>o.value===old))s.value=old;
-}
-function renderComponents(preselect=""){
- const d=currentDish(),a=componentsFor(d),s=$("gp737Comp"),box=$("gp737CompBox");if(!s||!box)return;
- s.replaceChildren(new Option("Komponente auswählen",""));a.forEach(c=>s.add(new Option(c,c)));box.hidden=a.length===0;
- if(preselect&&a.includes(preselect))s.value=preselect;
- updateReady();
-}
-function updateReady(){
- const d=currentDish(),c=currentComponent(),n=$("gp737Notice");if($("haccpLocation"))$("haccpLocation").value=d;
- if(n)n.textContent=d?(c?`Bereit: ${d} · ${c}`:`Bereit: ${d}`):"";
-}
-function setTargets(){
- const k=$("gp737Kind")?.value;if(k==="hot"){$("haccpMin").value=65;$("haccpMax").value=100}else if(k==="cold"){$("haccpMin").value=1;$("haccpMax").value=7}
-}
-function setFoodMode(){
- const food=$("haccpType")?.value==="Speisentemperatur";
- $("gp737")?.classList.toggle("on",food);
- if($("haccpMenuPick"))$("haccpMenuPick").style.display=food?"none":"";
- ["gpDeviceRoundStart","gpDeviceRoundOrder","gpDeviceRoundOrderPanel"].forEach(id=>{const e=$(id);if(e)e.style.display=food?"none":""});
- if(food){renderDishes();renderComponents();setTargets()}
-}
-async function saveFood(ev){
- if($("haccpType")?.value!=="Speisentemperatur")return;
- ev.preventDefault();ev.stopImmediatePropagation();
- const d=currentDish(),available=componentsFor(d),c=currentComponent(),actual=Number(String($("haccpActual")?.value||"").replace(",",".")),mn=Number($("haccpMin")?.value),mx=Number($("haccpMax")?.value),action=String($("haccpAction")?.value||"").trim(),notice=$("gp737Notice");
- if(!d){notice.textContent="Bitte Speise auswählen.";return}
- if(available.length&&!c){notice.textContent="Bitte Komponente auswählen.";return}
- if(!Number.isFinite(actual)){notice.textContent="Bitte Temperatur eingeben.";return}
- const ok=actual>=Math.min(mn,mx)&&actual<=Math.max(mn,mx);if(!ok&&!action){notice.textContent="Bei Abweichung bitte Maßnahme eintragen.";return}
- const now=new Date(),rec={id:String(Date.now()),type:"Speisentemperatur",measurement_type:"food",foodKind:$("gp737Kind")?.value||"custom",dish:d,component:c,item_name:c?`${d} – ${c}`:d,location:c?`${d} · ${c}`:d,min:mn,max:mx,actual,temperature:actual,ok,deviation:!ok,action,action_taken:action,employee:String($("haccpEmployee")?.value||"").trim(),employee_name:String($("haccpEmployee")?.value||"").trim(),date:now.toLocaleString("de-DE"),measuredAt:now.toISOString(),isoDate:now.toISOString().slice(0,10)};
- const cur=load(KEYS.current,[]);cur.unshift(rec);save(KEYS.current,cur);
- const arc=load(KEYS.archive,[]);if(!arc.some(x=>String(x.id)===rec.id)){arc.unshift(rec);save(KEYS.archive,arc)}
- let cloudOK=true;if(typeof window.gpPushHaccpTemperatureRecord==="function"){try{await window.gpPushHaccpTemperatureRecord(rec)}catch(err){cloudOK=false;console.error("Food cloud save failed",err)}}
- notice.textContent=`✓ Gespeichert: ${d}${c?" · "+c:""}${cloudOK?"":" · Cloud prüfen"}`;
- $("haccpActual").value="";if($("haccpAction"))$("haccpAction").value="";
- window.dispatchEvent(new Event("storage"));$("haccpActual").focus();
-}
-document.addEventListener("change",e=>{
- if(e.target?.id==="haccpType"){setFoodMode();return}
- if(e.target?.id==="gp737Dish"){const manual=e.target.value==="__manual__";$("gp737ManualBox").hidden=!manual;renderComponents();if(manual)$("gp737Manual").focus();return}
- if(e.target?.id==="gp737Comp"){updateReady();return}
- if(e.target?.id==="gp737Kind"){setTargets();return}
-},true);
-document.addEventListener("click",e=>{
- if(e.target.closest("#gp737Use")){const d=String($("gp737Manual")?.value||"").trim();if(!d)return;const s=$("gp737Dish");if(![...s.options].some(o=>o.value===d))s.add(new Option(d,d));s.value=d;$("gp737ManualBox").hidden=true;renderComponents();updateReady();return}
- if(e.target.closest("#gp737AddComp")){const d=currentDish(),v=String($("gp737NewComp")?.value||"").trim();if(!d){$("gp737Notice").textContent="Zuerst Speise auswählen.";return}if(!v)return;const a=componentsFor(d);if(!a.some(x=>norm(x)===norm(v)))a.push(v);storeComponents(d,a);$("gp737NewComp").value="";renderComponents(v);return}
-},true);
-function init(){
- const b=$("haccpSave");if(b&&!b.dataset.gp741){b.dataset.gp741="1";b.addEventListener("click",saveFood,true)}
- setFoodMode();
-}
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
-})();
-</script>
 <script id="gp-v741-screen-restore">
 (function(){
  const KEY="gastropilot_active_screen",valid=["homeCard","mengenrechner","gerichte","weekPlannerCard","shoppingCard","haccpCard"];
@@ -12188,6 +12109,32 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  window.addEventListener("pageshow",()=>setTimeout(clickSaved,250));
  document.addEventListener("gpAuthStateChanged",()=>setTimeout(clickSaved,120));
  setTimeout(clickSaved,500);
+})();
+</script>
+
+
+<script id="gp-v742-native-food-ui-safety">
+(function(){
+  function restoreNativeFoodUI(){
+    const type=document.getElementById("haccpType");
+    const food=type && type.value==="Speisentemperatur";
+    const wrap=document.getElementById("haccpMenuPickWrap");
+    const pick=document.getElementById("haccpMenuPick");
+    if(wrap) wrap.hidden=!food;
+    if(pick) pick.style.removeProperty("display");
+    if(food){
+      ["gpDeviceRoundStart","gpDeviceRoundOrder","gpDeviceRoundOrderPanel"].forEach(function(id){
+        const e=document.getElementById(id); if(e)e.style.display="none";
+      });
+    }
+  }
+  document.addEventListener("change",function(e){
+    if(e.target && e.target.id==="haccpType") setTimeout(restoreNativeFoodUI,0);
+  },true);
+  window.addEventListener("pageshow",function(){setTimeout(restoreNativeFoodUI,120)});
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",function(){setTimeout(restoreNativeFoodUI,0)});
+  }else setTimeout(restoreNativeFoodUI,0);
 })();
 </script>
 
