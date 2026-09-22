@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.36 Speisenübernahme Fix</title>
+<title>GastroPilot – V7.37 Speisenmessung Cloud</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11903,7 +11903,7 @@ body.gp734-food #gpFood734{display:block!important}
 </script>
 
 
-<script id="gp-v736-food-bridge-js">
+<script type="text/plain" id="gp-v736-food-bridge-js-disabled">
 (function(){
  const $=id=>document.getElementById(id);
  function setNativeDish(name){
@@ -11940,6 +11940,35 @@ body.gp734-food #gpFood734{display:block!important}
      const v=e.target.value;setTimeout(()=>setNativeDish(v),40);
    }
  });
+})();
+</script>
+
+
+<style id="gp-v737-css">
+#gp737{display:none;margin:10px 0;padding:12px;background:#fff;border:1px solid #d7e0dd;border-radius:14px}
+#gp737.on{display:block} #gp737 label{display:block;font-weight:800;margin:8px 0 5px}
+#gp737 select,#gp737 input{width:100%;min-height:48px;padding:9px;border:1px solid #ccd7d3;border-radius:11px;font-size:17px}
+#gp737 .line{display:grid;grid-template-columns:1fr auto;gap:8px} #gp737Notice{font-weight:700;margin-top:8px}
+</style>
+<script id="gp-v737-js">
+(function(){
+ const $=x=>document.getElementById(x), CK="gastropilot_haccp_components_v1", CUR="gastropilot_haccp_temperature_v1", ARC="gastropilot_haccp_archive_v1";
+ const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},put=(k,v)=>localStorage.setItem(k,JSON.stringify(v)),norm=x=>String(x||"").trim().toLowerCase();
+ function dishes(){let p=get("gastropilot_week_plan",{}),a=[],ds=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"],d=new Date(),r=p[ds[d.getDay()]]||p[ds[d.getDay()].toLowerCase()]||p[String(d.getDay())]||[];(Array.isArray(r)?r:[]).forEach(x=>{let n=typeof x==="string"?x:String(x?.recipeName||x?.dish||x?.name||"").trim();if(n&&!a.includes(n))a.push(n)});return a}
+ function cm(){return get(CK,{})||{}} function comps(d){let m=cm(),k=Object.keys(m).find(k=>norm(k)===norm(d)),a=m[d]||(k?m[k]:[]);return Array.isArray(a)?a.filter(Boolean):[]}
+ function saveComps(d,a){let m=cm(),k=Object.keys(m).find(k=>norm(k)===norm(d))||d;m[k]=a;put(CK,m)}
+ function create(){if($("gp737"))return;let pick=$("haccpMenuPick");if(!pick)return;let b=document.createElement("div");b.id="gp737";b.innerHTML=`<label>Speise</label><select id="gp737Dish"></select><div id="gp737ManualBox" hidden><label>Speise manuell eintragen</label><div class="line"><input id="gp737Manual" placeholder="Gericht eingeben"><button id="gp737Use" type="button">Übernehmen</button></div></div><div id="gp737CompBox" hidden><label>Komponente</label><select id="gp737Comp"></select></div><label>Komponente hinzufügen</label><div class="line"><input id="gp737NewComp" placeholder="z. B. Fleisch, Sauce, Beilage"><button id="gp737AddComp" type="button">+ Hinzufügen</button></div><label>Speisenart</label><select id="gp737Kind"><option value="hot">Warm</option><option value="cold">Kalt</option><option value="custom">Eigene Sollwerte</option></select><div id="gp737Notice"></div>`;pick.parentElement.insertAdjacentElement("afterend",b)}
+ function dish(){let v=$("gp737Dish")?.value||"";return v==="__manual__"?$("gp737Manual").value.trim():v}
+ function fill(){let s=$("gp737Dish"),old=s.value;s.innerHTML='<option value="">Bitte auswählen</option>'+dishes().map(n=>`<option></option>`).join("")+'<option value="__manual__">Andere Speise manuell eintragen</option>';dishes().forEach((n,i)=>{s.options[i+1].value=n;s.options[i+1].textContent=n});if([...s.options].some(o=>o.value===old))s.value=old}
+ function fillC(d,sel=""){let a=comps(d),s=$("gp737Comp");$("gp737CompBox").hidden=!a.length;s.innerHTML='<option value="">Komponente auswählen</option>';a.forEach(c=>s.add(new Option(c,c)));if(sel)s.value=sel;sync()}
+ function sync(){let d=dish(),c=$("gp737Comp")?.value||"",loc=$("haccpLocation"),nc=$("haccpMeasureComponent");if(loc)loc.value=d;if(nc){nc.innerHTML='<option value="">Komponente auswählen</option>';comps(d).forEach(x=>nc.add(new Option(x,x)));nc.value=c}}
+ function kind(){let k=$("gp737Kind").value;if(k==="hot"){$("haccpMin").value=65;$("haccpMax").value=100}if(k==="cold"){$("haccpMin").value=1;$("haccpMax").value=7}}
+ function mode(){create();let food=$("haccpType")?.value==="Speisentemperatur";$("gp737").classList.toggle("on",food);if($("haccpMenuPick"))$("haccpMenuPick").style.display=food?"none":"";["gpDeviceRoundStart","gpDeviceRoundOrder","gpDeviceRoundOrderPanel"].forEach(id=>{let e=$(id);if(e)e.style.display=food?"none":""});if(food){fill();fillC(dish());kind()}}
+ async function saveFood(e){if($("haccpType")?.value!=="Speisentemperatur")return;e.preventDefault();e.stopImmediatePropagation();let d=dish(),a=comps(d),c=$("gp737Comp")?.value||"",v=Number(String($("haccpActual").value).replace(",",".")),mn=Number($("haccpMin").value),mx=Number($("haccpMax").value),act=$("haccpAction")?.value.trim()||"",n=$("gp737Notice");if(!d){n.textContent="Bitte Speise auswählen.";return}if(a.length&&!c){n.textContent="Bitte Komponente auswählen.";return}if(!Number.isFinite(v)){n.textContent="Bitte Temperatur eingeben.";return}let ok=v>=Math.min(mn,mx)&&v<=Math.max(mn,mx);if(!ok&&!act){n.textContent="Bei Abweichung Maßnahme eintragen.";return}let now=new Date(),r={id:String(Date.now()),type:"Speisentemperatur",foodKind:$("gp737Kind").value,dish:d,component:c,location:c||d,min:mn,max:mx,actual:v,ok,action:act,employee:$("haccpEmployee")?.value||"",date:now.toLocaleString("de-DE"),measuredAt:now.toISOString(),isoDate:now.toISOString().slice(0,10)};let x=get(CUR,[]);x.unshift(r);put(CUR,x);let y=get(ARC,[]);y.unshift(r);put(ARC,y);if(window.gpPushHaccpTemperatureRecord)try{await window.gpPushHaccpTemperatureRecord(r)}catch(_){ }n.textContent="✓ Speisenmessung gespeichert";$("haccpActual").value="";$("haccpActual").focus()}
+ document.addEventListener("change",e=>{if(e.target.id==="haccpType")mode();if(e.target.id==="gp737Dish"){let m=e.target.value==="__manual__";$("gp737ManualBox").hidden=!m;fillC(m?"":e.target.value);if(m)$("gp737Manual").focus()}if(e.target.id==="gp737Comp")sync();if(e.target.id==="gp737Kind")kind()});
+ document.addEventListener("click",e=>{if(e.target.closest("#gp737Use")){let d=$("gp737Manual").value.trim();if(d){let s=$("gp737Dish");s.add(new Option(d,d));s.value=d;$("gp737ManualBox").hidden=true;fillC(d);sync()}}if(e.target.closest("#gp737AddComp")){let d=dish(),v=$("gp737NewComp").value.trim();if(!d){$("gp737Notice").textContent="Zuerst Speise auswählen.";return}if(v){let a=comps(d);if(!a.some(x=>norm(x)===norm(v)))a.push(v);saveComps(d,a);$("gp737NewComp").value="";fillC(d,v)}}});
+ function init(){create();let b=$("haccpSave");if(b&&!b.dataset.gp737){b.dataset.gp737=1;b.addEventListener("click",saveFood,true)}mode()}
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
 </script>
 
