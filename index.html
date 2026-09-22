@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.42 Native Speisenmessung</title>
+<title>GastroPilot – V7.43 Speisenübernahme</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12135,6 +12135,53 @@ body.gp734-food #gpFood734{display:block!important}
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",function(){setTimeout(restoreNativeFoodUI,0)});
   }else setTimeout(restoreNativeFoodUI,0);
+})();
+</script>
+
+
+<script id="gp-v743-native-dish-transfer">
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const CK="gastropilot_haccp_components_v1";
+const norm=s=>String(s||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");
+function componentMap(){try{return JSON.parse(localStorage.getItem(CK)||"{}")||{}}catch(e){return{}}}
+function componentsFor(dish){
+  const m=componentMap(), nk=norm(dish);
+  const key=Object.keys(m).find(k=>norm(k)===nk);
+  const v=m[nk] ?? m[dish] ?? (key?m[key]:[]);
+  if(Array.isArray(v))return v.map(x=>typeof x==="string"?x:(x?.name||x?.component||x?.label||"")).map(String).map(x=>x.trim()).filter(Boolean);
+  if(v&&Array.isArray(v.components))return v.components.map(x=>typeof x==="string"?x:(x?.name||x?.component||x?.label||"")).map(String).map(x=>x.trim()).filter(Boolean);
+  return [];
+}
+function transferDish(name){
+  name=String(name||"").trim();
+  if(!name||name==="__manual__")return;
+  const loc=$("haccpLocation"), sel=$("haccpMeasureComponent"), wrap=$("haccpMeasureComponentWrap"), notice=$("haccpNotice");
+  if(loc){
+    loc.value=name;
+    loc.dispatchEvent(new Event("input",{bubbles:true}));
+  }
+  const comps=componentsFor(name);
+  if(sel){
+    sel.replaceChildren(new Option("Komponente auswählen",""));
+    comps.forEach(c=>sel.add(new Option(c,c)));
+    sel.value="";
+  }
+  if(wrap)wrap.hidden=!comps.length;
+  if(notice)notice.textContent=comps.length
+    ? `✓ ${name} übernommen · jetzt Komponente auswählen.`
+    : `✓ ${name} übernommen · Temperatur kann gemessen werden.`;
+  $("haccpActual")?.focus();
+}
+document.addEventListener("change",function(e){
+  if(e.target?.id!=="haccpMenuPick")return;
+  const value=e.target.value;
+  if(value==="__manual__"||!value)return;
+  /* Native handler runs too; re-apply once after it has finished. */
+  transferDish(value);
+  setTimeout(()=>transferDish(value),60);
+},true);
 })();
 </script>
 
