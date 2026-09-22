@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.28 Mandantenschicht</title>
+<title>GastroPilot – V7.29 HACCP Mandantentrennung</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10932,6 +10932,7 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
 (function(){
   const CLOUD_KEYS=[
     "gastropilot_week_plan",
+    "gastropilot_haccp_temperature_v1",
     "gastropilot_haccp_components_v1",
     "gastropilot_haccp_archive_v1",
     "gastropilot_haccp_daydocs_v1",
@@ -10947,6 +10948,7 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
   ];
   const EMPTY={
     "gastropilot_week_plan":"{}",
+    "gastropilot_haccp_temperature_v1":"[]",
     "gastropilot_haccp_components_v1":"{}",
     "gastropilot_haccp_archive_v1":"[]",
     "gastropilot_haccp_daydocs_v1":"{}",
@@ -11065,6 +11067,209 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
   new MutationObserver(watch).observe(document.body,{attributes:true,attributeFilter:["data-gp-business-id","data-gp-auth-state"]});
   setInterval(watch,1200);
   watch();
+})();
+</script>
+
+
+<!-- GastroPilot V7.29 – Temperatur-Cloud, Kürzel-Trennung, Cloud-Rollenrechte -->
+<style id="gp-v729-permission-css">
+body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpFryerManageToggle,
+body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpFryerManage,
+body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpCleaningManageToggle,
+body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpCleaningManage,
+body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpDeviceSettingsToggle,
+body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpDeviceAdmin,
+body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaffManageBtn{
+  display:none!important
+}
+</style>
+<script id="gp-v729-haccp-cloud-js">
+(function(){
+  const TEMP_KEY="gastropilot_haccp_temperature_v1";
+  const ARCHIVE_KEY="gastropilot_haccp_archive_v1";
+  const ACTIVE_KEY="gastropilot_active_employee_v1";
+  let business="",loading=false,lastLocalId="",activeGuard=false;
+
+  const cloud=()=>document.body.dataset.gpAuthState==="authenticated" &&
+                   !!document.body.dataset.gpBusinessId && !!window.gpSupabase;
+  const manager=()=>["admin","manager"].includes(document.body.dataset.gpCloudRole||"");
+  const readArray=k=>{try{const a=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}};
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  function activeScopedKey(bid){return ACTIVE_KEY+"::"+bid}
+  function syncActiveForTenant(){
+    if(!cloud())return;
+    const bid=document.body.dataset.gpBusinessId;
+    const roster=(()=>{try{const a=JSON.parse(localStorage.getItem("gastropilot_staff_v1")||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}})();
+    let v=localStorage.getItem(activeScopedKey(bid))||"";
+    if(v && !roster.includes(v))v="";
+    activeGuard=true;
+    if(v)localStorage.setItem(ACTIVE_KEY,v); else localStorage.removeItem(ACTIVE_KEY);
+    activeGuard=false;
+    const sel=document.getElementById("gpStaffActive");
+    if(sel && [...sel.options].some(o=>o.value===v)){sel.value=v;sel.dispatchEvent(new Event("change",{bubbles:true}))}
+    ["haccpEmployee","gpCleaningEmployee","gpFryerEmployee"].forEach(id=>{
+      const el=document.getElementById(id); if(!el)return;
+      el.value=v; el.dataset.gpStaffAuto=v?"1":"";
+    });
+  }
+
+  const nativeSet=Storage.prototype.setItem, nativeRemove=Storage.prototype.removeItem;
+  Storage.prototype.setItem=function(k,v){
+    nativeSet.call(this,k,v);
+    if(this===localStorage && k===ACTIVE_KEY && cloud() && !activeGuard)
+      nativeSet.call(localStorage,activeScopedKey(document.body.dataset.gpBusinessId),String(v||""));
+  };
+  Storage.prototype.removeItem=function(k){
+    nativeRemove.call(this,k);
+    if(this===localStorage && k===ACTIVE_KEY && cloud() && !activeGuard)
+      nativeRemove.call(localStorage,activeScopedKey(document.body.dataset.gpBusinessId));
+  };
+
+  function dbType(ui){
+    return ui==="Kühlung"?"cooling":ui==="Tiefkühlung"?"freezer":
+           ui==="Speisentemperatur"?"food":ui==="Heißhaltung"?"hot_holding":"other";
+  }
+  function uiType(db){
+    return db==="cooling"?"Kühlung":db==="freezer"?"Tiefkühlung":
+           db==="food"?"Speisentemperatur":db==="hot_holding"?"Heißhaltung":"Speisentemperatur";
+  }
+  function noteFor(rec){
+    return JSON.stringify({gp:"v729",source_id:String(rec.id||""),snapshot:rec});
+  }
+  function recFromRow(r){
+    try{
+      const n=JSON.parse(r.note||"{}");
+      if(n?.snapshot && typeof n.snapshot==="object"){
+        return {...n.snapshot,id:String(n.snapshot.id||r.id),action:r.action_taken??n.snapshot.action??""};
+      }
+    }catch(e){}
+    const d=new Date(r.measured_at||Date.now());
+    return {
+      id:String(r.id),type:uiType(r.measurement_type),location:r.item_name||"",
+      dish:r.measurement_type==="food"?(r.item_name||""):"",component:"",
+      min:"",max:"",actual:Number(r.temperature),ok:!r.deviation,
+      action:r.action_taken||"",employee:r.employee_name||"",
+      date:d.toLocaleString("de-DE"),isoDate:d.toISOString().slice(0,10)
+    };
+  }
+  async function pushRecord(rec){
+    if(!cloud()||!rec)return;
+    const bid=document.body.dataset.gpBusinessId;
+    const source=String(rec.id||"");
+    const {data:existing,error:qe}=await window.gpSupabase.from("haccp_temperature_logs")
+      .select("id,note").eq("business_id",bid).limit(500);
+    if(qe){console.error(qe);return}
+    if((existing||[]).some(x=>{try{return JSON.parse(x.note||"{}")?.source_id===source}catch(e){return false}}))return;
+
+    let deviceId=null;
+    if(rec.type==="Kühlung"||rec.type==="Tiefkühlung"){
+      try{
+        const devices=JSON.parse(localStorage.getItem("gastropilot_haccp_devices_v1")||"[]");
+        const d=(Array.isArray(devices)?devices:[]).find(x=>String(x.name||"")===String(rec.location||"")&&x.gpCloud);
+        if(d)deviceId=d.id;
+      }catch(e){}
+    }
+    const measuredAt=rec.isoDate ? new Date(rec.isoDate+"T12:00:00").toISOString() : new Date().toISOString();
+    const payload={
+      business_id:bid,device_id:deviceId,measurement_type:dbType(rec.type),
+      item_name:rec.dish?(rec.component?rec.dish+" – "+rec.component:rec.dish):(rec.location||rec.type||"Temperatur"),
+      temperature:Number(rec.actual),employee_name:rec.employee||null,
+      deviation:rec.ok===false,action_taken:rec.action||null,note:noteFor(rec),measured_at:measuredAt
+    };
+    const {error}=await window.gpSupabase.from("haccp_temperature_logs").insert(payload);
+    if(error)console.error("HACCP Cloud speichern:",error);
+  }
+  async function loadCloudLogs(){
+    if(loading||!cloud())return;
+    const bid=document.body.dataset.gpBusinessId; loading=true;
+    try{
+      /* V7.28 hat den A-Verlauf bereits mandantenbezogen in business_data gespiegelt.
+         Nur wenn die neue Cloud-Tabelle für diesen Betrieb leer ist, migrieren wir diesen Bestand einmalig. */
+      const localArchive=readArray(ARCHIVE_KEY);
+      let {data,error}=await window.gpSupabase.from("haccp_temperature_logs")
+        .select("*").eq("business_id",bid).order("measured_at",{ascending:false});
+      if(error)throw error;
+      if((data||[]).length===0 && localArchive.length){
+        for(const rec of localArchive) await pushRecord(rec);
+        ({data,error}=await window.gpSupabase.from("haccp_temperature_logs")
+          .select("*").eq("business_id",bid).order("measured_at",{ascending:false}));
+        if(error)throw error;
+      }
+      const rows=(data||[]).map(recFromRow);
+      localStorage.setItem(ARCHIVE_KEY,JSON.stringify(rows));
+      localStorage.setItem(TEMP_KEY,JSON.stringify(rows));
+      business=bid;
+      document.body.dataset.gpTempCloud="ready";
+      document.dispatchEvent(new CustomEvent("gpTenantDataLoaded",{detail:{businessId:bid,haccp:true}}));
+      window.dispatchEvent(new Event("storage"));
+    }catch(err){
+      console.error("HACCP Cloud laden:",err);
+      localStorage.setItem(ARCHIVE_KEY,"[]");localStorage.setItem(TEMP_KEY,"[]");
+      document.body.dataset.gpTempCloud="error";
+    }finally{loading=false}
+  }
+
+  /* Nach dem bestehenden, stabilen Mess-Speicherprozess wird genau der neue Datensatz in Supabase gespiegelt. */
+  document.getElementById("haccpSave")?.addEventListener("click",()=>{
+    if(!cloud())return;
+    const before=new Set(readArray(ARCHIVE_KEY).map(x=>String(x.id)));
+    setTimeout(()=>{
+      const rec=readArray(ARCHIVE_KEY).find(x=>!before.has(String(x.id)));
+      if(rec)pushRecord(rec);
+    },80);
+  });
+
+  /* Abweichungs-Maßnahmen werden nach der lokalen Aktualisierung auch in die Cloud geschrieben. */
+  document.addEventListener("gpDeviationUpdated",async()=>{
+    if(!cloud())return;
+    const bid=document.body.dataset.gpBusinessId;
+    const rows=readArray(ARCHIVE_KEY);
+    const {data}=await window.gpSupabase.from("haccp_temperature_logs").select("id,note").eq("business_id",bid).limit(500);
+    for(const row of data||[]){
+      let sid="";try{sid=JSON.parse(row.note||"{}")?.source_id||""}catch(e){}
+      const rec=rows.find(x=>String(x.id)===String(sid));
+      if(rec)await window.gpSupabase.from("haccp_temperature_logs").update({action_taken:rec.action||null,deviation:rec.ok===false,note:noteFor(rec)}).eq("id",row.id).eq("business_id",bid);
+    }
+  });
+
+  function enforceCloudPermissions(){
+    if(!cloud())return;
+    const can=manager();
+    ["gpFryerManageToggle","gpCleaningManageToggle","gpDeviceSettingsToggle","gpStaffManageBtn"].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.hidden=!can;
+    });
+    if(!can){
+      ["gpFryerManage","gpCleaningManage","gpDeviceAdmin"].forEach(id=>{const el=document.getElementById(id);if(el)el.hidden=true});
+    }
+  }
+  document.addEventListener("click",e=>{
+    if(!cloud()||manager())return;
+    if(e.target.closest("#gpFryerManageToggle,#gpFryerAdd,[data-fryer-delete],#gpCleaningManageToggle,#gpCleaningAdd,[data-cleaning-delete],#gpDeviceSettingsToggle,#haccpSaveDevice,#haccpDeleteDevice,#gpStaffManageBtn")){
+      e.preventDefault();e.stopImmediatePropagation();
+    }
+  },true);
+
+  async function watch(){
+    if(!cloud()){business="";return}
+    const bid=document.body.dataset.gpBusinessId;
+    enforceCloudPermissions();
+    if(bid!==business){
+      /* Kein Kürzel eines anderen Betriebs darf in den neuen Tenant übernommen werden. */
+      activeGuard=true;localStorage.removeItem(ACTIVE_KEY);activeGuard=false;
+      setTimeout(syncActiveForTenant,120);
+      await loadCloudLogs();
+    }
+  }
+  document.getElementById("gpStaffActive")?.addEventListener("change",()=>{
+    if(!cloud())return;
+    const v=document.getElementById("gpStaffActive")?.value||"";
+    localStorage.setItem(activeScopedKey(document.body.dataset.gpBusinessId),v);
+  });
+  document.addEventListener("gpAuthStateChanged",watch);
+  document.addEventListener("gpTenantDataLoaded",()=>{setTimeout(()=>{syncActiveForTenant();enforceCloudPermissions()},80)});
+  new MutationObserver(watch).observe(document.body,{attributes:true,attributeFilter:["data-gp-business-id","data-gp-cloud-role","data-gp-auth-state"]});
+  setInterval(watch,1400);watch();
 })();
 </script>
 
