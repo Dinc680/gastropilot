@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.29 HACCP Mandantentrennung</title>
+<title>GastroPilot – V7.29.1 Einkauf Mandantentrennung</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10932,6 +10932,7 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
 (function(){
   const CLOUD_KEYS=[
     "gastropilot_week_plan",
+    "gastropilot_shopping_list",
     "gastropilot_haccp_temperature_v1",
     "gastropilot_haccp_components_v1",
     "gastropilot_haccp_archive_v1",
@@ -10948,6 +10949,7 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
   ];
   const EMPTY={
     "gastropilot_week_plan":"{}",
+    "gastropilot_shopping_list":"[]",
     "gastropilot_haccp_temperature_v1":"[]",
     "gastropilot_haccp_components_v1":"{}",
     "gastropilot_haccp_archive_v1":"[]",
@@ -11270,6 +11272,33 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
   document.addEventListener("gpTenantDataLoaded",()=>{setTimeout(()=>{syncActiveForTenant();enforceCloudPermissions()},80)});
   new MutationObserver(watch).observe(document.body,{attributes:true,attributeFilter:["data-gp-business-id","data-gp-cloud-role","data-gp-auth-state"]});
   setInterval(watch,1400);watch();
+})();
+</script>
+
+
+<!-- GastroPilot V7.29.1 – Einkaufsliste pro Betrieb -->
+<script id="gp-v7291-shopping-tenant-js">
+(function(){
+  function reloadTenantShopping(){
+    if(document.body.dataset.gpTenantData!=="ready")return;
+    try{
+      const raw=localStorage.getItem("gastropilot_shopping_list");
+      const parsed=raw?JSON.parse(raw):[];
+      if(Array.isArray(parsed)){
+        shoppingList=parsed;
+        if(typeof renderShoppingList==="function")renderShoppingList();
+      }
+    }catch(err){
+      console.error("GastroPilot Einkauf Mandant laden:",err);
+      shoppingList=[];
+      if(typeof renderShoppingList==="function")renderShoppingList();
+    }
+  }
+  document.addEventListener("gpTenantDataLoaded",()=>setTimeout(reloadTenantShopping,0));
+  new MutationObserver(()=>{
+    if(document.body.dataset.gpTenantData==="ready")setTimeout(reloadTenantShopping,0);
+  }).observe(document.body,{attributes:true,attributeFilter:["data-gp-tenant-data"]});
+  setTimeout(reloadTenantShopping,300);
 })();
 </script>
 
