@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.37 Speisenmessung Cloud</title>
+<title>GastroPilot – V7.38 Komponenten Fix</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11969,6 +11969,53 @@ body.gp734-food #gpFood734{display:block!important}
  document.addEventListener("click",e=>{if(e.target.closest("#gp737Use")){let d=$("gp737Manual").value.trim();if(d){let s=$("gp737Dish");s.add(new Option(d,d));s.value=d;$("gp737ManualBox").hidden=true;fillC(d);sync()}}if(e.target.closest("#gp737AddComp")){let d=dish(),v=$("gp737NewComp").value.trim();if(!d){$("gp737Notice").textContent="Zuerst Speise auswählen.";return}if(v){let a=comps(d);if(!a.some(x=>norm(x)===norm(v)))a.push(v);saveComps(d,a);$("gp737NewComp").value="";fillC(d,v)}}});
  function init(){create();let b=$("haccpSave");if(b&&!b.dataset.gp737){b.dataset.gp737=1;b.addEventListener("click",saveFood,true)}mode()}
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+})();
+</script>
+
+
+<script id="gp-v738-components-fix">
+(function(){
+ const $=id=>document.getElementById(id), CK="gastropilot_haccp_components_v1";
+ const norm=x=>String(x||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");
+ const read=()=>{try{return JSON.parse(localStorage.getItem(CK)||"{}")||{}}catch(e){return {}}};
+ function dish(){const s=$("gp737Dish");if(!s)return "";return s.value==="__manual__"?$("gp737Manual")?.value.trim()||"":s.value}
+ function listFor(d){
+   const m=read(),key=Object.keys(m).find(k=>norm(k)===norm(d));
+   let v=m[d] ?? (key?m[key]:undefined);
+   /* Support old GP component formats as well as the current array format. */
+   if(Array.isArray(v)) return v.map(x=>typeof x==="string"?x:(x?.name||x?.component||x?.label||"")).filter(Boolean);
+   if(v && Array.isArray(v.components)) return v.components.map(x=>typeof x==="string"?x:(x?.name||x?.component||x?.label||"")).filter(Boolean);
+   return [];
+ }
+ function render(chosen=""){
+   const d=dish(),a=listFor(d),box=$("gp737CompBox"),s=$("gp737Comp"),native=$("haccpMeasureComponent");
+   if(!s)return;
+   box.hidden=!a.length;
+   s.innerHTML='<option value="">Komponente auswählen</option>';
+   a.forEach(c=>s.add(new Option(c,c)));
+   if(chosen && a.includes(chosen))s.value=chosen;
+   if(native){
+     native.innerHTML='<option value="">Komponente auswählen</option>';
+     a.forEach(c=>native.add(new Option(c,c)));
+     if(s.value)native.value=s.value;
+   }
+ }
+ function sync(){
+   const d=dish(),c=$("gp737Comp")?.value||"";
+   const loc=$("haccpLocation"),native=$("haccpMeasureComponent");
+   if(loc){loc.value=d;loc.dispatchEvent(new Event("input",{bubbles:true}))}
+   if(native){native.value=c;native.dispatchEvent(new Event("change",{bubbles:true}))}
+ }
+ document.addEventListener("change",e=>{
+   if(e.target?.id==="gp737Dish"){setTimeout(()=>{render();sync()},0)}
+   if(e.target?.id==="gp737Comp"){sync()}
+ },true);
+ document.addEventListener("click",e=>{
+   if(e.target.closest("#gp737Use")||e.target.closest("#gp737AddComp"))setTimeout(()=>{render($("gp737Comp")?.value||"");sync()},0);
+ },true);
+ /* Re-render after localStorage component updates, including older GP handlers. */
+ window.addEventListener("storage",e=>{if(e.key===CK)render()});
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(render,0));else setTimeout(render,0);
 })();
 </script>
 
