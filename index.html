@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.31 Speisenrunde & Seitenstatus</title>
+<title>GastroPilot – V7.31.1 Speisenmessung stabil</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11181,6 +11181,7 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
     const {error}=await window.gpSupabase.from("haccp_temperature_logs").insert(payload);
     if(error)console.error("HACCP Cloud speichern:",error);
   }
+  window.gpPushHaccpTemperatureRecord=pushRecord;
   async function loadCloudLogs(){
     if(loading||!cloud())return;
     const bid=document.body.dataset.gpBusinessId; loading=true;
@@ -11442,6 +11443,115 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
 
   function init(){ensureRoundUI();rebuildFoodPick();setTimeout(restoreScreen,250)}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+})();
+</script>
+
+
+<!-- GastroPilot V7.31.1 – eigener stabiler Speisen-Messpfad -->
+<style id="gp-v7311-food-save-css">
+#gpFoodSave{margin-top:10px}
+</style>
+<script id="gp-v7311-food-save-js">
+(function(){
+ const $=id=>document.getElementById(id), K="gastropilot_haccp_temperature_v1", A="gastropilot_haccp_archive_v1";
+ let round=[],ri=-1;
+ function arr(k){try{const x=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}}
+ function put(k,a){localStorage.setItem(k,JSON.stringify(a))}
+ function num(el){const v=String(el?.value||"").replace(",",".");return v===""?null:Number(v)}
+ function todayDishes(){
+   let p={};try{p=JSON.parse(localStorage.getItem("gastropilot_week_plan")||"{}")}catch(e){}
+   const names=[], days=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"], d=new Date(), key=days[d.getDay()];
+   const day=p[key]||p[key.toLowerCase()]||p[String(d.getDay())]||p[d.getDay()]||[];
+   const add=x=>{if(Array.isArray(x))return x.forEach(add);const n=typeof x==="string"?x:String(x?.recipeName||x?.dish||x?.recipe||x?.name||x?.title||"");if(n.trim()&&!names.includes(n.trim()))names.push(n.trim())};
+   add(day);return names;
+ }
+ function components(dish){
+   try{const x=JSON.parse(localStorage.getItem("gastropilot_haccp_components_v1")||"{}");const k=String(dish).trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");return Array.isArray(x[k])?x[k].filter(Boolean):[]}catch(e){return[]}
+ }
+ function ensure(){
+   if(!$("gpFoodSave")){
+     const b=document.createElement("button");b.id="gpFoodSave";b.type="button";b.className="primary";b.textContent="Messung speichern";
+     $("haccpSave").insertAdjacentElement("afterend",b);
+   }
+ }
+ function foodMode(){
+   const food=$("haccpType")?.value==="Speisentemperatur";
+   if($("haccpSave"))$("haccpSave").hidden=food;
+   if($("gpFoodSave"))$("gpFoodSave").hidden=!food;
+   if(food){$("haccpDeviceWrap") && ($("haccpDeviceWrap").hidden=true);$("gpManualMeasureFields") && ($("gpManualMeasureFields").hidden=false)}
+ }
+ function setDish(name){
+   const pick=$("haccpMenuPick"),loc=$("haccpLocation"),wrap=$("gpManualFoodWrap");
+   if(!pick)return;
+   if(![...pick.options].some(o=>o.value===name))pick.add(new Option(name,name));
+   pick.value=name;if(loc)loc.value=name;if(wrap)wrap.hidden=true;
+   pick.dispatchEvent(new Event("change",{bubbles:true}));
+   setTimeout(()=>{renderComponentChoice(name);$("haccpActual")?.focus()},20);
+ }
+ function renderComponentChoice(dish){
+   const sel=$("haccpMeasureComponent"),wrap=$("haccpMeasureComponentWrap"),cs=components(dish);
+   if(!sel||!wrap)return;
+   if(!cs.length){wrap.hidden=true;sel.innerHTML='<option value="">Komponente auswählen</option>';return}
+   const old=sel.value;sel.innerHTML='<option value="">Komponente auswählen</option>'+cs.map(c=>`<option value="${String(c).replace(/"/g,"&quot;")}">${c}</option>`).join("");
+   wrap.hidden=false;if(cs.includes(old))sel.value=old;
+ }
+ function selectedDish(){
+   const pick=$("haccpMenuPick"),manual=$("gpManualFood");
+   if(pick?.value==="__manual__")return String(manual?.value||"").trim();
+   return String(pick?.value||$("haccpLocation")?.value||"").trim();
+ }
+ async function saveFood(){
+   const notice=$("haccpNotice"),dish=selectedDish(),act=$("haccpActual"),mn=$("haccpMin"),mx=$("haccpMax"),action=$("haccpAction");
+   if(!dish){notice.textContent="Bitte zuerst eine Speise auswählen oder manuell eintragen.";return false}
+   const cs=components(dish),comp=String($("haccpMeasureComponent")?.value||"").trim();
+   if(cs.length&&!comp){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";return false}
+   const a=num(act),lo=num(mn),hi=num(mx);
+   if(a===null||lo===null||hi===null||![a,lo,hi].every(Number.isFinite)){notice.textContent="Bitte eine gültige Temperatur eingeben.";act?.focus();return false}
+   const ok=a>=Math.min(lo,hi)&&a<=Math.max(lo,hi);
+   if(!ok&&!String(action?.value||"").trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action?.focus();return false}
+   const now=new Date(),rec={id:String(Date.now()),type:"Speisentemperatur",location:comp||dish,dish,component:comp,min:lo,max:hi,actual:a,ok,action:String(action?.value||"").trim(),employee:String($("haccpEmployee")?.value||"").trim(),date:now.toLocaleString("de-DE"),measuredAt:now.toISOString(),isoDate:now.toISOString().slice(0,10)};
+   const cur=arr(K);cur.unshift(rec);put(K,cur);
+   const ar=arr(A);if(!ar.some(x=>String(x.id)===rec.id)){ar.unshift(rec);put(A,ar)}
+   if(typeof window.gpPushHaccpTemperatureRecord==="function")window.gpPushHaccpTemperatureRecord(rec);
+   act.value="";if(action)action.value="";
+   notice.textContent="✓ Speisenmessung gespeichert"+(comp?" · "+comp:"")+".";
+   window.dispatchEvent(new Event("storage"));
+   if(ri>=0)setTimeout(nextRound,120);
+   else setTimeout(()=>act.focus(),60);
+   return true;
+ }
+ function buildRound(){
+   const dishes=todayDishes();round=[];
+   dishes.forEach(d=>{const cs=components(d);if(cs.length)cs.forEach(c=>round.push({dish:d,component:c}));else round.push({dish:d,component:""})});
+   return round;
+ }
+ function showRound(){
+   if(ri<0||ri>=round.length)return;
+   const x=round[ri];setDish(x.dish);
+   setTimeout(()=>{if(x.component&&$("haccpMeasureComponent"))$("haccpMeasureComponent").value=x.component;
+     if($("gpFoodRoundBox"))$("gpFoodRoundBox").hidden=false;
+     if($("gpFoodRoundProgress"))$("gpFoodRoundProgress").textContent=`${ri+1} von ${round.length} · ${x.dish}${x.component?" · "+x.component:""}`;
+     if($("gpFoodRoundBack"))$("gpFoodRoundBack").disabled=ri===0;
+     $("haccpActual")?.focus();
+   },40);
+ }
+ function nextRound(){
+   if(ri<0)return;
+   if(ri<round.length-1){ri++;showRound()}else{ri=-1;round=[];if($("gpFoodRoundProgress"))$("gpFoodRoundProgress").textContent="✓ Speisenrunde abgeschlossen";setTimeout(()=>{if($("gpFoodRoundBox"))$("gpFoodRoundBox").hidden=true},1200)}
+ }
+ document.addEventListener("click",e=>{
+   if(e.target.closest("#gpFoodSave")){e.preventDefault();saveFood();return}
+   if(e.target.closest("#gpFoodRoundStart")){e.preventDefault();buildRound();if(!round.length){$("haccpNotice").textContent="Für heute sind keine Gerichte im Wochenplan eingetragen.";return}ri=0;showRound();return}
+   if(e.target.closest("#gpFoodRoundNext")&&ri>=0){e.preventDefault();nextRound();return}
+   if(e.target.closest("#gpFoodRoundBack")&&ri>0){e.preventDefault();ri--;showRound();return}
+   if(e.target.closest("#gpFoodRoundStop")){ri=-1;round=[]}
+ },true);
+ document.addEventListener("change",e=>{
+   if(e.target?.id==="haccpType"){setTimeout(foodMode,0);return}
+   if(e.target?.id==="haccpMenuPick"&&e.target.value&&e.target.value!=="__manual__"){setTimeout(()=>renderComponentChoice(e.target.value),0)}
+ },true);
+ function init(){ensure();foodMode()}
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
 </script>
 
