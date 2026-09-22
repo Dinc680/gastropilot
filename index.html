@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.29.1 Einkauf Mandantentrennung</title>
+<title>GastroPilot – V7.29.2 Rückstellproben Mandantentrennung</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11299,6 +11299,56 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
     if(document.body.dataset.gpTenantData==="ready")setTimeout(reloadTenantShopping,0);
   }).observe(document.body,{attributes:true,attributeFilter:["data-gp-tenant-data"]});
   setTimeout(reloadTenantShopping,300);
+})();
+</script>
+
+
+<!-- GastroPilot V7.29.2 – Rückstellproben-Kürzel strikt pro Betrieb -->
+<script id="gp-v7292-sample-employee-js">
+(function(){
+  const SAMPLE_KEY="gastropilot_haccp_samples_v1";
+  const ACTIVE_KEY="gastropilot_active_employee_v1";
+
+  function cloud(){return document.body.dataset.gpAuthState==="authenticated" && !!document.body.dataset.gpBusinessId}
+  function validEmployee(){
+    if(!cloud())return "";
+    const bid=document.body.dataset.gpBusinessId;
+    const scoped=localStorage.getItem(ACTIVE_KEY+"::"+bid)||"";
+    let staff=[];
+    try{staff=JSON.parse(localStorage.getItem("gastropilot_staff_v1")||"[]")}catch(e){}
+    const names=(Array.isArray(staff)?staff:[]).map(x=>typeof x==="string"?x:String(x?.name||"")).filter(Boolean);
+    return names.includes(scoped)?scoped:"";
+  }
+  function scrubSamples(){
+    if(!cloud())return;
+    const employee=validEmployee();
+    let rows=[];
+    try{rows=JSON.parse(localStorage.getItem(SAMPLE_KEY)||"[]")}catch(e){}
+    if(!Array.isArray(rows))rows=[];
+    let changed=false;
+    rows=rows.map(r=>{
+      if(!r||typeof r!=="object")return r;
+      const copy={...r};
+      for(const k of ["employee","employeeName","initials","kuerzel","kürzel","staff","staffName"]){
+        if(k in copy && copy[k] && copy[k]!==employee){copy[k]=employee;changed=true}
+      }
+      return copy;
+    });
+    if(changed)localStorage.setItem(SAMPLE_KEY,JSON.stringify(rows));
+
+    /* Sichtbare Eingabefelder dürfen nie das Kürzel eines anderen Betriebs behalten. */
+    document.querySelectorAll('input[id*="sample" i],input[id*="probe" i],input[name*="sample" i],input[name*="probe" i]').forEach(el=>{
+      const marker=(el.id+" "+el.name+" "+(el.placeholder||"")).toLowerCase();
+      if(/employee|mitarbeiter|kürzel|kuerzel|initial/.test(marker) && el.value!==employee)el.value=employee;
+    });
+  }
+
+  document.addEventListener("gpTenantDataLoaded",()=>setTimeout(scrubSamples,100));
+  document.addEventListener("change",e=>{
+    if(e.target?.id==="gpStaffActive")setTimeout(scrubSamples,30);
+  });
+  new MutationObserver(()=>{if(cloud())scrubSamples()}).observe(document.body,{attributes:true,attributeFilter:["data-gp-business-id","data-gp-tenant-data"]});
+  setTimeout(scrubSamples,500);
 })();
 </script>
 
