@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.34 Speisenmodul konsolidiert</title>
+<title>GastroPilot – V7.35 Speisenmessung bereinigt</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11796,7 +11796,7 @@ body.gp734-food #gpFood734{display:block!important}
 #gp734RoundActions button{flex:1;min-width:100px}
 #gp734Notice,#gp734RoundInfo{font-weight:700;min-height:22px;margin-top:8px}
 </style>
-<script id="gp-v734-js">
+<script type="text/plain" id="gp-v734-js-disabled">
 (function(){
  const $=id=>document.getElementById(id), CUR="gastropilot_haccp_temperature_v1", ARC="gastropilot_haccp_archive_v1", CK="gastropilot_haccp_components_v1";
  let round=[],ri=-1;
@@ -11875,6 +11875,30 @@ body.gp734-food #gpFood734{display:block!important}
  });
  function init(){create();mode()}
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+})();
+</script>
+
+
+<style id="gp-v735-cleanup">
+#gpFoodV732,#gpFood733,#gpFood734{display:none!important}
+</style>
+<script id="gp-v735-cleanup-js">
+(function(){
+ function clean(){
+   document.body.classList.remove("gp734-food");
+   ["gpFoodV732","gpFood733","gpFood734"].forEach(id=>{const e=document.getElementById(id);if(e)e.remove()});
+   /* Undo display overrides introduced by the experimental food versions. */
+   ["haccpMenuWrap","haccpLocationWrap","haccpComponentWrap","haccpMeasureComponentWrap","haccpSave"].forEach(id=>{
+     const e=document.getElementById(id);if(e)e.style.removeProperty("display");
+   });
+   /* Device round stays separate: hide it only while Speisentemperatur is selected. */
+   const food=document.getElementById("haccpType")?.value==="Speisentemperatur";
+   ["gpDeviceRoundStart","gpDeviceRoundOrder","gpDeviceRoundOrderPanel"].forEach(id=>{
+     const e=document.getElementById(id);if(e)e.style.display=food?"none":"";
+   });
+ }
+ document.addEventListener("change",e=>{if(e.target?.id==="haccpType")setTimeout(clean,0)});
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",clean);else clean();
 })();
 </script>
 
