@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.30 Funktionsstabilisierung</title>
+<title>GastroPilot – V7.31 Speisenrunde & Seitenstatus</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11350,6 +11350,98 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
   });
   new MutationObserver(()=>{if(cloud())scrubSamples()}).observe(document.body,{attributes:true,attributeFilter:["data-gp-business-id","data-gp-tenant-data"]});
   setTimeout(scrubSamples,500);
+})();
+</script>
+
+
+<!-- GastroPilot V7.31 – Speisentemperatur-Auswahl, Speisenrunde, Seitenstatus -->
+<style id="gp-v731-food-round-css">
+#gpFoodRoundBox{margin-top:12px;padding:12px;border:1px solid #d9e1de;border-radius:14px;background:#fff}
+#gpFoodRoundBox[hidden]{display:none!important}
+#gpFoodRoundTitle{font-weight:800;margin-bottom:5px}
+#gpFoodRoundProgress{font-size:13px;color:#66736e;margin-bottom:9px}
+#gpFoodRoundActions{display:flex;gap:8px;flex-wrap:wrap}
+#gpFoodRoundActions button{flex:1;min-width:100px}
+</style>
+<script id="gp-v731-food-round-js">
+(function(){
+  const ACTIVE_SCREEN="gastropilot_active_screen";let foodRound=[],foodIndex=-1;
+  const $=id=>document.getElementById(id);
+  function visible(el){return !!el&&!el.hidden&&getComputedStyle(el).display!=="none"}
+  function currentScreenId(){return ["homeCard","mengenrechner","gerichte","weekPlannerCard","shoppingCard","haccpCard"].find(id=>visible($(id)))||"homeCard"}
+  function restoreScreen(){
+    const wanted=localStorage.getItem(ACTIVE_SCREEN);if(!wanted||wanted==="homeCard"||!$(wanted))return;
+    const trigger=document.querySelector(`[data-screen="${wanted}"],[data-target="${wanted}"],[data-home-screen="${wanted}"]`);
+    if(trigger){trigger.click();return}
+    if(typeof showScreen==="function"){try{showScreen(wanted)}catch(e){}}
+  }
+  document.addEventListener("click",e=>{if(e.target.closest("[data-screen],.bottom-nav button,nav button"))setTimeout(()=>localStorage.setItem(ACTIVE_SCREEN,currentScreenId()),30)},true);
+  window.addEventListener("pagehide",()=>localStorage.setItem(ACTIVE_SCREEN,currentScreenId()));
+  window.addEventListener("pageshow",()=>setTimeout(restoreScreen,180));
+
+  function openManual(){
+    const wrap=$("gpManualFoodWrap"),inp=$("gpManualFood");
+    if(wrap){wrap.hidden=false;wrap.style.display="block"}
+    if(inp){inp.disabled=false;inp.readOnly=false;setTimeout(()=>inp.focus(),30)}
+  }
+  function useManual(){
+    const inp=$("gpManualFood"),name=String(inp?.value||"").trim();if(!name)return;
+    const pick=$("haccpMenuPick"),loc=$("haccpLocation");
+    if(pick){let opt=[...pick.options].find(o=>o.value===name);if(!opt){opt=new Option(name,name);pick.add(opt)}pick.value=name;pick.dispatchEvent(new Event("change",{bubbles:true}))}
+    if(loc){loc.value=name;loc.dispatchEvent(new Event("change",{bubbles:true}))}
+    const wrap=$("gpManualFoodWrap");if(wrap){wrap.hidden=true;wrap.style.display="none"}
+  }
+  document.addEventListener("change",e=>{
+    if(e.target?.id!=="haccpMenuPick")return;
+    if(e.target.value==="__manual__"){openManual();return}
+    const loc=$("haccpLocation");if(loc&&e.target.value){loc.value=e.target.value;loc.dispatchEvent(new Event("change",{bubbles:true}))}
+  },true);
+  document.addEventListener("click",e=>{
+    if(e.target.closest("#gpUseManualFood")){e.preventDefault();e.stopImmediatePropagation();useManual()}
+  },true);
+
+  function weekDishNames(){
+    let plan={};try{plan=JSON.parse(localStorage.getItem("gastropilot_week_plan")||"{}")}catch(e){}
+    const names=[];Object.values(plan||{}).forEach(day=>(Array.isArray(day)?day:[]).forEach(x=>{
+      const n=String(x?.recipeName||x?.dish||"").trim();if(n&&!names.includes(n))names.push(n)
+    }));return names;
+  }
+  function rebuildFoodPick(){
+    const pick=$("haccpMenuPick");if(!pick)return;const old=pick.value;
+    const manual=[...pick.options].find(o=>o.value==="__manual__"),placeholder=[...pick.options].find(o=>!o.value);
+    pick.innerHTML="";
+    if(placeholder)pick.add(new Option(placeholder.textContent||"Speise auswählen",""));
+    weekDishNames().forEach(n=>pick.add(new Option(n,n)));
+    pick.add(new Option(manual?.textContent||"Andere Speise manuell eingeben","__manual__"));
+    if([...pick.options].some(o=>o.value===old))pick.value=old;
+  }
+  document.addEventListener("change",e=>{if(e.target?.id==="haccpType"&&e.target.value==="Speisentemperatur")setTimeout(rebuildFoodPick,20)});
+
+  function ensureRoundUI(){
+    if($("gpFoodRoundBox"))return;const anchor=$("gpManualFoodWrap")||$("haccpMenuPick")?.parentElement;if(!anchor)return;
+    const box=document.createElement("div");box.id="gpFoodRoundBox";box.hidden=true;
+    box.innerHTML=`<div id="gpFoodRoundTitle">🍽️ Speisenrunde</div><div id="gpFoodRoundProgress"></div><div id="gpFoodRoundActions"><button type="button" id="gpFoodRoundBack">← Zurück</button><button type="button" id="gpFoodRoundNext">Weiter →</button><button type="button" id="gpFoodRoundStop">Beenden</button></div>`;
+    anchor.insertAdjacentElement("afterend",box);
+    const start=document.createElement("button");start.type="button";start.id="gpFoodRoundStart";start.textContent="🍽️ Speisenrunde starten";box.insertAdjacentElement("beforebegin",start);
+  }
+  function selectRoundDish(){
+    if(foodIndex<0||foodIndex>=foodRound.length)return;const name=foodRound[foodIndex],pick=$("haccpMenuPick"),loc=$("haccpLocation");
+    if(pick){if(![...pick.options].some(o=>o.value===name))pick.add(new Option(name,name));pick.value=name;pick.dispatchEvent(new Event("change",{bubbles:true}))}
+    if(loc)loc.value=name;
+    $("gpFoodRoundBox").hidden=false;$("gpFoodRoundProgress").textContent=`${foodIndex+1} von ${foodRound.length} · ${name}`;
+    $("gpFoodRoundBack").disabled=foodIndex===0;$("gpFoodRoundNext").textContent=foodIndex===foodRound.length-1?"Runde abschließen":"Weiter →";
+  }
+  function startRound(){rebuildFoodPick();foodRound=weekDishNames();if(!foodRound.length){alert("Im aktuellen Wochenplan sind keine Speisen eingetragen.");return}foodIndex=0;selectRoundDish()}
+  function stopRound(){foodRound=[];foodIndex=-1;if($("gpFoodRoundBox"))$("gpFoodRoundBox").hidden=true}
+  document.addEventListener("click",e=>{
+    if(e.target.closest("#gpFoodRoundStart")){startRound();return}
+    if(e.target.closest("#gpFoodRoundBack")){if(foodIndex>0){foodIndex--;selectRoundDish()}return}
+    if(e.target.closest("#gpFoodRoundNext")){if(foodIndex<foodRound.length-1){foodIndex++;selectRoundDish()}else stopRound();return}
+    if(e.target.closest("#gpFoodRoundStop"))stopRound();
+  });
+
+  function init(){ensureRoundUI();rebuildFoodPick();setTimeout(restoreScreen,250)}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
 </script>
 
