@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.35 Speisenmessung bereinigt</title>
+<title>GastroPilot – V7.36 Speisenübernahme Fix</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11899,6 +11899,47 @@ body.gp734-food #gpFood734{display:block!important}
  }
  document.addEventListener("change",e=>{if(e.target?.id==="haccpType")setTimeout(clean,0)});
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",clean);else clean();
+})();
+</script>
+
+
+<script id="gp-v736-food-bridge-js">
+(function(){
+ const $=id=>document.getElementById(id);
+ function setNativeDish(name){
+   name=String(name||"").trim(); if(!name||name==="__manual__")return;
+   const loc=$("haccpLocation");
+   if(loc){loc.value=name;loc.dispatchEvent(new Event("input",{bubbles:true}));loc.dispatchEvent(new Event("change",{bubbles:true}))}
+   /* Populate native component selector from the existing component store. */
+   let map={};try{map=JSON.parse(localStorage.getItem("gastropilot_haccp_components_v1")||"{}")||{}}catch(e){}
+   const norm=x=>String(x||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");
+   const key=Object.keys(map).find(k=>norm(k)===norm(name)), comps=Array.isArray(map[name])?map[name]:(key&&Array.isArray(map[key])?map[key]:[]);
+   const sel=$("haccpMeasureComponent"), wrap=$("haccpMeasureComponentWrap");
+   if(sel){
+     sel.innerHTML='<option value="">Komponente auswählen</option>';
+     comps.filter(Boolean).forEach(c=>sel.add(new Option(c,c)));
+     if(wrap)wrap.hidden=!comps.length;
+   }
+   /* Keep the original menu selector itself on the selected dish. */
+   const pick=$("haccpMenuPick");
+   if(pick && pick.value!==name){
+     if(![...pick.options].some(o=>o.value===name))pick.add(new Option(name,name));
+     pick.value=name;
+   }
+ }
+ document.addEventListener("change",e=>{
+   if(e.target?.id==="haccpMenuPick"){
+     if(e.target.value==="__manual__")return;
+     setNativeDish(e.target.value);
+   }
+ },true);
+ /* Some iOS/select handlers in older GP versions rebuild the selector after change.
+    Re-apply once after the native handler has finished. */
+ document.addEventListener("change",e=>{
+   if(e.target?.id==="haccpMenuPick" && e.target.value && e.target.value!=="__manual__"){
+     const v=e.target.value;setTimeout(()=>setNativeDish(v),40);
+   }
+ });
 })();
 </script>
 
