@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.27 HACCP Geräte Cloud</title>
+<title>GastroPilot – V7.28 Mandantenschicht</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10923,6 +10923,148 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
   new MutationObserver(watchCloud).observe(document.body,{attributes:true,attributeFilter:["data-gp-business-id","data-gp-cloud-role","data-gp-auth-state"]});
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)watchCloud()});
   setInterval(watchCloud,1500);watchCloud();
+})();
+</script>
+
+
+<!-- GastroPilot V7.28 – zentrale Mandantenschicht -->
+<script id="gp-v728-tenant-layer-js">
+(function(){
+  const CLOUD_KEYS=[
+    "gastropilot_week_plan",
+    "gastropilot_haccp_components_v1",
+    "gastropilot_haccp_archive_v1",
+    "gastropilot_haccp_daydocs_v1",
+    "gastropilot_haccp_quickprefs_v1",
+    "gastropilot_haccp_measure_count_v1",
+    "gastropilot_haccp_draft_v1",
+    "gastropilot_haccp_samples_v1",
+    "gastropilot_haccp_fryers_v1",
+    "gastropilot_haccp_fryer_log_v1",
+    "gastropilot_haccp_cleaning_tasks_v1",
+    "gastropilot_haccp_cleaning_log_v1",
+    "gastropilot_haccp_device_round_order_v1"
+  ];
+  const EMPTY={
+    "gastropilot_week_plan":"{}",
+    "gastropilot_haccp_components_v1":"{}",
+    "gastropilot_haccp_archive_v1":"[]",
+    "gastropilot_haccp_daydocs_v1":"{}",
+    "gastropilot_haccp_quickprefs_v1":"{}",
+    "gastropilot_haccp_measure_count_v1":"{}",
+    "gastropilot_haccp_draft_v1":"{}",
+    "gastropilot_haccp_samples_v1":"[]",
+    "gastropilot_haccp_fryers_v1":"[]",
+    "gastropilot_haccp_fryer_log_v1":"[]",
+    "gastropilot_haccp_cleaning_tasks_v1":"[]",
+    "gastropilot_haccp_cleaning_log_v1":"[]",
+    "gastropilot_haccp_device_round_order_v1":"[]"
+  };
+  let tenant="",ready=false,loading=false,saveTimers=new Map(),observerBusy=false;
+  const rawSet=Storage.prototype.setItem,rawGet=Storage.prototype.getItem,rawRemove=Storage.prototype.removeItem;
+  const cloudMode=()=>document.body.dataset.gpAuthState==="authenticated"&&!!document.body.dataset.gpBusinessId&&!!window.gpSupabase;
+
+  function emptyFor(key){return EMPTY[key]??"null"}
+  function refresh(){
+    window.dispatchEvent(new Event("storage"));
+    document.dispatchEvent(new CustomEvent("gpTenantDataLoaded",{detail:{businessId:tenant}}));
+    document.querySelectorAll("[data-home-screen='weekPlannerCard']").forEach(x=>x.dispatchEvent(new Event("change",{bubbles:true})));
+  }
+  async function getCloudBusiness(){
+    const bid=document.body.dataset.gpBusinessId;
+    const [{data:b,error:be},{data:l,error:le}]=await Promise.all([
+      window.gpSupabase.from("businesses").select("*").eq("id",bid).maybeSingle(),
+      window.gpSupabase.from("locations").select("*").eq("business_id",bid).limit(1).maybeSingle()
+    ]);
+    if(be)throw be;if(le)throw le;
+    const name=b?.name||b?.business_name||b?.title||"Betrieb";
+    const location=l?.name||l?.location_name||l?.title||"";
+    return {name,location,manager:"",number:"",cloud:true};
+  }
+  function renderBusiness(x){
+    const $=id=>document.getElementById(id),n=String(x?.name||"").trim(),l=String(x?.location||"").trim();
+    if($("gpBusinessDisplayName"))$("gpBusinessDisplayName").textContent=n||"Betrieb";
+    if($("gpBusinessDisplayMeta"))$("gpBusinessDisplayMeta").textContent=l||"Cloud-Betrieb";
+    if($("gpBusinessName"))$("gpBusinessName").value=n;
+    if($("gpBusinessLocation"))$("gpBusinessLocation").value=l;
+    if($("gpBusinessManager"))$("gpBusinessManager").value="";
+    if($("gpBusinessNumber"))$("gpBusinessNumber").value="";
+  }
+  async function saveKey(key,value){
+    if(!ready||!cloudMode()||!CLOUD_KEYS.includes(key))return;
+    let parsed;try{parsed=JSON.parse(value)}catch(e){parsed=value}
+    const bid=tenant;
+    const {error}=await window.gpSupabase.from("business_data").upsert({
+      business_id:bid,data_key:key,data_value:parsed,updated_at:new Date().toISOString()
+    },{onConflict:"business_id,data_key"});
+    if(error)console.error("GastroPilot business_data save",key,error);
+  }
+  function queueSave(key,value){
+    clearTimeout(saveTimers.get(key));
+    saveTimers.set(key,setTimeout(()=>saveKey(key,value),250));
+  }
+
+  const nativeSet=Storage.prototype.setItem;
+  Storage.prototype.setItem=function(key,value){
+    nativeSet.call(this,key,value);
+    if(this===localStorage&&ready&&cloudMode()&&CLOUD_KEYS.includes(String(key)))queueSave(String(key),String(value));
+  };
+
+  async function loadTenant(){
+    if(loading||!cloudMode())return;
+    const bid=document.body.dataset.gpBusinessId;
+    if(ready&&tenant===bid)return;
+    loading=true;ready=false;tenant=bid;
+    document.body.dataset.gpTenantData="loading";
+    try{
+      /* Erst neutralisieren: beim Betriebswechsel darf kein alter Tenant kurz sichtbar bleiben. */
+      CLOUD_KEYS.forEach(key=>rawSet.call(localStorage,key,emptyFor(key)));
+      const [{data,error},business]=await Promise.all([
+        window.gpSupabase.from("business_data").select("data_key,data_value").eq("business_id",bid),
+        getCloudBusiness()
+      ]);
+      if(error)throw error;
+      const rows=new Map((data||[]).map(r=>[r.data_key,r.data_value]));
+      CLOUD_KEYS.forEach(key=>{
+        const v=rows.has(key)?JSON.stringify(rows.get(key)):emptyFor(key);
+        rawSet.call(localStorage,key,v);
+      });
+      /* Betriebsanzeige kommt ausschließlich aus businesses/locations, nicht aus altem localStorage. */
+      rawSet.call(localStorage,"gastropilot_business_v1",JSON.stringify(business));
+      renderBusiness(business);
+      ready=true;document.body.dataset.gpTenantData="ready";
+      refresh();
+    }catch(err){
+      console.error("GastroPilot tenant layer:",err);
+      CLOUD_KEYS.forEach(key=>rawSet.call(localStorage,key,emptyFor(key)));
+      rawSet.call(localStorage,"gastropilot_business_v1","{}");
+      document.body.dataset.gpTenantData="error";
+    }finally{loading=false}
+  }
+  function clearTenant(){
+    ready=false;tenant="";
+    CLOUD_KEYS.forEach(key=>rawSet.call(localStorage,key,emptyFor(key)));
+    rawSet.call(localStorage,"gastropilot_business_v1","{}");
+    document.body.dataset.gpTenantData="locked";
+  }
+  async function watch(){
+    if(cloudMode())await loadTenant(); else if(tenant)clearTenant();
+  }
+
+  /* Cloud-Betriebsstammdaten sind in diesem Schritt read-only aus businesses/locations. */
+  document.addEventListener("click",e=>{
+    if(!cloudMode())return;
+    if(e.target.closest("#gpBusinessSave")){
+      e.preventDefault();e.stopImmediatePropagation();
+      const n=document.getElementById("gpBusinessNotice");
+      if(n)n.textContent="Betriebsname und Standort werden aus dem Cloud-Betrieb geladen.";
+    }
+  },true);
+
+  document.addEventListener("gpAuthStateChanged",watch);
+  new MutationObserver(watch).observe(document.body,{attributes:true,attributeFilter:["data-gp-business-id","data-gp-auth-state"]});
+  setInterval(watch,1200);
+  watch();
 })();
 </script>
 
