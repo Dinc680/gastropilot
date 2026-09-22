@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.38 Komponenten Fix</title>
+<title>GastroPilot – V7.39 Komponentenmessung Fix</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12019,6 +12019,24 @@ body.gp734-food #gpFood734{display:block!important}
 })();
 </script>
 
+<script id="gp-v739-component-measure-fix">
+(function(){
+ const $=id=>document.getElementById(id);
+ function apply(){
+  if($("haccpType")?.value!=="Speisentemperatur")return;
+  const s=$("gp737Dish"),d=s?(s.value==="__manual__"?String($("gp737Manual")?.value||"").trim():String(s.value||"").trim()):"";
+  const c=String($("gp737Comp")?.value||"").trim();
+  const loc=$("haccpLocation"),nc=$("haccpMeasureComponent");
+  if(loc){loc.value=d;loc.dataset.gpFoodDish=d;loc.dataset.gpFoodComponent=c;loc.dispatchEvent(new Event("input",{bubbles:true}))}
+  if(nc){if(c&&![...nc.options].some(o=>o.value===c))nc.add(new Option(c,c));nc.value=c;nc.dataset.gpFoodComponent=c}
+  const n=$("gp737Notice");if(n&&d)n.textContent=c?"Messung: "+d+" · "+c:"Messung: "+d;
+ }
+ document.addEventListener("change",e=>{if(e.target?.id==="gp737Comp"||e.target?.id==="gp737Dish")setTimeout(apply,0)},true);
+ document.addEventListener("click",e=>{if(e.target.closest("#gp737Use")||e.target.closest("#gp737AddComp"))setTimeout(apply,30)},true);
+ function install(){const b=$("haccpSave");if(!b||b.dataset.gp739)return;b.dataset.gp739="1";b.addEventListener("pointerdown",apply,true);b.addEventListener("touchstart",apply,true);b.addEventListener("mousedown",apply,true)}
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install);else install();
+})();
+</script>
 </body>
 </html>
   
