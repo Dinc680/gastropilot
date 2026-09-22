@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.32 Speisentemperatur Neuaufbau</title>
+<title>GastroPilot – V7.33 Speisentemperatur Einblock</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11571,7 +11571,7 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
 #gpFoodV732 .gp732-actions button{flex:1;min-width:110px}
 #gp732Notice{min-height:24px;font-weight:700;margin-top:8px}
 </style>
-<script id="gp-v732-food-js">
+<script type="text/plain" id="gp-v732-food-js-old">
 (function(){
  const $=id=>document.getElementById(id), CUR="gastropilot_haccp_temperature_v1", ARC="gastropilot_haccp_archive_v1";
  let round=[],ri=-1;
@@ -11671,6 +11671,113 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
 })();
 </script>
 
+
+<!-- GastroPilot V7.33 – ein einziger vollständiger Speisenblock -->
+<style id="gp-v733-css">
+#gpFood733{display:none;margin-top:14px}
+#gpFood733.active{display:block}
+#gpFood733 .card{background:#fff;border:1px solid #d5dfdc;border-radius:16px;padding:14px;margin:10px 0}
+#gpFood733 label{display:block;font-weight:800;margin:8px 0 6px}
+#gpFood733 select,#gpFood733 input{width:100%;min-height:50px;border:1px solid #cad7d2;border-radius:13px;padding:10px 12px;font-size:18px;background:#fff}
+#gpFood733 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#gpFood733 .tempSave{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
+#gp733Save{min-height:54px;font-size:18px;font-weight:800;padding:10px 16px}
+#gp733ManualRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+#gp733RoundCard{background:#eef7f4}
+#gp733RoundActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+#gp733RoundActions button{flex:1;min-width:100px}
+#gp733Notice,#gp733RoundInfo{font-weight:700;margin-top:8px;min-height:22px}
+</style>
+<script id="gp-v733-js">
+(function(){
+ const $=id=>document.getElementById(id), CUR="gastropilot_haccp_temperature_v1", ARC="gastropilot_haccp_archive_v1";
+ let round=[],ri=-1;
+ const get=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}}, put=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+ const norm=x=>String(x||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");
+ const esc=x=>String(x).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+ function today(){
+   const p=get("gastropilot_week_plan",{}), names=[], days=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"], d=new Date(), keys=[days[d.getDay()],days[d.getDay()].toLowerCase(),String(d.getDay()),d.getDay()];
+   const raw=keys.map(k=>p?.[k]).find(Array.isArray)||[];
+   raw.forEach(x=>{const n=typeof x==="string"?x:String(x?.recipeName||x?.dish||x?.name||"").trim();if(n&&!names.includes(n))names.push(n)});
+   return names;
+ }
+ function comps(d){
+   const m=get("gastropilot_haccp_components_v1",{})||{}, k=Object.keys(m).find(k=>norm(k)===norm(d)), a=m[d]||m[norm(d)]||(k?m[k]:[]);
+   return Array.isArray(a)?a.filter(Boolean):[];
+ }
+ function create(){
+   if($("gpFood733"))return;
+   const type=$("haccpType");if(!type)return;
+   const box=document.createElement("section");box.id="gpFood733";
+   box.innerHTML=`<div class="card">
+    <label>Speise</label><select id="gp733Dish"><option value="">Bitte Speise auswählen</option></select>
+    <div id="gp733ManualWrap" hidden><label>Speise manuell eintragen</label><div id="gp733ManualRow"><input id="gp733Manual" type="text" placeholder="z. B. Rindergulasch"><button id="gp733ManualUse" type="button">Übernehmen</button></div></div>
+    <div id="gp733CompWrap" hidden><label>Zu messende Komponente</label><select id="gp733Comp"><option value="">Komponente auswählen</option></select></div>
+    <label>Speisenart / Sollwerte</label><select id="gp733FoodKind"><option value="hot">Warme Speise</option><option value="cold">Kalte Speise</option><option value="custom">Eigene Sollwerte</option></select>
+    <div class="row2"><div><label>Soll min. °C</label><input id="gp733Min" type="number" inputmode="decimal" value="65"></div><div><label>Soll max. °C</label><input id="gp733Max" type="number" inputmode="decimal" value="100"></div></div>
+    <label>Gemessene Temperatur °C</label><div class="tempSave"><input id="gp733Actual" type="number" inputmode="decimal" step="0.1" placeholder="Temperatur"><button id="gp733Save" type="button" class="primary">✓ Speichern</button></div>
+    <label>Maßnahme bei Abweichung</label><input id="gp733Action" type="text" placeholder="Nur bei Abweichung erforderlich">
+    <div id="gp733Notice"></div>
+   </div>
+   <div class="card" id="gp733RoundCard"><button id="gp733RoundStart" type="button" class="primary">🍽️ Speisenrunde starten</button><div id="gp733RoundInfo"></div><div id="gp733RoundActions" hidden><button id="gp733Back" type="button">← Zurück</button><button id="gp733Skip" type="button">Überspringen</button><button id="gp733Stop" type="button">Beenden</button></div></div>`;
+   (type.closest(".haccp-step-card")||type.parentElement).insertAdjacentElement("afterend",box);
+ }
+ function values(kind){
+   // Operational defaults already used in GP: hot 65–100; cold 1–7.
+   if(kind==="cold")return [1,7];
+   if(kind==="hot")return [65,100];
+   return [Number($("gp733Min")?.value)||0,Number($("gp733Max")?.value)||100];
+ }
+ function applyKind(){const [a,b]=values($("gp733FoodKind").value);if($("gp733FoodKind").value!=="custom"){$("gp733Min").value=a;$("gp733Max").value=b}}
+ function fill(){
+   const s=$("gp733Dish"),old=s.value, names=today();
+   s.innerHTML='<option value="">Bitte Speise auswählen</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("")+'<option value="__manual__">Andere Speise manuell eintragen</option>';
+   if([...s.options].some(o=>o.value===old))s.value=old;
+ }
+ function fillComp(d,c=""){const a=comps(d),w=$("gp733CompWrap"),s=$("gp733Comp");w.hidden=!a.length;s.innerHTML='<option value="">Komponente auswählen</option>'+a.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");if(c&&a.includes(c))s.value=c}
+ function dish(){const v=$("gp733Dish").value;return v==="__manual__"?$("gp733Manual").value.trim():v}
+ function choose(d,c=""){const s=$("gp733Dish");if(![...s.options].some(o=>o.value===d))s.add(new Option(d,d));s.value=d;$("gp733ManualWrap").hidden=true;fillComp(d,c);$("gp733Actual").focus()}
+ function hideLegacy(food){
+   /* hide every old food-only UI; stable generic type selector remains */
+   ["gpFoodV732","gpFoodRoundStart","gpFoodRoundBox","gpFoodSave","haccpMenuWrap","haccpLocationWrap","haccpComponentWrap","haccpMeasureComponentWrap","gpDeviceRoundStart","gpDeviceRoundOrder","gpDeviceRoundOrderPanel"].forEach(id=>{const e=$(id);if(e)e.style.display=food?"none":""});
+   if($("haccpSave"))$("haccpSave").style.display=food?"none":"";
+ }
+ function mode(){create();const food=$("haccpType")?.value==="Speisentemperatur";$("gpFood733").classList.toggle("active",food);hideLegacy(food);if(food){fill();fillComp(dish())}}
+ async function save(){
+   const d=dish(),a=comps(d),c=$("gp733Comp").value,actual=Number(String($("gp733Actual").value).replace(",",".")),mn=Number($("gp733Min").value),mx=Number($("gp733Max").value),action=$("gp733Action").value.trim(),n=$("gp733Notice");
+   if(!d){n.textContent="Bitte eine Speise auswählen oder manuell eintragen.";return}
+   if(a.length&&!c){n.textContent="Bitte eine Komponente auswählen.";return}
+   if(!Number.isFinite(actual)){n.textContent="Bitte die gemessene Temperatur eingeben.";return}
+   const ok=actual>=Math.min(mn,mx)&&actual<=Math.max(mn,mx);if(!ok&&!action){n.textContent="Bei Abweichung bitte eine Maßnahme eintragen.";return}
+   const now=new Date(),rec={id:String(Date.now()),type:"Speisentemperatur",foodKind:$("gp733FoodKind").value,location:c||d,dish:d,component:c,min:mn,max:mx,actual,ok,action,employee:String($("haccpEmployee")?.value||"").trim(),date:now.toLocaleString("de-DE"),measuredAt:now.toISOString(),isoDate:now.toISOString().slice(0,10)};
+   const cur=get(CUR,[]);cur.unshift(rec);put(CUR,cur);const ar=get(ARC,[]);if(!ar.some(x=>String(x.id)===rec.id)){ar.unshift(rec);put(ARC,ar)}
+   if(typeof window.gpPushHaccpTemperatureRecord==="function"){try{await window.gpPushHaccpTemperatureRecord(rec)}catch(e){}}
+   $("gp733Actual").value="";$("gp733Action").value="";n.textContent=`✓ Gespeichert: ${d}${c?" · "+c:""}`;
+   if(ri>=0){ri++;if(ri>=round.length)finish();else show()}else $("gp733Actual").focus();
+ }
+ function build(){round=[];today().forEach(d=>{const a=comps(d);a.length?a.forEach(c=>round.push({d,c})):round.push({d,c:""})})}
+ function show(){const x=round[ri];choose(x.d,x.c);$("gp733RoundActions").hidden=false;$("gp733RoundInfo").textContent=`${ri+1} von ${round.length} · ${x.d}${x.c?" · "+x.c:""}`;$("gp733Back").disabled=ri===0}
+ function finish(){round=[];ri=-1;$("gp733RoundActions").hidden=true;$("gp733RoundInfo").textContent="✓ Speisenrunde abgeschlossen"}
+ document.addEventListener("change",e=>{
+   if(e.target?.id==="haccpType"){mode();return}
+   if(e.target?.id==="gp733Dish"){const man=e.target.value==="__manual__";$("gp733ManualWrap").hidden=!man;if(man){fillComp("");$("gp733Manual").focus()}else fillComp(e.target.value)}
+   if(e.target?.id==="gp733FoodKind")applyKind();
+ });
+ document.addEventListener("click",e=>{
+   if(e.target.closest("#gp733ManualUse")){const d=$("gp733Manual").value.trim();if(d)choose(d);return}
+   if(e.target.closest("#gp733Save")){save();return}
+   if(e.target.closest("#gp733RoundStart")){build();if(!round.length){$("gp733RoundInfo").textContent="Für heute sind keine Gerichte im Wochenplan eingetragen.";return}ri=0;show();return}
+   if(e.target.closest("#gp733Back")&&ri>0){ri--;show();return}
+   if(e.target.closest("#gp733Skip")&&ri>=0){ri++;if(ri>=round.length)finish();else show();return}
+   if(e.target.closest("#gp733Stop"))finish();
+ });
+ function init(){create();mode()}
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+})();
+</script>
+
 </body>
 </html>
   
+
+<style>#gpFoodV732{display:none!important}</style>
