@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.55 Bericht Mobile Responsive</title>
+<title>GastroPilot – V7.56 Heute Status Fix</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -9182,6 +9182,25 @@ function gpDeviceChecksHtml(rows){
 
 function gpLoadArchive(){try{let x=JSON.parse(localStorage.getItem(ARCHIVE_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}}
 function gpSaveArchive(x){localStorage.setItem(ARCHIVE_KEY,JSON.stringify(x))}
+
+/* V7.56: "Heute" muss aktuelle UND archivierte Messungen sehen.
+   Doppelte Datensätze werden über die Messungs-ID entfernt. */
+function gpTodayRowsCombined(){
+  const map=new Map();
+  [...gpLoadArchive(),...load()].forEach(r=>{
+    const key=String(r&&r.id ? r.id : [
+      gpDateKeyFromRecord(r),
+      r&&r.type,
+      r&&r.dish,
+      r&&r.component,
+      r&&r.location,
+      r&&r.actual,
+      r&&r.date
+    ].join("|"));
+    if(!map.has(key)) map.set(key,r);
+  });
+  return [...map.values()];
+}
 function gpLoadDayDocs(){try{let x=JSON.parse(localStorage.getItem(DAYDOC_KEY)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}}
 function gpSaveDayDocs(x){localStorage.setItem(DAYDOC_KEY,JSON.stringify(x))}
 
@@ -9346,7 +9365,7 @@ function gpRenderComponents(){
    measureComp.value=choices.includes(previous)?previous:dish;
  }
 }
-function gpCommitComponents(){if(!menuPick||!menuPick.value)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim()).filter(Boolean);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(load())}
+function gpCommitComponents(){if(!menuPick||!menuPick.value)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim()).filter(Boolean);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(gpTodayRowsCombined())}
 
 const gpDayNames=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
 
@@ -9491,7 +9510,7 @@ function gpRenderDayDocStatus(){
 function render(){
   const all=load();
   gpRenderArchiveOptions();
-  gpRenderTodayChecks(gpLoadArchive());
+  gpRenderTodayChecks(gpTodayRowsCombined());
   gpRenderDayDocStatus();
   count.textContent=all.length+" "+(all.length===1?"Eintrag":"Einträge")+" im aktuellen Verlauf";
   empty.style.display=all.length?"none":"block";
@@ -9637,7 +9656,7 @@ if(deleteDevice)deleteDevice.addEventListener("click",()=>{
 });
 
 if(addComp)addComp.addEventListener("click",()=>{if(!menuPick||!menuPick.value)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());if(vals.length<5){vals.push("");compList.innerHTML=vals.map((c,i)=>`<div class="gpCompRow"><input class="gpCompInput" value="${esc(c)}" placeholder="Komponente ${i+1}"><button type="button" class="secondary gpCompRemove" data-remove="${i}">×</button></div>`).join("")}});
-if(compList){compList.addEventListener("change",e=>{if(e.target.classList.contains("gpCompInput"))gpCommitComponents()});compList.addEventListener("click",e=>{let b=e.target.closest("[data-remove]");if(!b)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());vals.splice(Number(b.dataset.remove),1);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(load())})}
+if(compList){compList.addEventListener("change",e=>{if(e.target.classList.contains("gpCompInput"))gpCommitComponents()});compList.addEventListener("click",e=>{let b=e.target.closest("[data-remove]");if(!b)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim());vals.splice(Number(b.dataset.remove),1);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(gpTodayRowsCombined())})}
 [mn,mx,act].forEach(e=>e.addEventListener("input",evaluate));
 
 const SAMPLE_KEY="gastropilot_haccp_samples_v1";
