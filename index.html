@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.54 Bericht iPhone Scroll</title>
+<title>GastroPilot – V7.55 Bericht Mobile Responsive</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10329,7 +10329,15 @@ function periodHtml(rows){
   const totalChecks=rows.reduce((s,x)=>s+controlCount(x.doc),0),totalSamples=rows.reduce((s,x)=>s+sampleRows(x.doc).length,0),totalDev=rows.reduce((s,x)=>s+deviationCount(x.doc),0);
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HACCP Prüfbericht</title><style>
   *{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;margin:22px;color:#213a32}.actions{margin-bottom:18px}.actions button{font-size:16px;padding:10px 14px;border:0;border-radius:9px;background:#135847;color:#fff;font-weight:800}.cover{padding:18px;border:1px solid #cddad5;border-radius:12px}.cover h1{margin:0 0 5px}.summary,.dayStats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #dce5e1;margin-top:12px}.summary div,.dayStats div{text-align:center;padding:9px;border-right:1px solid #e2e9e6;font-size:9px}.summary strong,.dayStats strong{display:block;font-size:18px;color:#17483b;margin-top:2px}.prDay{page-break-before:always;margin-top:20px}.dayHead{display:flex;justify-content:space-between;gap:12px;background:#135847;color:#fff;padding:14px;border-radius:10px}.dayHead h2{margin:2px 0}.dayHead small{color:#dcebe5}.kicker{font-size:9px;font-weight:900;color:#ffd184}.prSec{margin-top:15px}.prSec h3{font-size:14px;color:#17483b;border-bottom:1px solid #d8e1dd;padding-bottom:5px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{text-align:left;vertical-align:top;padding:6px;border-bottom:1px solid #e4e9e7}th{font-size:9px;background:#f3f6f4}td small{display:block;font-size:8px;color:#777;margin-top:2px}.empty{font-size:10px;color:#777;padding:7px;border:1px dashed #d1d9d6}
-  @media print{.actions{display:none}body{margin:7mm}.cover{break-after:page}.prDay{break-before:page}.dayHead{-webkit-print-color-adjust:exact;print-color-adjust:exact}}@media(max-width:700px){.summary,.dayStats{grid-template-columns:repeat(2,1fr)}table{font-size:8px}th,td{padding:4px 3px}}
+  @media print{@page{size:A4 landscape;margin:8mm}.actions{display:none}body{margin:0}.cover{break-after:page}.prDay{break-before:page}.dayHead{-webkit-print-color-adjust:exact;print-color-adjust:exact}table{table-layout:fixed;font-size:7.5px}th,td{padding:4px;overflow-wrap:anywhere}}
+  @media screen and (max-width:700px){
+    body{margin:12px;overflow-x:hidden}.summary,.dayStats{grid-template-columns:repeat(2,1fr)}
+    table,thead,tbody,tr,td{display:block;width:100%}thead{display:none}
+    tr{margin:0 0 10px;padding:9px;border:1px solid #dce5e1;border-radius:10px;background:#fff}
+    td{display:grid;grid-template-columns:105px minmax(0,1fr);gap:7px;padding:5px 0;border:0;border-bottom:1px solid #eef2f0;font-size:11px;overflow-wrap:anywhere}
+    td:last-child{border-bottom:0}td::before{font-weight:800;color:#65736e}
+    td:nth-child(1)::before{content:"Kontrollpunkt"}td:nth-child(2)::before{content:"Soll / Detail"}td:nth-child(3)::before{content:"Ist / Status"}td:nth-child(4)::before{content:"Maßnahme"}td:nth-child(5)::before{content:"Mitarbeiter"}
+  }
   </style></head><body><div class="actions"><button onclick="window.print()">Drucken / PDF</button></div><div class="cover"><h1>HACCP Prüfbericht</h1><div>${e(pretty(fromEl.value))} bis ${e(pretty(toEl.value))}</div><div class="summary"><div>Abgeschlossene Tage<strong>${rows.length}</strong></div><div>Kontrollen<strong>${totalChecks}</strong></div><div>Rückstellproben<strong>${totalSamples}</strong></div><div>Abweichungen<strong>${totalDev}</strong></div></div></div>${rows.map(x=>dayBlock(x.key,x.doc)).join("")}</body></html>`;
 }
 
@@ -12510,42 +12518,142 @@ setTimeout(syncDaySelect,500);
 </script>
 
 
-<style id="gp-v754-report-mobile-scroll-css">
-/* V7.54 – mobile Berichtsansicht horizontal verschiebbar, ohne Drucklayout zu verändern */
-@media (max-width:760px){
+
+<style id="gp-v755-report-responsive-css">
+/* V7.55 – Bericht und Prüferansicht auf iPhone als echte mobile Ansicht */
+@media screen and (max-width:760px){
+  #haccpReportViewer,
+  #haccpReportViewerBody,
+  #gpInspectorPanel,
+  #gpInspectorDaysList,
+  .gpInspectorDay,
+  .gpInspectorDayMain{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    overflow:visible !important;
+  }
+
   #haccpReportViewer{
-    width:100% !important;
-    max-width:100% !important;
-    overflow:hidden !important;
+    padding:10px !important;
   }
-  #haccpReportViewerBody{
-    width:100% !important;
-    max-width:100% !important;
-    overflow-x:auto !important;
-    overflow-y:visible !important;
-    -webkit-overflow-scrolling:touch !important;
-    touch-action:pan-x pan-y !important;
-    padding-bottom:8px !important;
+
+  #haccpReportViewer .gpReportViewerHead{
+    align-items:center !important;
+    gap:8px !important;
   }
-  #haccpReportViewerBody .gpReportTable,
+
+  /* Tabellen werden auf dem iPhone zu lesbaren Karten. */
   #haccpReportViewerBody table{
-    min-width:760px !important;
-    width:760px !important;
-    table-layout:auto !important;
+    display:block !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    border-collapse:separate !important;
   }
-  #haccpReportViewerBody th,
+  #haccpReportViewerBody thead{
+    display:none !important;
+  }
+  #haccpReportViewerBody tbody{
+    display:block !important;
+    width:100% !important;
+  }
+  #haccpReportViewerBody tr{
+    display:block !important;
+    width:100% !important;
+    margin:0 0 12px !important;
+    padding:10px 12px !important;
+    border:1px solid #dce5e1 !important;
+    border-radius:12px !important;
+    background:#fff !important;
+  }
   #haccpReportViewerBody td{
+    display:grid !important;
+    grid-template-columns:105px minmax(0,1fr) !important;
+    gap:8px !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    padding:6px 0 !important;
+    border:0 !important;
+    border-bottom:1px solid #eef2f0 !important;
+    white-space:normal !important;
+    overflow-wrap:anywhere !important;
+    word-break:normal !important;
+  }
+  #haccpReportViewerBody td:last-child{
+    border-bottom:0 !important;
+  }
+  #haccpReportViewerBody td::before{
+    font-size:11px;
+    font-weight:850;
+    color:#65736e;
+  }
+  #haccpReportViewerBody td:nth-child(1)::before{content:"Kontrollpunkt";}
+  #haccpReportViewerBody td:nth-child(2)::before{content:"Soll";}
+  #haccpReportViewerBody td:nth-child(3)::before{content:"Ist";}
+  #haccpReportViewerBody td:nth-child(4)::before{content:"Bewertung";}
+  #haccpReportViewerBody td:nth-child(5)::before{content:"Mitarbeiter";}
+  #haccpReportViewerBody td:nth-child(6)::before{content:"Zeit";}
+
+  /* Prüferansicht darf die Seite ebenfalls nicht verbreitern. */
+  .gpInspectorHero,
+  .gpInspectorRangeBar,
+  .gpInspectorTools,
+  .gpInspectorStats{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+  }
+  .gpInspectorDayMain{
+    grid-template-columns:1fr 1fr !important;
+  }
+  .gpInspectorDayMain > *{
+    min-width:0 !important;
+  }
+  .gpInspectorDate,
+  .gpInspectorActions{
+    grid-column:1/-1 !important;
+  }
+  .gpInspectorDate strong,
+  .gpInspectorDate small,
+  .gpInspectorMetric,
+  .gpInspectorStatus{
+    overflow-wrap:anywhere !important;
+  }
+  .gpInspectorActions{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    gap:8px !important;
+  }
+  .gpInspectorActions button{
+    width:100% !important;
+    min-width:0 !important;
     white-space:normal !important;
   }
-  #haccpReportViewerBody th:last-child,
-  #haccpReportViewerBody td:last-child{
-    min-width:120px !important;
-    white-space:nowrap !important;
-  }
 }
+
+/* PDF/Druck: alles muss auf die Seite passen, nicht seitlich abgeschnitten werden. */
 @media print{
-  #haccpReportViewerBody{
-    overflow:visible !important;
+  @page{size:A4 landscape;margin:8mm}
+  #gpV753PrintSheet{
+    width:100% !important;
+    max-width:100% !important;
+    padding:0 !important;
+  }
+  #gpV753PrintSheet table{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    table-layout:fixed !important;
+    font-size:7.5pt !important;
+  }
+  #gpV753PrintSheet th,
+  #gpV753PrintSheet td{
+    padding:3px !important;
+    white-space:normal !important;
+    overflow-wrap:anywhere !important;
+    word-break:normal !important;
   }
 }
 </style>
