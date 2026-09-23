@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.57 Tagesabschluss dauerhaft + Rückstellproben</title>
+<title>GastroPilot – V7.58 Tagesabschluss Cloud dauerhaft</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -9187,10 +9187,16 @@ function gpSaveArchive(x){localStorage.setItem(ARCHIVE_KEY,JSON.stringify(x))}
    Doppelte Datensätze werden über die Messungs-ID entfernt. */
 function gpClosedAtForDay(dayKey){
   try{
+    const closures=JSON.parse(localStorage.getItem("gastropilot_haccp_day_closures_v1")||"{}");
+    const iso=closures&&closures[dayKey];
+    if(iso){
+      const d=new Date(iso);
+      return isNaN(d)?null:d;
+    }
+    /* Rückwärtskompatibilität zu V7.57 */
     const docs=JSON.parse(localStorage.getItem(DAYDOC_KEY)||"{}");
-    const doc=docs&&docs[dayKey];
-    const iso=doc&&doc.closedAt;
-    return iso?new Date(iso):null;
+    const oldIso=docs&&docs[dayKey]&&docs[dayKey].closedAt;
+    return oldIso?new Date(oldIso):null;
   }catch(e){return null}
 }
 
@@ -11142,6 +11148,7 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
     "gastropilot_haccp_temperature_v1",
     "gastropilot_haccp_components_v1",
     "gastropilot_haccp_daydocs_v1",
+    "gastropilot_haccp_day_closures_v1",
     "gastropilot_haccp_quickprefs_v1",
     "gastropilot_haccp_measure_count_v1",
     "gastropilot_haccp_draft_v1",
@@ -11158,6 +11165,7 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
     "gastropilot_haccp_temperature_v1":"[]",
     "gastropilot_haccp_components_v1":"{}",
     "gastropilot_haccp_daydocs_v1":"{}",
+    "gastropilot_haccp_day_closures_v1":"{}",
     "gastropilot_haccp_quickprefs_v1":"{}",
     "gastropilot_haccp_measure_count_v1":"{}",
     "gastropilot_haccp_draft_v1":"{}",
@@ -12413,6 +12421,7 @@ const $=id=>document.getElementById(id);
 const ARCHIVE="gastropilot_haccp_archive_v1";
 const CURRENT="gastropilot_haccp_temperature_v1";
 const DAYDOC="gastropilot_haccp_daydocs_v1";
+const CLOSURES="gastropilot_haccp_day_closures_v1";
 const FRYER="gastropilot_haccp_fryer_log_v1";
 const SAMPLES="gastropilot_haccp_samples_v1";
 const CLEANLOG="gastropilot_haccp_cleaning_log_v1";
@@ -12476,57 +12485,118 @@ function renderStatus(){
  const k=selectedDay(),docs=obj(DAYDOC),doc=k?docs[k]:null;
  status.textContent=doc?`✅ Abgeschlossen: ${pretty(k)} · ${(doc.rows||[]).length} Kontrollen`:"Der Tag ist noch nicht abgeschlossen.";
 }
+function selectedSamplesFromUi(k){
+  if(k!==today())return [];
+  const checks=[...document.querySelectorAll(".gpSampleCheck:checked")];
+  if(!checks.length)return [];
+  const amount=String($("gpSampleAmount")?.value||"100 g / ml").trim()||"100 g / ml";
+  const days=parseInt($("gpSampleDays")?.value,10)||14;
+  const employee=String($("gpSampleEmployee")?.value||"").trim();
+  let time=String($("gpSampleTime")?.value||"").trim();
+  if(!time){
+    const d=new Date(),p=n=>String(n).padStart(2,"0");
+    time=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+  return checks.map((cb,i)=>({
+    id:`sample-close-${Date.now()}-${i}`,
+    dish:String(cb.dataset.dish||"").trim(),
+    component:String(cb.dataset.component||"").trim(),
+    amount,days,
+    employee:employee||String(cb.dataset.employee||"").trim(),
+    time
+  })).filter(r=>r.dish||r.component);
+}
+
+function mergeSamplesForDay(k,persist=false){
+  let samples=arr(SAMPLES).filter(r=>String(r.time||r.isoDate||r.date||"").slice(0,10)===k);
+  const pending=selectedSamplesFromUi(k);
+  const seen=new Set(samples.map(r=>[norm(r.dish),norm(r.component),String(r.time||"").slice(0,16),String(r.amount||"")].join("|")));
+  pending.forEach(r=>{
+    const id=[norm(r.dish),norm(r.component),String(r.time||"").slice(0,16),String(r.amount||"")].join("|");
+    if(!seen.has(id)){samples.push(r);seen.add(id)}
+  });
+  if(persist && pending.length){
+    const all=arr(SAMPLES);
+    const allSeen=new Set(all.map(r=>[norm(r.dish),norm(r.component),String(r.time||"").slice(0,16),String(r.amount||"")].join("|")));
+    pending.forEach(r=>{
+      const id=[norm(r.dish),norm(r.component),String(r.time||"").slice(0,16),String(r.amount||"")].join("|");
+      if(!allSeen.has(id)){all.unshift(r);allSeen.add(id)}
+    });
+    localStorage.setItem(SAMPLES,JSON.stringify(all));
+  }
+  return samples;
+}
+
 function snapshot(k){
  const rows=rowsFor(k);
  const fryer=arr(FRYER).filter(r=>String(r.day||r.isoDate||r.date||"").slice(0,10)===k);
- let samples=arr(SAMPLES).filter(r=>String(r.time||r.isoDate||r.date||"").slice(0,10)===k);
- try{
-   if(k===today() && typeof gpSelectedSampleData==="function"){
-     const pending=gpSelectedSampleData().filter(r=>String(r.time||"").slice(0,10)===k);
-     const seen=new Set(samples.map(r=>[norm(r.dish),norm(r.component),String(r.time||""),String(r.amount||"")].join("|")));
-     pending.forEach(r=>{
-       const id=[norm(r.dish),norm(r.component),String(r.time||""),String(r.amount||"")].join("|");
-       if(!seen.has(id)){samples.push(r);seen.add(id)}
-     });
-   }
- }catch(e){}
+ const samples=mergeSamplesForDay(k,false);
  const cleaningRows=arr(CLEANLOG).filter(r=>String(r.day||r.isoDate||r.date||r.time||"").slice(0,10)===k);
  const cleaningTasks=arr(CLEANTASKS);
  return {rows, fryerRows:fryer, sampleRows:samples, cleaningRows, cleaningTasks};
 }
-function closeDay(){
+async function gpPersistCloseCloud(key,value){
+  if(document.body.dataset.gpAuthState!=="authenticated" || !document.body.dataset.gpBusinessId || !window.gpSupabase)return;
+  const parsed=typeof value==="string" ? (()=>{try{return JSON.parse(value)}catch(e){return value}})() : value;
+  const {error}=await window.gpSupabase.from("business_data").upsert({
+    business_id:document.body.dataset.gpBusinessId,
+    data_key:key,
+    data_value:parsed,
+    updated_at:new Date().toISOString()
+  },{onConflict:"business_id,data_key"});
+  if(error)throw error;
+}
+
+async function closeDay(){
  syncDaySelect();
  const k=selectedDay();if(!k){say("Für den Tagesabschluss ist noch kein Tag mit Kontrollen vorhanden.","warn");return}
 
- /* Ausgewählte Rückstellproben werden beim Tagesabschluss automatisch
-    in die Tagesdokumentation übernommen – auch wenn vorher kein Etikett
-    gedruckt wurde. */
- try{
-   if(typeof gpPersistSelectedSamplesForDayClose==="function")gpPersistSelectedSamplesForDayClose(k);
- }catch(e){console.error("Rückstellproben beim Tagesabschluss:",e)}
+ /* Rückstellproben direkt aus der sichtbaren Auswahl sichern.
+    Diese Logik liegt absichtlich hier, damit sie nicht von Funktionen
+    eines anderen JavaScript-Moduls abhängt. */
+ mergeSamplesForDay(k,true);
 
  const snap=snapshot(k);
  if(!snap.rows.length){say("Für diesen Tag sind keine Temperaturkontrollen vorhanden.","warn");return}
- const now=new Date();
+
+ const now=new Date(),closedAt=now.toISOString();
  const docs=obj(DAYDOC);
  docs[k]={
    savedAt:now.toLocaleString("de-DE"),
-   closedAt:now.toISOString(),
+   closedAt,
    ...JSON.parse(JSON.stringify(snap)),
-   reportVersion:"2.3-cloud"
+   reportVersion:"2.4-cloud"
  };
- localStorage.setItem(DAYDOC,JSON.stringify(docs));
- renderStatus();
 
- /* "Heute" direkt auf den Stand nach dem Abschluss aktualisieren.
-    Alte Messungen bleiben im Dauerarchiv und im Abschlussbericht. */
+ const closures=obj(CLOSURES);
+ closures[k]=closedAt;
+
+ const docsJson=JSON.stringify(docs);
+ const closuresJson=JSON.stringify(closures);
+ const samplesJson=localStorage.getItem(SAMPLES)||"[]";
+
+ localStorage.setItem(DAYDOC,docsJson);
+ localStorage.setItem(CLOSURES,closuresJson);
+
+ /* Nicht nur auf den verzögerten localStorage-Cloud-Queue verlassen:
+    Tagesabschluss, Closure-Marker und Rückstellproben werden sofort
+    in business_data geschrieben. */
  try{
-   if(typeof gpRenderTodayChecks==="function"&&typeof gpTodayRowsCombined==="function"){
-     gpRenderTodayChecks(gpTodayRowsCombined());
-   }
- }catch(e){console.error("Heute nach Tagesabschluss:",e)}
+   await Promise.all([
+     gpPersistCloseCloud(DAYDOC,docs),
+     gpPersistCloseCloud(CLOSURES,closures),
+     gpPersistCloseCloud(SAMPLES,JSON.parse(samplesJson))
+   ]);
+ }catch(e){
+   console.error("Tagesabschluss Cloud speichern:",e);
+   say("Tagesabschluss lokal gespeichert, Cloud-Sicherung konnte aber nicht bestätigt werden.","warn");
+   renderStatus();
+   return;
+ }
 
- say(`✓ HACCP-Tag ${pretty(k)} abgeschlossen und gesichert.`, "ok");
+ renderStatus();
+ window.dispatchEvent(new Event("storage"));
+ say(`✓ HACCP-Tag ${pretty(k)} abgeschlossen und dauerhaft gesichert · ${snap.sampleRows.length} Rückstellprobe${snap.sampleRows.length===1?"":"n"}.`, "ok");
 }
 function reportHtml(doc,k,title){
  const rows=Array.isArray(doc?.rows)?doc.rows:[];
@@ -12588,7 +12658,7 @@ document.addEventListener("click",function(e){
  const b=e.target.closest("#haccpSaveDayDoc,#haccpOpenDayDoc,#haccpExportDayDoc,#haccpPrintDay");
  if(!b)return;
  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
- if(b.id==="haccpSaveDayDoc")closeDay();
+ if(b.id==="haccpSaveDayDoc")void closeDay();
  if(b.id==="haccpOpenDayDoc")openReport();
  if(b.id==="haccpExportDayDoc")printReport(true);
  if(b.id==="haccpPrintDay")printReport(false);
