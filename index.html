@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.53 Tagesabschluss Bericht PDF Fix</title>
+<title>GastroPilot – V7.54 Bericht iPhone Scroll</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12508,6 +12508,47 @@ document.addEventListener("DOMContentLoaded",()=>setTimeout(syncDaySelect,250));
 setTimeout(syncDaySelect,500);
 })();
 </script>
+
+
+<style id="gp-v754-report-mobile-scroll-css">
+/* V7.54 – mobile Berichtsansicht horizontal verschiebbar, ohne Drucklayout zu verändern */
+@media (max-width:760px){
+  #haccpReportViewer{
+    width:100% !important;
+    max-width:100% !important;
+    overflow:hidden !important;
+  }
+  #haccpReportViewerBody{
+    width:100% !important;
+    max-width:100% !important;
+    overflow-x:auto !important;
+    overflow-y:visible !important;
+    -webkit-overflow-scrolling:touch !important;
+    touch-action:pan-x pan-y !important;
+    padding-bottom:8px !important;
+  }
+  #haccpReportViewerBody .gpReportTable,
+  #haccpReportViewerBody table{
+    min-width:760px !important;
+    width:760px !important;
+    table-layout:auto !important;
+  }
+  #haccpReportViewerBody th,
+  #haccpReportViewerBody td{
+    white-space:normal !important;
+  }
+  #haccpReportViewerBody th:last-child,
+  #haccpReportViewerBody td:last-child{
+    min-width:120px !important;
+    white-space:nowrap !important;
+  }
+}
+@media print{
+  #haccpReportViewerBody{
+    overflow:visible !important;
+  }
+}
+</style>
 
 </body>
 </html>
