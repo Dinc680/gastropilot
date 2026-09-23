@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.51 Komponenten vollständig löschbar</title>
+<title>GastroPilot – V7.52 Nächste Messstelle</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -9757,7 +9757,25 @@ if(rec.type==="Speisentemperatur"){
   const n=gpComponentMeasureCount(rec.dish||rec.location,rec.component||rec.location),required=gpRequiredMeasureCount();
   notice.textContent=`✓ Messung gespeichert · ${Math.min(n,required)}/${required} für ${rec.component||rec.location}`;
 }else notice.textContent="✓ Messung gespeichert.";
-gpRememberQuickPrefs();if(measureComp)measureComp.value="";act.value="";evaluate();render();gpRenderComponents();gpSetHaccpMode("measure");gpUpdateQuickSteps();gpSaveHaccpDraft();setTimeout(()=>{try{act.focus()}catch(e){}},80)});
+gpRememberQuickPrefs();
+let gpNextMeasurePoint="";
+if(rec.type==="Speisentemperatur"&&rec.dish){
+  const required=gpRequiredMeasureCount();
+  const currentPoint=rec.component||rec.location||rec.dish;
+  const points=[rec.dish,...gpComponentsForDish(rec.dish).filter(c=>gpNormName(c)!==gpNormName(rec.dish))];
+  if(gpComponentMeasureCount(rec.dish,currentPoint)<required){
+    gpNextMeasurePoint=currentPoint;
+  }else{
+    const currentIndex=Math.max(0,points.findIndex(c=>gpNormName(c)===gpNormName(currentPoint)));
+    const ordered=[...points.slice(currentIndex+1),...points.slice(0,currentIndex+1)];
+    gpNextMeasurePoint=ordered.find(c=>gpComponentMeasureCount(rec.dish,c)<required)||currentPoint;
+  }
+}
+act.value="";evaluate();render();gpRenderComponents();
+if(gpNextMeasurePoint&&measureComp&&[...measureComp.options].some(o=>gpNormName(o.value)===gpNormName(gpNextMeasurePoint))){
+  measureComp.value=[...measureComp.options].find(o=>gpNormName(o.value)===gpNormName(gpNextMeasurePoint)).value;
+}
+gpSetHaccpMode("measure");gpUpdateQuickSteps();gpSaveHaccpDraft();setTimeout(()=>{try{act.focus()}catch(e){}},80)});
 if(archiveDay)archiveDay.addEventListener("change",render);
 
 
