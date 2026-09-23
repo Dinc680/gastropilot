@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.49 iPhone Full Width</title>
+<title>GastroPilot – V7.50 Auto-Komponenten</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -9210,12 +9210,105 @@ function gpMeasuredComponents(d){
  gpComponentsForDish(d).forEach(c=>{if(gpComponentMeasureCount(d,c)>=required)out.add(gpNormName(c))});
  return out;
 }
+
+function gpRecipeForDish(dish){
+  try{
+    if(typeof allRecipes!=="function") return null;
+    const key=gpNormName(dish);
+    return allRecipes().find(r=>gpNormName(r&&r.name)===key)||null;
+  }catch(e){return null}
+}
+
+function gpCleanComponentName(s){
+  return String(s||"")
+    .replace(/^[\s,;:+/&-]+|[\s,;:+/&-]+$/g,"")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function gpAutoComponentsForDish(dish){
+  const original=gpCleanComponentName(dish);
+  if(!original) return [];
+
+  let parts=[];
+  const push=s=>{
+    s=gpCleanComponentName(s);
+    if(!s) return;
+    if(gpNormName(s)===gpNormName(original)) return;
+    if(!parts.some(x=>gpNormName(x)===gpNormName(s))) parts.push(s);
+  };
+
+  /*
+    1) Gerichtstitel ist die sicherste Quelle:
+       "Gefüllte Paprika mit Tomatensoße und Kartoffelpüree"
+       -> Gefüllte Paprika | Tomatensoße | Kartoffelpüree
+  */
+  let title=original
+    .replace(/\s+(?:mit|dazu|auf|an)\s+/gi," | ")
+    .replace(/\s+(?:und|&)\s+/gi," | ");
+
+  const titleParts=title.split("|").map(gpCleanComponentName).filter(Boolean);
+  if(titleParts.length>1){
+    titleParts.forEach(push);
+  }
+
+  /*
+    2) "in Sauce/Soße"-Titel als eigene Messstelle erkennen.
+       Der Hauptbestandteil selbst bleibt durch V7.47 ohnehin immer messbar.
+  */
+  const inMatch=original.match(/^(.+?)\s+in\s+(.+(?:soße|sauce|rahm|jus|curry|ragout))$/i);
+  if(inMatch){
+    push(gpCleanComponentName(inMatch[1]));
+    push(gpCleanComponentName(inMatch[2]));
+  }
+
+  /*
+    3) Rezeptdaten ergänzen nur eindeutige, bereits als fertige Komponente
+       benannte Zutaten. Rohzutaten wie Salz, Zwiebeln oder Kartoffeln werden
+       bewusst NICHT automatisch als HACCP-Messstelle angelegt.
+  */
+  const recipe=gpRecipeForDish(original);
+  const componentWords=/(püree|stampf|soße|sauce|jus|ragout|gemüse|reis|nudeln|pasta|spätzle|knödel|kloß|klöße|couscous|bulgur|polenta|gratin|salat|creme|dip)$/i;
+  if(recipe && Array.isArray(recipe.ingredients)){
+    recipe.ingredients.forEach(row=>{
+      const name=Array.isArray(row)?row[0]:(row&&row.name);
+      const n=gpCleanComponentName(name);
+      if(n && componentWords.test(n) && gpNormName(original).indexOf(gpNormName(n))<0) push(n);
+    });
+  }
+
+  /*
+    Beim Zerlegen eines Titels ist der erste Teil häufig die Hauptkomponente.
+    Auch diese darf zusätzlich in der Komponentenliste stehen, damit z. B.
+    "Gefüllte Paprika" separat von Soße und Beilage gemessen werden kann.
+  */
+  if(titleParts.length>1){
+    const first=gpCleanComponentName(titleParts[0]);
+    if(first && gpNormName(first)!==gpNormName(original)){
+      parts=[first,...parts.filter(x=>gpNormName(x)!==gpNormName(first))];
+    }
+  }
+
+  return parts.slice(0,5);
+}
+
+function gpEnsureAutoComponents(dish){
+  const existing=gpComponentsForDish(dish);
+  if(existing.length) return existing;
+  const auto=gpAutoComponentsForDish(dish);
+  if(auto.length){
+    gpSetComponentsForDish(dish,auto);
+    return auto;
+  }
+  return existing;
+}
+
 function gpRenderComponents(){
  if(!compWrap||!compList)return;
  let dish=menuPick&&menuPick.value&&menuPick.value!=="__manual__"?menuPick.value:"",active=type.value==="Speisentemperatur"&&!!dish;
  compWrap.hidden=!active;
  if(!active){if(measureCompWrap)measureCompWrap.hidden=true;return}
- let saved=gpComponentsForDish(dish),display=saved.length?saved:["","",""],required=gpRequiredMeasureCount();
+ let saved=gpEnsureAutoComponents(dish),display=saved.length?saved:["","",""],required=gpRequiredMeasureCount();
  compList.innerHTML=display.map((c,i)=>`<div class="gpCompRow"><input class="gpCompInput" value="${esc(c)}" placeholder="Komponente ${i+1}, z. B. Fleisch"><button type="button" class="secondary gpCompRemove" data-remove="${i}">×</button></div>`).join("");
 
  /*
