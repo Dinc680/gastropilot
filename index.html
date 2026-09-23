@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.46 Cloud Refresh Fix</title>
+<title>GastroPilot – V7.47 Hauptgericht + Komponenten</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -9217,14 +9217,28 @@ function gpRenderComponents(){
  if(!active){if(measureCompWrap)measureCompWrap.hidden=true;return}
  let saved=gpComponentsForDish(dish),display=saved.length?saved:["","",""],required=gpRequiredMeasureCount();
  compList.innerHTML=display.map((c,i)=>`<div class="gpCompRow"><input class="gpCompInput" value="${esc(c)}" placeholder="Komponente ${i+1}, z. B. Fleisch"><button type="button" class="secondary gpCompRemove" data-remove="${i}">×</button></div>`).join("");
- let real=saved,done=real.filter(c=>gpComponentMeasureCount(dish,c)>=required).length;
- compProgress.textContent=real.length?`${done===real.length?"✅":"🟡"} ${done}/${real.length} Komponenten vollständig · ${required} Messungen je Komponente`:"Komponenten eintragen.";
+
+ /*
+   Das Hauptgericht bleibt IMMER selbst messbar.
+   Gespeicherte Komponenten sind zusätzliche Messstellen und ersetzen
+   das Gericht nicht. Beispiel:
+   Rinderbraten | Kartoffeln | Gemüse | Sauce
+ */
+ let choices=[dish,...saved.filter(c=>gpNormName(c)!==gpNormName(dish))];
+ let done=choices.filter(c=>gpComponentMeasureCount(dish,c)>=required).length;
+ compProgress.textContent=saved.length
+   ?`${done===choices.length?"✅":"🟡"} ${done}/${choices.length} Messstellen vollständig · ${required} Messungen je Messstelle`
+   :"Hauptgericht ist direkt messbar · weitere Komponenten können ergänzt werden.";
+
  if(measureCompWrap&&measureComp){
-   measureCompWrap.hidden=!real.length;
-   measureComp.innerHTML='<option value="">Komponente auswählen</option>'+real.map(c=>{
+   const previous=measureComp.value;
+   measureCompWrap.hidden=false;
+   measureComp.innerHTML=choices.map((c,i)=>{
      const n=gpComponentMeasureCount(dish,c);
-     return `<option value="${esc(c)}">${esc(c)} · ${Math.min(n,required)}/${required}${n>=required?" ✓":""}</option>`;
-   }).join("")
+     const label=i===0?`${c} · Hauptgericht`:`${c}`;
+     return `<option value="${esc(c)}">${esc(label)} · ${Math.min(n,required)}/${required}${n>=required?" ✓":""}</option>`;
+   }).join("");
+   measureComp.value=choices.includes(previous)?previous:dish;
  }
 }
 function gpCommitComponents(){if(!menuPick||!menuPick.value)return;let vals=[...compList.querySelectorAll(".gpCompInput")].map(i=>i.value.trim()).filter(Boolean);gpSetComponentsForDish(menuPick.value,vals);gpRenderComponents();gpRenderTodayChecks(load())}
