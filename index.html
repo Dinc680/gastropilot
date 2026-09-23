@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.50 Auto-Komponenten</title>
+<title>GastroPilot – V7.51 Komponenten vollständig löschbar</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -9292,9 +9292,21 @@ function gpAutoComponentsForDish(dish){
   return parts.slice(0,5);
 }
 
+function gpHasSavedComponentDecision(dish){
+  const map=gpLoadComponents(),key=gpNormName(dish);
+  return Object.prototype.hasOwnProperty.call(map,key);
+}
+
 function gpEnsureAutoComponents(dish){
+  /*
+    Sobald der Nutzer für ein Gericht eine Entscheidung gespeichert hat,
+    respektiert GP diese vollständig – auch eine LEERE Komponentenliste.
+    So können falsche Auto-Erkennungen komplett gelöscht werden und
+    erscheinen nicht beim nächsten Rendern wieder.
+  */
   const existing=gpComponentsForDish(dish);
-  if(existing.length) return existing;
+  if(gpHasSavedComponentDecision(dish)) return existing;
+
   const auto=gpAutoComponentsForDish(dish);
   if(auto.length){
     gpSetComponentsForDish(dish,auto);
@@ -9308,7 +9320,7 @@ function gpRenderComponents(){
  let dish=menuPick&&menuPick.value&&menuPick.value!=="__manual__"?menuPick.value:"",active=type.value==="Speisentemperatur"&&!!dish;
  compWrap.hidden=!active;
  if(!active){if(measureCompWrap)measureCompWrap.hidden=true;return}
- let saved=gpEnsureAutoComponents(dish),display=saved.length?saved:["","",""],required=gpRequiredMeasureCount();
+ let saved=gpEnsureAutoComponents(dish),display=saved.length?saved:(gpHasSavedComponentDecision(dish)?[]:["","",""]),required=gpRequiredMeasureCount();
  compList.innerHTML=display.map((c,i)=>`<div class="gpCompRow"><input class="gpCompInput" value="${esc(c)}" placeholder="Komponente ${i+1}, z. B. Fleisch"><button type="button" class="secondary gpCompRemove" data-remove="${i}">×</button></div>`).join("");
 
  /*
