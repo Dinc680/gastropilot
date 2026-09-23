@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.56 Heute Status Fix</title>
+<title>GastroPilot – V7.57 Tagesabschluss dauerhaft + Rückstellproben</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -9185,6 +9185,28 @@ function gpSaveArchive(x){localStorage.setItem(ARCHIVE_KEY,JSON.stringify(x))}
 
 /* V7.56: "Heute" muss aktuelle UND archivierte Messungen sehen.
    Doppelte Datensätze werden über die Messungs-ID entfernt. */
+function gpClosedAtForDay(dayKey){
+  try{
+    const docs=JSON.parse(localStorage.getItem(DAYDOC_KEY)||"{}");
+    const doc=docs&&docs[dayKey];
+    const iso=doc&&doc.closedAt;
+    return iso?new Date(iso):null;
+  }catch(e){return null}
+}
+
+function gpRecordMoment(r){
+  if(r&&r.measuredAt){
+    const d=new Date(r.measuredAt);
+    if(!isNaN(d))return d;
+  }
+  if(r&&r.date){
+    const s=String(r.date);
+    const m=s.match(/(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if(m)return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),Number(m[4]),Number(m[5]),Number(m[6]||0));
+  }
+  return null;
+}
+
 function gpTodayRowsCombined(){
   const map=new Map();
   [...gpLoadArchive(),...load()].forEach(r=>{
@@ -9199,7 +9221,18 @@ function gpTodayRowsCombined(){
     ].join("|"));
     if(!map.has(key)) map.set(key,r);
   });
-  return [...map.values()];
+
+  const todayKey=gpTodayKey();
+  const closedAt=gpClosedAtForDay(todayKey);
+
+  return [...map.values()].filter(r=>{
+    if(gpDateKeyFromRecord(r)!==todayKey)return true;
+    if(!closedAt)return true;
+    const moment=gpRecordMoment(r);
+    /* Nach einem Tagesabschluss zählen in "Heute" nur neue Messungen danach.
+       Das Dauerarchiv und der Bericht bleiben vollständig erhalten. */
+    return moment ? moment>closedAt : false;
+  });
 }
 function gpLoadDayDocs(){try{let x=JSON.parse(localStorage.getItem(DAYDOC_KEY)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return{}}}
 function gpSaveDayDocs(x){localStorage.setItem(DAYDOC_KEY,JSON.stringify(x))}
@@ -12446,7 +12479,17 @@ function renderStatus(){
 function snapshot(k){
  const rows=rowsFor(k);
  const fryer=arr(FRYER).filter(r=>String(r.day||r.isoDate||r.date||"").slice(0,10)===k);
- const samples=arr(SAMPLES).filter(r=>String(r.time||r.isoDate||r.date||"").slice(0,10)===k);
+ let samples=arr(SAMPLES).filter(r=>String(r.time||r.isoDate||r.date||"").slice(0,10)===k);
+ try{
+   if(k===today() && typeof gpSelectedSampleData==="function"){
+     const pending=gpSelectedSampleData().filter(r=>String(r.time||"").slice(0,10)===k);
+     const seen=new Set(samples.map(r=>[norm(r.dish),norm(r.component),String(r.time||""),String(r.amount||"")].join("|")));
+     pending.forEach(r=>{
+       const id=[norm(r.dish),norm(r.component),String(r.time||""),String(r.amount||"")].join("|");
+       if(!seen.has(id)){samples.push(r);seen.add(id)}
+     });
+   }
+ }catch(e){}
  const cleaningRows=arr(CLEANLOG).filter(r=>String(r.day||r.isoDate||r.date||r.time||"").slice(0,10)===k);
  const cleaningTasks=arr(CLEANTASKS);
  return {rows, fryerRows:fryer, sampleRows:samples, cleaningRows, cleaningTasks};
@@ -12454,12 +12497,35 @@ function snapshot(k){
 function closeDay(){
  syncDaySelect();
  const k=selectedDay();if(!k){say("Für den Tagesabschluss ist noch kein Tag mit Kontrollen vorhanden.","warn");return}
+
+ /* Ausgewählte Rückstellproben werden beim Tagesabschluss automatisch
+    in die Tagesdokumentation übernommen – auch wenn vorher kein Etikett
+    gedruckt wurde. */
+ try{
+   if(typeof gpPersistSelectedSamplesForDayClose==="function")gpPersistSelectedSamplesForDayClose(k);
+ }catch(e){console.error("Rückstellproben beim Tagesabschluss:",e)}
+
  const snap=snapshot(k);
  if(!snap.rows.length){say("Für diesen Tag sind keine Temperaturkontrollen vorhanden.","warn");return}
+ const now=new Date();
  const docs=obj(DAYDOC);
- docs[k]={savedAt:new Date().toLocaleString("de-DE"),...JSON.parse(JSON.stringify(snap)),reportVersion:"2.2-cloud"};
+ docs[k]={
+   savedAt:now.toLocaleString("de-DE"),
+   closedAt:now.toISOString(),
+   ...JSON.parse(JSON.stringify(snap)),
+   reportVersion:"2.3-cloud"
+ };
  localStorage.setItem(DAYDOC,JSON.stringify(docs));
  renderStatus();
+
+ /* "Heute" direkt auf den Stand nach dem Abschluss aktualisieren.
+    Alte Messungen bleiben im Dauerarchiv und im Abschlussbericht. */
+ try{
+   if(typeof gpRenderTodayChecks==="function"&&typeof gpTodayRowsCombined==="function"){
+     gpRenderTodayChecks(gpTodayRowsCombined());
+   }
+ }catch(e){console.error("Heute nach Tagesabschluss:",e)}
+
  say(`✓ HACCP-Tag ${pretty(k)} abgeschlossen und gesichert.`, "ok");
 }
 function reportHtml(doc,k,title){
