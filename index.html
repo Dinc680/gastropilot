@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.45 HACCP Stable Core</title>
+<title>GastroPilot – V7.46 Cloud Refresh Fix</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -10838,7 +10838,16 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
     if(localStorage.getItem(BACKUP_INIT)===null)localStorage.setItem(BACKUP_INIT,localStorage.getItem(DEVICE_INIT_KEY)||"");
   }
   function refreshNativeUi(){
-    const type=$("haccpType");if(type)type.dispatchEvent(new Event("change",{bubbles:true}));
+    const type=$("haccpType");
+    /*
+      Cloud-Geräte dürfen die Speisenmessung nicht neu initialisieren.
+      watchCloud() läuft regelmäßig; ein künstliches "change" auf haccpType
+      setzt im nativen HACCP-Kern die gewählte Speise zurück.
+      Geräte-Refresh deshalb ausschließlich in Kühlung/Tiefkühlung.
+    */
+    if(type && type.value!=="Speisentemperatur"){
+      type.dispatchEvent(new Event("change",{bubbles:true}));
+    }
     const manage=$("gpDeviceSettingsToggle");if(manage&&isCloud())manage.style.display=canManage()?"":"none";
     const admin=$("gpDeviceAdmin");if(admin&&isCloud()&&!canManage())admin.hidden=true;
   }
