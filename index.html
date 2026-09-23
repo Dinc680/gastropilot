@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.48 Speisenmessung UX</title>
+<title>GastroPilot – V7.49 iPhone Full Width</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12168,6 +12168,43 @@ document.addEventListener("change",e=>{if(e.target?.id==="haccpType")setTimeout(
 window.addEventListener("pageshow",apply);setTimeout(apply,250);
 })();
 </script>
+
+
+<style id="gp-v749-iphone-width-css">
+@media (max-width: 760px){
+  html, body{
+    width:100% !important;
+    max-width:none !important;
+    overflow-x:hidden !important;
+  }
+  body{
+    margin:0 !important;
+  }
+  header,
+  main,
+  #homeCard,
+  #mengenrechner,
+  #gerichte,
+  #weekPlannerCard,
+  #shoppingCard,
+  #haccpCard{
+    width:100% !important;
+    max-width:none !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+  }
+  main{
+    padding-left:12px !important;
+    padding-right:12px !important;
+  }
+  #haccpCard{
+    box-sizing:border-box !important;
+  }
+  #haccpCard > *{
+    max-width:100% !important;
+  }
+}
+</style>
 
 </body>
 </html>
