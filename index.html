@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.52 Nächste Messstelle</title>
+<title>GastroPilot – V7.53 Tagesabschluss Bericht PDF Fix</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12328,6 +12328,186 @@ window.addEventListener("pageshow",apply);setTimeout(apply,250);
   }
 }
 </style>
+
+
+<style id="gp-v753-docs-fix-css">
+#gpDocsNotice{margin:8px 0 0;padding:10px 12px;border-radius:10px;background:#eef5f2;font-size:14px;font-weight:750}
+#gpDocsNotice.gpWarn{background:#fff3df}
+#gpDocsNotice.gpOk{background:#e8f6ee}
+#gpV753PrintSheet{display:none}
+@media print{
+  #gpV753PrintSheet,#gpV753PrintSheet *{visibility:visible!important}
+  #gpV753PrintSheet{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;background:#fff!important;color:#111!important;padding:8mm!important}
+  #gpV753PrintSheet table{width:100%;border-collapse:collapse;font-size:9pt}
+  #gpV753PrintSheet th,#gpV753PrintSheet td{border:1px solid #bbb;padding:5px;text-align:left;vertical-align:top}
+  #gpV753PrintSheet h1{font-size:18pt;margin:0 0 4mm}
+  #gpV753PrintSheet h2{font-size:12pt;margin:5mm 0 2mm}
+  #gpV753PrintSheet .gpPrintMeta{font-size:9pt;color:#555;margin-bottom:4mm}
+  #gpV753PrintSheet .gpPrintStatus{font-weight:800;margin:3mm 0}
+}
+</style>
+<script id="gp-v753-docs-fix-js">
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const ARCHIVE="gastropilot_haccp_archive_v1";
+const CURRENT="gastropilot_haccp_temperature_v1";
+const DAYDOC="gastropilot_haccp_daydocs_v1";
+const FRYER="gastropilot_haccp_fryer_log_v1";
+const SAMPLES="gastropilot_haccp_samples_v1";
+const CLEANLOG="gastropilot_haccp_cleaning_log_v1";
+const CLEANTASKS="gastropilot_haccp_cleaning_tasks_v1";
+
+function arr(k){try{const x=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}}
+function obj(k){try{const x=JSON.parse(localStorage.getItem(k)||"{}");return x&&typeof x==="object"&&!Array.isArray(x)?x:{}}catch(e){return{}}}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function norm(s){return String(s||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ")}
+function today(){
+ const d=new Date(),p=n=>String(n).padStart(2,"0");
+ return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+function keyOf(r){
+ if(r&&r.isoDate)return String(r.isoDate).slice(0,10);
+ if(r&&r.measuredAt){const d=new Date(r.measuredAt);if(!isNaN(d))return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+ const m=String(r?.date||"").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+ return m?`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`:"";
+}
+function pretty(k){const p=String(k||"").split("-");return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:k}
+function allRows(){
+ const map=new Map();
+ [...arr(ARCHIVE),...arr(CURRENT)].forEach(r=>{
+   const id=String(r?.id||[keyOf(r),r?.type,r?.dish,r?.component,r?.location,r?.actual,r?.date].join("|"));
+   if(!map.has(id))map.set(id,r);
+ });
+ return [...map.values()];
+}
+function rowsFor(k){return allRows().filter(r=>keyOf(r)===k)}
+function availableDays(){return [...new Set(allRows().map(keyOf).filter(Boolean))].sort().reverse()}
+function selectedDay(){
+ const sel=$("haccpArchiveDay"),days=availableDays();
+ if(sel?.value&&days.includes(sel.value))return sel.value;
+ if(days.includes(today()))return today();
+ return days[0]||"";
+}
+function ensureNotice(){
+ let n=$("gpDocsNotice");
+ if(!n){
+   n=document.createElement("div");n.id="gpDocsNotice";
+   const bar=$("haccpDayDocStatus")?.closest(".gpDayDocBar");
+   if(bar)bar.appendChild(n);
+ }
+ return n;
+}
+function say(msg,kind=""){
+ const n=ensureNotice();if(!n)return;
+ n.textContent=msg;n.className=kind==="ok"?"gpOk":kind==="warn"?"gpWarn":"";
+}
+function syncDaySelect(){
+ const sel=$("haccpArchiveDay");if(!sel)return;
+ const current=sel.value,days=availableDays();
+ sel.innerHTML=days.length?days.map(d=>`<option value="${esc(d)}">${esc(pretty(d))}</option>`).join(""):'<option value="">Noch kein Archiv</option>';
+ if(days.includes(current))sel.value=current;
+ else if(days.includes(today()))sel.value=today();
+ else if(days[0])sel.value=days[0];
+ renderStatus();
+}
+function renderStatus(){
+ const status=$("haccpDayDocStatus");if(!status)return;
+ const k=selectedDay(),docs=obj(DAYDOC),doc=k?docs[k]:null;
+ status.textContent=doc?`✅ Abgeschlossen: ${pretty(k)} · ${(doc.rows||[]).length} Kontrollen`:"Der Tag ist noch nicht abgeschlossen.";
+}
+function snapshot(k){
+ const rows=rowsFor(k);
+ const fryer=arr(FRYER).filter(r=>String(r.day||r.isoDate||r.date||"").slice(0,10)===k);
+ const samples=arr(SAMPLES).filter(r=>String(r.time||r.isoDate||r.date||"").slice(0,10)===k);
+ const cleaningRows=arr(CLEANLOG).filter(r=>String(r.day||r.isoDate||r.date||r.time||"").slice(0,10)===k);
+ const cleaningTasks=arr(CLEANTASKS);
+ return {rows, fryerRows:fryer, sampleRows:samples, cleaningRows, cleaningTasks};
+}
+function closeDay(){
+ syncDaySelect();
+ const k=selectedDay();if(!k){say("Für den Tagesabschluss ist noch kein Tag mit Kontrollen vorhanden.","warn");return}
+ const snap=snapshot(k);
+ if(!snap.rows.length){say("Für diesen Tag sind keine Temperaturkontrollen vorhanden.","warn");return}
+ const docs=obj(DAYDOC);
+ docs[k]={savedAt:new Date().toLocaleString("de-DE"),...JSON.parse(JSON.stringify(snap)),reportVersion:"2.2-cloud"};
+ localStorage.setItem(DAYDOC,JSON.stringify(docs));
+ renderStatus();
+ say(`✓ HACCP-Tag ${pretty(k)} abgeschlossen und gesichert.`, "ok");
+}
+function reportHtml(doc,k,title){
+ const rows=Array.isArray(doc?.rows)?doc.rows:[];
+ const by=t=>rows.filter(r=>r.type===t);
+ const cooling=by("Kühlung"),freezing=by("Tiefkühlung"),food=by("Speisentemperatur");
+ const deviations=rows.filter(r=>r.ok===false);
+ function tempRows(list){
+   return list.map(r=>`<tr><td>${esc(r.dish?`${r.dish}${r.component?` – ${r.component}`:""}`:r.location||"—")}</td><td>${esc(r.min??"")}–${esc(r.max??"")} °C</td><td><strong>${esc(r.actual??"")} °C</strong></td><td>${r.ok===false?"⚠️ Abweichung":"✅ In Ordnung"}${r.action?`<br>${esc(r.action)}`:""}</td><td>${esc(r.employee||"—")}</td><td>${esc(r.date||"")}</td></tr>`).join("");
+ }
+ function section(n,name,list){
+   return `<h2>${n}. ${name} (${list.length})</h2>${list.length?`<table><thead><tr><th>Kontrollpunkt</th><th>Soll</th><th>Ist</th><th>Bewertung / Maßnahme</th><th>Mitarbeiter</th><th>Zeit</th></tr></thead><tbody>${tempRows(list)}</tbody></table>`:`<div>Keine Einträge.</div>`}`;
+ }
+ const fryer=Array.isArray(doc?.fryerRows)?doc.fryerRows:[];
+ const samples=Array.isArray(doc?.sampleRows)?doc.sampleRows:[];
+ const cleaning=Array.isArray(doc?.cleaningRows)?doc.cleaningRows:[];
+ return `<div class="gpV753Report">
+   <h1>${esc(title)}</h1>
+   <div class="gpPrintMeta">${esc(pretty(k))} · gespeichert ${esc(doc?.savedAt||"")}</div>
+   <div class="gpPrintStatus">${deviations.length?`⚠️ ${deviations.length} Abweichung(en)`:"✅ Keine Temperaturabweichung dokumentiert"}</div>
+   ${section("1","Kühlkontrollen",cooling)}
+   ${section("2","Tiefkühlkontrollen",freezing)}
+   ${section("3","Speisentemperaturen",food)}
+   <h2>4. Frittierkontrollen (${fryer.length})</h2><div>${fryer.length?fryer.map(r=>`<div>${esc(r.device||r.name||"Fritteuse")} · ${esc(r.temp||"")} °C · ${esc(r.employee||"—")}</div>`).join(""):"Keine Einträge."}</div>
+   <h2>5. Rückstellproben (${samples.length})</h2><div>${samples.length?samples.map(r=>`<div>${esc(r.dish||"")} ${r.component?`– ${esc(r.component)}`:""} · ${esc(r.amount||"")}</div>`).join(""):"Keine Einträge."}</div>
+   <h2>6. Reinigungsplan (${cleaning.length})</h2><div>${cleaning.length?cleaning.map(r=>`<div>${esc(r.object||r.task||r.taskId||"Reinigung")} · ${esc(r.employee||"—")}</div>`).join(""):"Keine Einträge."}</div>
+   <h2>7. Abweichungen & Maßnahmen (${deviations.length})</h2><div>${deviations.length?deviations.map(r=>`<div><strong>${esc(r.dish||r.location||"Kontrolle")}</strong>: ${esc(r.actual)} °C · ${esc(r.action||"Keine Maßnahme eingetragen")}</div>`).join(""):"Keine Abweichungen dokumentiert."}</div>
+ </div>`;
+}
+function openReport(){
+ syncDaySelect();
+ const k=selectedDay();if(!k){say("Kein Tag mit Kontrollen vorhanden.","warn");return}
+ const docs=obj(DAYDOC),doc=docs[k];
+ if(!doc){say("Dieser Tag ist noch nicht abgeschlossen. Bitte zuerst „HACCP-Tag abschließen“ wählen.","warn");return}
+ const viewer=$("haccpReportViewer"),body=$("haccpReportViewerBody");
+ if(!viewer||!body){say("Berichtsansicht konnte nicht geöffnet werden.","warn");return}
+ body.innerHTML=reportHtml(doc,k,"Gesicherter HACCP-Tagesabschluss");
+ viewer.hidden=false;viewer.style.display="block";
+ viewer.scrollIntoView({behavior:"smooth",block:"start"});
+ say("✓ Bericht geöffnet.","ok");
+}
+function printReport(useClosed){
+ syncDaySelect();
+ const k=selectedDay();if(!k){say("Kein Tag mit Kontrollen vorhanden.","warn");return}
+ let doc;
+ if(useClosed){
+   doc=obj(DAYDOC)[k];
+   if(!doc){say("Dieser Tag ist noch nicht abgeschlossen. Bitte zuerst den Tagesabschluss speichern.","warn");return}
+ }else{
+   doc={savedAt:"aktueller Stand",...snapshot(k)};
+   if(!doc.rows.length){say("Für diesen Tag sind keine Kontrollen vorhanden.","warn");return}
+ }
+ let sheet=$("gpV753PrintSheet");
+ if(!sheet){sheet=document.createElement("div");sheet.id="gpV753PrintSheet";document.body.appendChild(sheet)}
+ sheet.innerHTML=reportHtml(doc,k,useClosed?"Gesicherter HACCP-Tagesabschluss":"HACCP-Tagesprotokoll");
+ say("PDF-/Druckansicht wird geöffnet.","ok");
+ setTimeout(()=>window.print(),40);
+}
+document.addEventListener("click",function(e){
+ const b=e.target.closest("#haccpSaveDayDoc,#haccpOpenDayDoc,#haccpExportDayDoc,#haccpPrintDay");
+ if(!b)return;
+ e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+ if(b.id==="haccpSaveDayDoc")closeDay();
+ if(b.id==="haccpOpenDayDoc")openReport();
+ if(b.id==="haccpExportDayDoc")printReport(true);
+ if(b.id==="haccpPrintDay")printReport(false);
+},true);
+
+document.querySelector('[data-haccp-mode="docs"]')?.addEventListener("click",()=>setTimeout(syncDaySelect,0));
+document.addEventListener("gpTenantDataLoaded",()=>setTimeout(syncDaySelect,120));
+window.addEventListener("storage",()=>setTimeout(syncDaySelect,0));
+document.addEventListener("DOMContentLoaded",()=>setTimeout(syncDaySelect,250));
+setTimeout(syncDaySelect,500);
+})();
+</script>
 
 </body>
 </html>
