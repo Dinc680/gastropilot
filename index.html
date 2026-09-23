@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.58 Tagesabschluss Cloud dauerhaft</title>
+<title>GastroPilot – V7.59 Speise & Messstellen UI</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12813,6 +12813,19 @@ setTimeout(syncDaySelect,500);
 }
 </style>
 
+<style id="gp-v759-food-flow-ui-css">
+#haccpMenuPickWrap{margin-bottom:0!important;padding:20px 18px 14px!important;border:3px solid #17634f!important;border-bottom:0!important;border-radius:22px 22px 0 0!important;background:#f8fbfa!important}
+#haccpMenuPickWrap::before{content:"① SPEISE & MESSSTELLEN";display:block;margin:0 0 10px;color:#17634f;font-size:13px;line-height:1.2;font-weight:900;letter-spacing:.06em}
+#haccpMenuPickWrap label{font-size:25px!important;line-height:1.15!important;font-weight:900!important}
+#haccpMenuPick{margin-top:10px!important}
+#haccpMenuHint{margin-top:8px!important;font-size:14px!important;line-height:1.35!important;color:#68746f!important;font-weight:700!important}
+#haccpComponentWrap{margin-top:0!important;padding:14px 18px 20px!important;border:3px solid #17634f!important;border-top:1px solid #d6e2dd!important;border-radius:0 0 22px 22px!important;background:#f8fbfa!important}
+#haccpComponentWrap::before{content:"MESSSTELLEN DIESES GERICHTS";display:block;margin:0 0 5px;color:#26342f;font-size:22px;line-height:1.15;font-weight:900}
+#haccpComponentWrap>h3:first-child{display:none!important}
+#haccpMeasureComponentWrap{margin-top:22px!important;padding-top:18px!important;border-top:2px solid #d7e2de!important}
+#haccpMeasureComponentWrap::before{content:"② TEMPERATUR MESSEN";display:block;margin:0 0 10px;color:#17634f;font-size:13px;line-height:1.2;font-weight:900;letter-spacing:.06em}
+@media(max-width:600px){#haccpMenuPickWrap{padding:16px 14px 12px!important}#haccpComponentWrap{padding:13px 14px 17px!important}#haccpMenuPickWrap label{font-size:22px!important}#haccpComponentWrap::before{font-size:20px}}
+</style>
 </body>
 </html>
   
