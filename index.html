@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.59 Speise & Messstellen UI</title>
+<title>GastroPilot – V7.60 Geführter Messablauf</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12826,6 +12826,146 @@ setTimeout(syncDaySelect,500);
 #haccpMeasureComponentWrap::before{content:"② TEMPERATUR MESSEN";display:block;margin:0 0 10px;color:#17634f;font-size:13px;line-height:1.2;font-weight:900;letter-spacing:.06em}
 @media(max-width:600px){#haccpMenuPickWrap{padding:16px 14px 12px!important}#haccpComponentWrap{padding:13px 14px 17px!important}#haccpMenuPickWrap label{font-size:22px!important}#haccpComponentWrap::before{font-size:20px}}
 </style>
+
+<style id="gp-v760-measure-flow-css">
+/* V7.60 – ein klarer Messablauf statt einzelner Rubriken */
+
+/* Sicherheitsregel: Speisen-Komponenten existieren ausschließlich bei Speisentemperatur. */
+body:not(.gpFoodMeasureMode) #haccpMenuPickWrap,
+body:not(.gpFoodMeasureMode) #haccpComponentWrap,
+body:not(.gpFoodMeasureMode) #haccpMeasureComponentWrap{
+  display:none !important;
+}
+
+/* Speisen: Auswahl, Messstellen und eigentliche Messung wirken als EIN Ablauf. */
+body.gpFoodMeasureMode #haccpMenuPickWrap{
+  margin:14px 0 0 !important;
+  padding:18px 16px 12px !important;
+  border:3px solid #17634f !important;
+  border-bottom:0 !important;
+  border-radius:22px 22px 0 0 !important;
+  background:#f8fbfa !important;
+}
+body.gpFoodMeasureMode #haccpComponentWrap{
+  margin:0 !important;
+  padding:12px 16px 16px !important;
+  border:3px solid #17634f !important;
+  border-top:1px solid #d7e3de !important;
+  border-bottom:0 !important;
+  border-radius:0 !important;
+  background:#f8fbfa !important;
+}
+body.gpFoodMeasureMode #haccpMeasureComponentWrap{
+  display:block;
+  margin:0 !important;
+  padding:16px !important;
+  border:3px solid #17634f !important;
+  border-top:1px solid #d7e3de !important;
+  border-bottom:0 !important;
+  border-radius:0 !important;
+  background:#f8fbfa !important;
+}
+body.gpFoodMeasureMode #haccpMeasureComponentWrap[hidden]{
+  display:none !important;
+}
+
+/* Der Temperaturbereich schließt optisch direkt an. */
+body.gpFoodMeasureMode #haccpMeasureComponentWrap + label{
+  display:block;
+  margin:0 !important;
+  padding:16px 16px 8px !important;
+  border-left:3px solid #17634f !important;
+  border-right:3px solid #17634f !important;
+  background:#f8fbfa !important;
+}
+body.gpFoodMeasureMode #haccpEvaluation{
+  margin:0 !important;
+  padding:10px 16px 16px !important;
+  border-left:3px solid #17634f !important;
+  border-right:3px solid #17634f !important;
+  background:#f8fbfa !important;
+}
+body.gpFoodMeasureMode #gpFoodSaveDock{
+  margin:0 !important;
+  padding:0 16px 18px !important;
+  border:3px solid #17634f !important;
+  border-top:0 !important;
+  border-radius:0 0 22px 22px !important;
+  background:#f8fbfa !important;
+}
+
+/* Weniger Überschriften – stärker wie ein geführter Arbeitsgang. */
+body.gpFoodMeasureMode #haccpMenuPickWrap::before{
+  content:"① GERICHT AUSWÄHLEN";
+}
+body.gpFoodMeasureMode #haccpComponentWrap::before{
+  content:"② MESSSTELLEN PRÜFEN";
+  color:#17634f;
+  font-size:13px;
+  letter-spacing:.06em;
+}
+body.gpFoodMeasureMode #haccpMeasureComponentWrap::before{
+  content:"③ MESSSTELLE & TEMPERATUR";
+}
+body.gpFoodMeasureMode #haccpMenuPickWrap label{
+  font-size:18px !important;
+}
+body.gpFoodMeasureMode #haccpMenuHint{
+  font-size:13px !important;
+  font-weight:650 !important;
+}
+
+/* Geräte: ein ruhiger, eigener Geräte-Ablauf ohne Speisenreste. */
+body:not(.gpFoodMeasureMode) #haccpDeviceWrap{
+  margin-top:14px !important;
+  border-radius:20px !important;
+}
+body:not(.gpFoodMeasureMode) #gpManualMeasureFields{
+  display:none !important;
+}
+
+@media(max-width:600px){
+  body.gpFoodMeasureMode #haccpMenuPickWrap,
+  body.gpFoodMeasureMode #haccpComponentWrap,
+  body.gpFoodMeasureMode #haccpMeasureComponentWrap{
+    padding-left:14px !important;
+    padding-right:14px !important;
+  }
+}
+</style>
+
+<script id="gp-v760-mode-visibility-guard">
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+function sync(){
+  const food=$("haccpType")?.value==="Speisentemperatur";
+  document.body.classList.toggle("gpFoodMeasureMode",food);
+
+  /* Harte Trennung: Kühlung/Tiefkühlung dürfen niemals Speisen-Komponenten zeigen.
+     Die native Speisenlogik selbst bleibt unangetastet. */
+  if(!food){
+    ["haccpMenuPickWrap","haccpComponentWrap","haccpMeasureComponentWrap"].forEach(id=>{
+      const el=$(id);
+      if(el) el.hidden=true;
+    });
+  }else{
+    /* Nur den Wochenplan-Bereich freigeben.
+       Komponenten werden weiterhin ausschließlich von gpRenderComponents gesteuert. */
+    const menu=$("haccpMenuPickWrap");
+    if(menu) menu.hidden=false;
+  }
+}
+document.addEventListener("change",e=>{
+  if(e.target?.id==="haccpType") setTimeout(sync,0);
+});
+document.addEventListener("gpTenantDataLoaded",()=>setTimeout(sync,120));
+window.addEventListener("pageshow",()=>setTimeout(sync,80));
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",()=>setTimeout(sync,0));
+else setTimeout(sync,0);
+})();
+</script>
+
 </body>
 </html>
   
