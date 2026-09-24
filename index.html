@@ -9176,10 +9176,11 @@ function gpSaveArchive(x){localStorage.setItem(ARCHIVE_KEY,JSON.stringify(x))}
 function gpClosedAtForDay(dayKey){
   try{
     const closures=JSON.parse(localStorage.getItem("gastropilot_haccp_day_closures_v1")||"{}");
-    const iso=closures&&closures[dayKey];
+    const raw=closures&&closures[dayKey];
+    const iso=typeof raw==="string" ? raw : (raw&&typeof raw==="object" ? (raw.closedAt||raw.at||"") : "");
     if(iso){
       const d=new Date(iso);
-      return isNaN(d)?null:d;
+      if(!isNaN(d))return d;
     }
     /* Rückwärtskompatibilität zu V7.57 */
     const docs=JSON.parse(localStorage.getItem(DAYDOC_KEY)||"{}");
@@ -9248,7 +9249,7 @@ function gpSaveComponents(x){localStorage.setItem(COMP_KEY,JSON.stringify(x))}
 function gpComponentsForDish(d){let x=gpLoadComponents(),a=x[gpNormName(d)];return Array.isArray(a)?a:[]}
 function gpSetComponentsForDish(d,a){if(!d)return;let x=gpLoadComponents();x[gpNormName(d)]=a.map(v=>String(v||"").trim()).filter(Boolean).slice(0,5);gpSaveComponents(x)}
 function gpComponentMeasureCount(d,c,rows){
- const today=gpTodayKey(),src=rows||load();
+ const today=gpTodayKey(),src=rows||gpTodayRowsCombined();
  return src.filter(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur"&&gpNormName(r.dish||r.location)===gpNormName(d)&&gpNormName(r.component||r.location)===gpNormName(c)).length;
 }
 function gpMeasuredComponents(d){
@@ -9590,7 +9591,7 @@ function gpSetHaccpMode(mode){
   gpHaccpModeButtons.forEach(b=>b.classList.toggle("gpActive",b.dataset.haccpMode===mode));
   haccpCard.classList.toggle("gpHaccpDocsMode",mode==="docs");
   localStorage.setItem("gastropilot_haccp_view_v1",mode);
-  if(mode==="today")gpRenderTodayChecks(gpLoadArchive());
+  if(mode==="today")gpRenderTodayChecks(gpTodayRowsCombined());
   if(mode==="docs"){gpRenderArchiveOptions();gpRenderDayDocStatus()}
 }
 gpHaccpModeButtons.forEach(b=>b.addEventListener("click",()=>gpSetHaccpMode(b.dataset.haccpMode)));
@@ -9659,7 +9660,7 @@ if(saveDevice)saveDevice.addEventListener("click",()=>{
   gpFillDeviceForm(id);
   if(editDevice)editDevice.disabled=false;
   deviceNotice.textContent="✓ Gerät gespeichert.";
-  gpRenderTodayChecks(gpLoadArchive());
+  gpRenderTodayChecks(gpTodayRowsCombined());
 });
 if(deleteDevice)deleteDevice.addEventListener("click",()=>{
   const id=devicePick.value,d=gpDeviceById(id);if(!id||!d)return;
@@ -9671,7 +9672,7 @@ if(deleteDevice)deleteDevice.addEventListener("click",()=>{
     gpFillDeviceForm("");
     if(editDevice)editDevice.disabled=true;
     deviceNotice.textContent="Gerät aus der Liste gelöscht. Alte Messungen bleiben erhalten.";
-    gpRenderTodayChecks(gpLoadArchive());
+    gpRenderTodayChecks(gpTodayRowsCombined());
   }
 });
 
@@ -9759,7 +9760,7 @@ if(requiredMeasures){
   requiredMeasures.value=String(gpRequiredMeasureCount());
   requiredMeasures.addEventListener("change",()=>{
     const n=requiredMeasures.value==="2"?"2":"3";localStorage.setItem(MEASURE_COUNT_KEY,n);
-    gpRenderComponents();gpRenderTodayChecks(gpLoadArchive());
+    gpRenderComponents();gpRenderTodayChecks(gpTodayRowsCombined());
     notice.textContent="✓ "+n+" Messungen je Komponente eingestellt.";
   });
 }
