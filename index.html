@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.62 Warm/Kalt Speisenmessung</title>
+<title>GastroPilot – V7.64 Kalt optional</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11147,7 +11147,6 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
     "gastropilot_shopping_list",
     "gastropilot_haccp_temperature_v1",
     "gastropilot_haccp_components_v1",
-  "gastropilot_haccp_food_temp_kinds_v1",
     "gastropilot_haccp_daydocs_v1",
     "gastropilot_haccp_day_closures_v1",
     "gastropilot_haccp_quickprefs_v1",
@@ -13088,88 +13087,105 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 
 
-<style id="gp-v762-food-temp-kind-css">
-#gpFoodTempKindWrap{
-  margin:0!important;padding:14px 16px 16px!important;
-  border-left:3px solid #17634f!important;border-right:3px solid #17634f!important;
-  background:#f8fbfa!important;
+<style id="gp-v764-cold-toggle-css">
+#gpColdMeasureWrap{
+  margin:0 !important;
+  padding:10px 16px 14px !important;
+  border-left:3px solid #17634f !important;
+  border-right:3px solid #17634f !important;
+  background:#f8fbfa !important;
 }
-#gpFoodTempKindWrap[hidden]{display:none!important}
-#gpFoodTempKindWrap .gpTempKindTitle{
-  display:block;font-size:13px;font-weight:800;letter-spacing:.05em;
-  color:#17634f;margin:0 0 9px;
+#gpColdMeasureWrap[hidden]{display:none !important}
+#gpColdMeasureBtn{
+  width:100%;
+  min-height:44px;
+  border:1px solid #b9c8c3;
+  border-radius:12px;
+  background:#fff;
+  color:#26332f;
+  font-size:16px;
+  font-weight:750;
 }
-#gpFoodTempKindButtons{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.gpTempKindBtn{
-  min-height:46px;border:1px solid #bdcbc6;border-radius:13px;background:#fff;
-  font-size:16px;font-weight:750;color:#26332f;
+#gpColdMeasureBtn.active{
+  border:2px solid #17634f;
+  background:#e8f3ef;
+  color:#104f3f;
 }
-.gpTempKindBtn.active{
-  border:2px solid #17634f;background:#e9f3ef;color:#104f3f;
+#gpColdMeasureHint{
+  margin-top:6px;
+  font-size:13px;
+  font-weight:650;
+  color:#66716d;
 }
-#gpFoodTempTargetHint{margin-top:8px;font-size:13px;font-weight:650;color:#53615d}
 </style>
 
-<script id="gp-v762-food-temp-kind-js">
+<script id="gp-v764-cold-toggle-js">
 (function(){
 "use strict";
-const KEY="gastropilot_haccp_food_temp_kinds_v1";
 const $=id=>document.getElementById(id);
-const norm=s=>String(s||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");
-function isFood(){return $("haccpType")?.value==="Speisentemperatur"}
-function load(){try{return JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){return {}}}
-function save(x){localStorage.setItem(KEY,JSON.stringify(x));window.dispatchEvent(new Event("storage"))}
-function dish(){let d=$("haccpMenuPick")?.value||$("haccpLocation")?.value||"";return d==="__manual__"?($("gpManualFood")?.value||""):d}
-function point(){return $("haccpMeasureComponent")?.value||dish()}
-function key(){return norm(dish())+"||"+norm(point())}
-function getKind(){return load()[key()]||""}
-function setTargets(kind){
-  const min=$("haccpMin"),max=$("haccpMax");
-  if(!min||!max)return;
-  if(kind==="warm"){min.value="65";max.value="100"}
-  if(kind==="cold"){min.value="1";max.value="7"}
-  min.dispatchEvent(new Event("input",{bubbles:true}));
-  max.dispatchEvent(new Event("input",{bubbles:true}));
+let cold=false;
+
+function isFood(){
+  return $("haccpType")?.value==="Speisentemperatur";
 }
-function render(){
-  let wrap=$("gpFoodTempKindWrap");
-  const anchor=$("haccpMeasureComponentWrap");
-  if(!anchor)return;
-  if(!wrap){
-    wrap=document.createElement("div");
-    wrap.id="gpFoodTempKindWrap";
-    wrap.innerHTML='<span class="gpTempKindTitle">TEMPERATURART</span><div id="gpFoodTempKindButtons"><button type="button" class="gpTempKindBtn" data-kind="warm">🔥 Warm</button><button type="button" class="gpTempKindBtn" data-kind="cold">❄️ Kalt</button></div><div id="gpFoodTempTargetHint">Bitte Warm oder Kalt wählen.</div>';
-    anchor.insertAdjacentElement("afterend",wrap);
-  }
+function applyTargets(){
+  if(!isFood()) return;
+  const min=$("haccpMin"), max=$("haccpMax");
+  if(!min || !max) return;
+  min.value=cold ? "1" : "65";
+  max.value=cold ? "7" : "100";
+}
+function paint(){
+  const wrap=$("gpColdMeasureWrap"), btn=$("gpColdMeasureBtn"), hint=$("gpColdMeasureHint");
+  if(!wrap || !btn || !hint) return;
   wrap.hidden=!isFood();
-  if(!isFood())return;
-  const k=getKind();
-  wrap.querySelectorAll(".gpTempKindBtn").forEach(b=>b.classList.toggle("active",b.dataset.kind===k));
-  const hint=$("gpFoodTempTargetHint");
-  if(hint)hint.textContent=k==="warm"?"Sollbereich: 65–100 °C":k==="cold"?"Sollbereich: 1–7 °C":"Bitte Warm oder Kalt wählen.";
-  if(k)setTargets(k);
+  if(!isFood()) return;
+  btn.classList.toggle("active",cold);
+  btn.textContent=cold ? "❄️ Kalt aktiv – auf Warm zurückstellen" : "❄️ Kalt messen";
+  hint.textContent=cold ? "Kalte Messstelle · Soll 1–7 °C" : "Standard: warm · Soll 65–100 °C";
+  applyTargets();
 }
-document.addEventListener("click",e=>{
- const b=e.target.closest(".gpTempKindBtn");
- if(!b)return;
- const d=dish(),p=point(); if(!d||!p)return;
- const x=load();x[norm(d)+"||"+norm(p)]=b.dataset.kind;save(x);setTargets(b.dataset.kind);render();
-});
-document.addEventListener("change",e=>{
- if(["haccpType","haccpMenuPick","haccpMeasureComponent"].includes(e.target?.id))setTimeout(render,20);
-});
-document.addEventListener("click",e=>{
- if(!e.target.closest("#haccpSave")||!isFood())return;
- const k=getKind();
- if(!k){
-   e.preventDefault();e.stopImmediatePropagation();
-   alert("Bitte zuerst wählen, ob diese Messstelle warm oder kalt ist.");
-   return;
- }
- setTargets(k);
+function ensure(){
+  if($("gpColdMeasureWrap")) { paint(); return; }
+  const anchor=$("haccpMeasureComponentWrap");
+  if(!anchor) return;
+  const wrap=document.createElement("div");
+  wrap.id="gpColdMeasureWrap";
+  wrap.innerHTML='<button type="button" id="gpColdMeasureBtn">❄️ Kalt messen</button><div id="gpColdMeasureHint">Standard: warm · Soll 65–100 °C</div>';
+  anchor.insertAdjacentElement("afterend",wrap);
+  paint();
+}
+
+document.addEventListener("click",function(e){
+  if(e.target?.id==="gpColdMeasureBtn"){
+    cold=!cold;
+    paint();
+    return;
+  }
+  if(e.target.closest?.("#haccpSave") && isFood()){
+    applyTargets();
+  }
 },true);
-document.addEventListener("DOMContentLoaded",()=>setTimeout(render,200));
-window.addEventListener("pageshow",()=>setTimeout(render,100));
+
+document.addEventListener("change",function(e){
+  if(e.target?.id==="haccpType"){
+    cold=false;
+    setTimeout(ensure,0);
+  }
+  if(e.target?.id==="haccpMenuPick" || e.target?.id==="haccpMeasureComponent"){
+    /* Jede neue Messstelle startet bewusst als warm.
+       Nur bei einer kalten Komponente tippt der Nutzer auf den Kalt-Button. */
+    cold=false;
+    setTimeout(paint,0);
+  }
+});
+
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded",()=>setTimeout(ensure,100));
+}else{
+  setTimeout(ensure,100);
+}
+window.addEventListener("pageshow",()=>setTimeout(ensure,100));
 })();
 </script>
 
