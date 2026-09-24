@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.64 Kalt optional</title>
+<title>GastroPilot – V7.65 Freie Einzelmessungen</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -3636,18 +3636,6 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 <label id="haccpActionWrap" hidden>Ergriffene Maßnahme<textarea id="haccpAction" rows="3" placeholder="z. B. Ware umgelagert, Kühlung geprüft"></textarea></label>
 <label>Mitarbeiter / Kürzel<input id="haccpEmployee" placeholder="Name oder Kürzel"></label>
 <button id="haccpSave" class="primary" type="button">Messung speichern</button><div id="haccpNotice" class="saveSuccess"></div>
-<div id="gpMeasureCountBox" class="gpMeasureCountBox">
-  <div>
-    <strong>Mehrfachmessung je Komponente</strong>
-    <div class="muted">Betriebsintern festlegen, wann eine Komponente als vollständig kontrolliert gilt.</div>
-  </div>
-  <label>Messungen
-    <select id="gpRequiredMeasures">
-      <option value="2">2 Messungen</option>
-      <option value="3" selected>3 Messungen</option>
-    </select>
-  </label>
-</div>
 <div class="gpDraftSavedHint">Eingaben werden automatisch auf diesem Gerät zwischengespeichert.</div>
 </div>
 <div id="gpHaccpPaneCleaning" class="gpHaccpPane">
@@ -9388,18 +9376,16 @@ function gpRenderComponents(){
    Rinderbraten | Kartoffeln | Gemüse | Sauce
  */
  let choices=[dish,...saved.filter(c=>gpNormName(c)!==gpNormName(dish))];
- let done=choices.filter(c=>gpComponentMeasureCount(dish,c)>=required).length;
- compProgress.textContent=saved.length
-   ?`${done===choices.length?"✅":"🟡"} ${done}/${choices.length} Messstellen vollständig · ${required} Messungen je Messstelle`
-   :"Hauptgericht ist direkt messbar · weitere Komponenten können ergänzt werden.";
+ let done=choices.filter(c=>gpComponentMeasureCount(dish,c)>=1).length;
+ compProgress.textContent=`${done===choices.length?"✅":"🟡"} ${done}/${choices.length} Messstellen heute gemessen`;
 
  if(measureCompWrap&&measureComp){
    const previous=measureComp.value;
    measureCompWrap.hidden=false;
    measureComp.innerHTML=choices.map((c,i)=>{
-     const n=gpComponentMeasureCount(dish,c);
+     const measured=gpComponentMeasureCount(dish,c)>=1;
      const label=i===0?`${c} · Hauptgericht`:`${c}`;
-     return `<option value="${esc(c)}">${esc(label)} · ${Math.min(n,required)}/${required}${n>=required?" ✓":""}</option>`;
+     return `<option value="${esc(c)}">${esc(label)}${measured?" · ✓ heute gemessen":""}</option>`;
    }).join("");
    measureComp.value=choices.includes(previous)?previous:dish;
  }
@@ -9518,20 +9504,15 @@ function gpSelectedRows(rows){
 }
 function gpRenderTodayChecks(rows){
  if(!todayChecks)return;
- const info=gpTodayPlanDishes(),today=gpTodayKey(),required=gpRequiredMeasureCount();
+ const info=gpTodayPlanDishes(),today=gpTodayKey();
  let foodHtml="";
  if(info.dishes.length){
    foodHtml=`<strong>Heutige Speisentemperaturen</strong>`+info.dishes.map(d=>{
-     let comps=gpComponentsForDish(d);
-     if(comps.length){
-       let complete=comps.filter(c=>gpComponentMeasureCount(d,c,rows)>=required).length;
-       let totalMeasurements=comps.reduce((sum,c)=>sum+Math.min(gpComponentMeasureCount(d,c,rows),required),0);
-       let needed=comps.length*required,ok=complete===comps.length;
-       return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":`🟡 ${totalMeasurements}/${needed} Messungen`}</span></div>`;
-     }
-     let n=rows.filter(r=>gpDateKeyFromRecord(r)===today&&r.type==="Speisentemperatur"&&gpNormName(r.dish||r.location)===gpNormName(d)).length;
-     let ok=n>=required;
-     return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":`🟡 ${Math.min(n,required)}/${required} Messungen`}</span></div>`;
+     const comps=gpComponentsForDish(d);
+     const points=[d,...comps.filter(c=>gpNormName(c)!==gpNormName(d))];
+     const measured=points.filter(c=>gpComponentMeasureCount(d,c,rows)>=1).length;
+     const ok=measured===points.length;
+     return `<div class="gpCheckRow"><span>${esc(d)}</span><span class="${ok?"gpCheckDone":"gpCheckOpen"}">${ok?"✅ kontrolliert":`🟡 ${measured}/${points.length} Messstellen`}</span></div>`;
    }).join("");
  }
  todayChecks.innerHTML=foodHtml+gpDeviceChecksHtml(rows);
@@ -9812,22 +9793,23 @@ let place=selectedDevice?selectedDevice.name:loc.value.trim();
 let dish=(isFood&&menuPick&&menuPick.value!=="__manual__"?menuPick.value:"");
 let component=(isFood&&dish&&measureComp?measureComp.value:"");if(dish&&gpComponentsForDish(dish).length&&!component){notice.textContent="Bitte zuerst die zu messende Komponente auswählen.";measureComp.focus();return}if(!place){notice.textContent="Bitte Messstelle oder Speise eintragen.";return}if(!s){notice.textContent="Bitte gültige Temperaturen eintragen.";return}if(!s.ok&&!action.value.trim()){notice.textContent="Bei Abweichung bitte die Maßnahme dokumentieren.";action.focus();return}let a=load(),now=new Date();let rec={id:String(Date.now()),type:type.value,location:(isFood?(component||place):place),dish:(isFood?(dish||""):""),component:(isFood?(component||""):""),min:s.lo,max:s.hi,actual:s.a,ok:s.ok,action:action.value.trim(),employee:emp.value.trim(),date:now.toLocaleString("de-DE"),isoDate:(()=>{const p=n=>String(n).padStart(2,"0");return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}`})()};a.unshift(rec);store(a);gpArchiveRecord(rec);act.value="";action.value="";
 if(rec.type==="Speisentemperatur"){
-  const n=gpComponentMeasureCount(rec.dish||rec.location,rec.component||rec.location),required=gpRequiredMeasureCount();
-  notice.textContent=`✓ Messung gespeichert · ${Math.min(n,required)}/${required} für ${rec.component||rec.location}`;
+  notice.textContent=`✓ Messung gespeichert · ${rec.component||rec.location} · ${now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}`;
 }else notice.textContent="✓ Messung gespeichert.";
 gpRememberQuickPrefs();
 let gpNextMeasurePoint="";
 if(rec.type==="Speisentemperatur"&&rec.dish){
-  const required=gpRequiredMeasureCount();
   const currentPoint=rec.component||rec.location||rec.dish;
   const points=[rec.dish,...gpComponentsForDish(rec.dish).filter(c=>gpNormName(c)!==gpNormName(rec.dish))];
-  if(gpComponentMeasureCount(rec.dish,currentPoint)<required){
-    gpNextMeasurePoint=currentPoint;
-  }else{
-    const currentIndex=Math.max(0,points.findIndex(c=>gpNormName(c)===gpNormName(currentPoint)));
-    const ordered=[...points.slice(currentIndex+1),...points.slice(0,currentIndex+1)];
-    gpNextMeasurePoint=ordered.find(c=>gpComponentMeasureCount(rec.dish,c)<required)||currentPoint;
-  }
+  const currentIndex=Math.max(0,points.findIndex(c=>gpNormName(c)===gpNormName(currentPoint)));
+  const after=points.slice(currentIndex+1);
+  const before=points.slice(0,currentIndex+1);
+  /* Nach jeder Einzelmessung zuerst zur nächsten heute noch ungemessenen Stelle.
+     Sind alle bereits gemessen, einfach zyklisch zur nächsten Stelle.
+     Manuelle Auswahl bleibt jederzeit möglich. */
+  gpNextMeasurePoint=after.find(c=>gpComponentMeasureCount(rec.dish,c)<1)
+    || before.find(c=>gpComponentMeasureCount(rec.dish,c)<1)
+    || points[(currentIndex+1)%points.length]
+    || currentPoint;
 }
 act.value="";evaluate();render();gpRenderComponents();
 if(gpNextMeasurePoint&&measureComp&&[...measureComp.options].some(o=>gpNormName(o.value)===gpNormName(gpNextMeasurePoint))){
@@ -13188,6 +13170,41 @@ if(document.readyState==="loading"){
 window.addEventListener("pageshow",()=>setTimeout(ensure,100));
 })();
 </script>
+
+
+<style id="gp-v765-component-focus-css">
+/* V7.65 – Messstellen deutlich als zentraler Arbeitsbereich */
+body.gpFoodMeasureMode #haccpMeasureComponentWrap{
+  padding:20px 16px 18px !important;
+  background:#eef7f3 !important;
+  border-left:3px solid #17634f !important;
+  border-right:3px solid #17634f !important;
+}
+body.gpFoodMeasureMode #haccpMeasureComponentWrap::before{
+  content:"③ MESSSTELLE AUSWÄHLEN" !important;
+  font-size:15px !important;
+  font-weight:900 !important;
+  letter-spacing:.045em !important;
+  margin-bottom:12px !important;
+}
+body.gpFoodMeasureMode #haccpMeasureComponent{
+  min-height:58px !important;
+  font-size:18px !important;
+  font-weight:800 !important;
+  border:2px solid #6fae9b !important;
+  border-radius:15px !important;
+  background:#fff !important;
+}
+body.gpFoodMeasureMode #haccpComponentProgress{
+  margin-top:10px !important;
+  padding:10px 12px !important;
+  border-radius:11px !important;
+  background:#e5f1ed !important;
+  color:#174f40 !important;
+  font-size:15px !important;
+  font-weight:800 !important;
+}
+</style>
 
 </body>
 </html>
