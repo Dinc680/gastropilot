@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.60 Geführter Messablauf</title>
+<title>GastroPilot – V7.61 Einfache Speisenmessung</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12963,6 +12963,126 @@ document.addEventListener("gpTenantDataLoaded",()=>setTimeout(sync,120));
 window.addEventListener("pageshow",()=>setTimeout(sync,80));
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",()=>setTimeout(sync,0));
 else setTimeout(sync,0);
+})();
+</script>
+
+
+<style id="gp-v761-single-measure-css">
+/* V7.61 – Speisen: eine Messung pro Messstelle genügt für den Tagesstatus */
+.gpMeasureCountText{display:none!important}
+</style>
+
+<script id="gp-v761-single-measure-js">
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const norm=s=>String(s||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");
+
+function isFood(){return $("haccpType")?.value==="Speisentemperatur"}
+
+function todayKey(){
+ const d=new Date(),p=n=>String(n).padStart(2,"0");
+ return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+function recordDay(r){
+ if(r?.isoDate)return String(r.isoDate).slice(0,10);
+ if(r?.measuredAt){
+   const d=new Date(r.measuredAt);
+   if(!isNaN(d)){const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`}
+ }
+ const m=String(r?.date||"").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+ return m?`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`:"";
+}
+function rows(){
+ try{
+   if(typeof gpTodayRowsCombined==="function") return gpTodayRowsCombined();
+ }catch(e){}
+ const out=[],seen=new Set();
+ ["gastropilot_haccp_archive_v1","gastropilot_haccp_temperature_v1"].forEach(k=>{
+   try{
+     const a=JSON.parse(localStorage.getItem(k)||"[]");
+     if(Array.isArray(a))a.forEach(r=>{
+       const id=String(r?.id||[recordDay(r),r?.type,r?.dish,r?.component,r?.location,r?.actual,r?.date].join("|"));
+       if(!seen.has(id)){seen.add(id);out.push(r)}
+     });
+   }catch(e){}
+ });
+ return out;
+}
+function foodRows(dish){
+ const d=norm(dish),day=todayKey();
+ return rows().filter(r=>r?.type==="Speisentemperatur" && recordDay(r)===day && norm(r.dish||r.location)===d);
+}
+function pointMeasured(dish,point){
+ const p=norm(point);
+ return foodRows(dish).some(r=>norm(r.component||r.location||r.dish)===p || (!r.component && norm(r.dish)===p));
+}
+function points(dish){
+ let comps=[];
+ try{ if(typeof gpComponentsForDish==="function") comps=gpComponentsForDish(dish)||[] }catch(e){}
+ return [dish,...comps.filter(c=>norm(c)!==norm(dish))];
+}
+function updateProgress(){
+ if(!isFood())return;
+ const dish=$("haccpMenuPick")?.value;
+ if(!dish||dish==="__manual__")return;
+ const ps=points(dish);
+ const done=ps.filter(p=>pointMeasured(dish,p)).length;
+ const progress=$("haccpComponentProgress");
+ if(progress)progress.textContent=`${done}/${ps.length} Messstellen heute gemessen`;
+}
+function selectNextAfterSave(dish,current){
+ const sel=$("haccpMeasureComponent");
+ if(!sel||!dish)return;
+ const ps=points(dish);
+ const start=Math.max(0,ps.findIndex(p=>norm(p)===norm(current)));
+ const ordered=[...ps.slice(start+1),...ps.slice(0,start+1)];
+ const next=ordered.find(p=>!pointMeasured(dish,p));
+ if(next){
+   const opt=[...sel.options].find(o=>norm(o.value)===norm(next));
+   if(opt)sel.value=opt.value;
+ }else{
+   /* Alles mindestens einmal gemessen: Auswahl bleibt auf der letzten Messstelle.
+      Jede Stelle kann trotzdem jederzeit erneut gewählt und gemessen werden. */
+   const opt=[...sel.options].find(o=>norm(o.value)===norm(current));
+   if(opt)sel.value=opt.value;
+ }
+ updateProgress();
+}
+
+/* Vor dem nativen Speichern merken wir Gericht und Messstelle.
+   Nach dem Speichern lassen wir die bestehende Save-/Cloud-Logik vollständig arbeiten
+   und korrigieren nur die nächste Auswahl. */
+let pending=null;
+document.addEventListener("click",e=>{
+ const b=e.target.closest("#haccpSave");
+ if(!b||!isFood())return;
+ const dish=$("haccpMenuPick")?.value||$("haccpLocation")?.value||"";
+ const point=$("haccpMeasureComponent")?.value||dish;
+ if(!dish||dish==="__manual__")return;
+ pending={dish,point};
+ setTimeout(()=>{
+   if(!pending)return;
+   selectNextAfterSave(pending.dish,pending.point);
+   pending=null;
+ },180);
+},true);
+
+/* Die alte feste Messhäufigkeit bleibt intern kompatibel, wird aber für
+   Bedienung/Status nicht mehr verwendet. */
+document.addEventListener("change",e=>{
+ if(e.target?.id==="haccpMenuPick"||e.target?.id==="haccpType")setTimeout(updateProgress,80);
+});
+document.addEventListener("gpTenantDataLoaded",()=>setTimeout(updateProgress,180));
+window.addEventListener("pageshow",()=>setTimeout(updateProgress,120));
+document.addEventListener("DOMContentLoaded",()=>setTimeout(updateProgress,250));
+
+/* Nach nativen Renderings den verständlichen Tagesstatus wieder setzen. */
+const observer=new MutationObserver(()=>{clearTimeout(window.__gp761t);window.__gp761t=setTimeout(updateProgress,30)});
+document.addEventListener("DOMContentLoaded",()=>{
+ const p=$("haccpComponentProgress");
+ if(p)observer.observe(p,{childList:true,subtree:true,characterData:true});
+});
 })();
 </script>
 
