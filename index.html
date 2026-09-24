@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V7.65 Freie Einzelmessungen</title>
+<title>GastroPilot – V8.0 Stabilitätskern</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -13205,6 +13205,60 @@ body.gpFoodMeasureMode #haccpComponentProgress{
   font-weight:800 !important;
 }
 </style>
+
+
+<script id="gp-v800-stable-day-lifecycle">
+(function(){
+"use strict";
+const CLOSURES="gastropilot_haccp_day_closures_v1";
+const DAYDOC="gastropilot_haccp_daydocs_v1";
+function j(k,f){try{const v=JSON.parse(localStorage.getItem(k)||"null");return v??f}catch(e){return f}}
+function dayKey(d=new Date()){const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`}
+function closeISO(day){
+ const c=j(CLOSURES,{})[day];
+ if(typeof c==="string")return c;
+ if(c&&typeof c==="object")return c.closedAt||c.at||"";
+ return j(DAYDOC,{})[day]?.closedAt||"";
+}
+function timeOf(r){const t=Date.parse(r?.measuredAt||r?.created_at||r?.dateTime||r?.timestamp||"");return Number.isFinite(t)?t:0}
+function dayOf(r){
+ if(r?.isoDate)return String(r.isoDate).slice(0,10);
+ const t=timeOf(r); if(t)return dayKey(new Date(t));
+ const m=String(r?.date||"").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+ return m?`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`:"";
+}
+function liveRows(rows){
+ return (Array.isArray(rows)?rows:[]).filter(r=>{
+   const c=Date.parse(closeISO(dayOf(r))||"");
+   if(!Number.isFinite(c))return true;
+   const t=timeOf(r);
+   return t ? t>c : false;
+ });
+}
+window.gpV8RowsForToday=liveRows;
+
+function install(){
+ if(typeof window.gpRenderTodayChecks==="function"&&!window.gpRenderTodayChecks.__gpV8){
+   const original=window.gpRenderTodayChecks;
+   const guarded=function(rows){return original(liveRows(rows))};
+   guarded.__gpV8=true;
+   window.gpRenderTodayChecks=guarded;
+ }
+}
+function refresh(){
+ install();
+ try{
+   if(typeof gpTodayRowsCombined==="function"&&typeof gpRenderTodayChecks==="function")
+     gpRenderTodayChecks(gpTodayRowsCombined());
+ }catch(e){}
+}
+function boot(){refresh()}
+document.addEventListener("DOMContentLoaded",()=>setTimeout(boot,350));
+window.addEventListener("pageshow",()=>setTimeout(boot,180));
+document.addEventListener("gpTenantDataLoaded",()=>setTimeout(boot,300));
+window.addEventListener("storage",()=>setTimeout(boot,120));
+})();
+</script>
 
 </body>
 </html>
