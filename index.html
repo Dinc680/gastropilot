@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.06.1 Abschlussfilter</title>
+<title>GastroPilot – V8.05 Arbeitszentrale</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11207,7 +11207,6 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
     "gastropilot_haccp_temperature_v1",
     "gastropilot_haccp_components_v1",
     "gastropilot_haccp_daydocs_v1",
-  "gastropilot_haccp_close_sessions_v1",
     "gastropilot_haccp_day_closures_v1",
     "gastropilot_haccp_quickprefs_v1",
     "gastropilot_haccp_measure_count_v1",
@@ -12481,7 +12480,6 @@ const $=id=>document.getElementById(id);
 const ARCHIVE="gastropilot_haccp_archive_v1";
 const CURRENT="gastropilot_haccp_temperature_v1";
 const DAYDOC="gastropilot_haccp_daydocs_v1";
-const SESSIONS="gastropilot_haccp_close_sessions_v1";
 const CLOSURES="gastropilot_haccp_day_closures_v1";
 const FRYER="gastropilot_haccp_fryer_log_v1";
 const SAMPLES="gastropilot_haccp_samples_v1";
@@ -12490,45 +12488,6 @@ const CLEANTASKS="gastropilot_haccp_cleaning_tasks_v1";
 
 function arr(k){try{const x=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}}
 function obj(k){try{const x=JSON.parse(localStorage.getItem(k)||"{}");return x&&typeof x==="object"&&!Array.isArray(x)?x:{}}catch(e){return{}}}
-
-function sessionList(){return arr(SESSIONS).filter(x=>x&&x.id&&x.day&&x.closedAt).sort((a,b)=>String(b.closedAt).localeCompare(String(a.closedAt)))}
-function sessionId(day,iso){return `${day}__${String(iso).replace(/[:.]/g,"-")}`}
-function sessionForValue(v){
- const sessions=sessionList();
- return sessions.find(s=>s.id===v)||null;
-}
-function recordMoment(r){
- const direct=Date.parse(r?.measuredAt||r?.created_at||r?.dateTime||r?.timestamp||"");
- if(Number.isFinite(direct))return direct;
- /* Bestehende GP-Datensätze können Uhrzeit und Datum getrennt tragen.
-    Für Abschlusszeiträume wird daraus derselbe lokale Messzeitpunkt erzeugt,
-    statt den Datensatz wegen fehlendem measuredAt zu verwerfen. */
- const day=keyOf(r),tm=String(r?.time||r?.date||"").match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
- if(day&&tm){
-   const [y,m,d]=day.split("-").map(Number);
-   return new Date(y,m-1,d,Number(tm[1]),Number(tm[2]),Number(tm[3]||0)).getTime();
- }
- return NaN;
-}
-function sessionRowsForClose(day,closedAt){
- const prev=sessionList().filter(s=>s.day===day&&String(s.closedAt)<String(closedAt)).sort((a,b)=>String(b.closedAt).localeCompare(String(a.closedAt)))[0];
- /* Bei der ersten V8.06-Session übernehmen wir die bereits bewährte V8.05-
-    Abschlussgrenze. So beginnt die neue Session-Historie nicht wieder bei
-    Mitternacht und alte, schon abgeschlossene Kontrollen werden nicht vermischt. */
- let from=prev?Date.parse(prev.closedAt):0;
- if(!prev){
-   const legacy=obj(CLOSURES)[day];
-   const legacyISO=typeof legacy==="string"?legacy:(legacy?.closedAt||legacy?.at||"");
-   const legacyTime=Date.parse(legacyISO||"");
-   if(Number.isFinite(legacyTime))from=legacyTime;
- }
- const to=Date.parse(closedAt);
- return rowsFor(day).filter(r=>{
-   const t=recordMoment(r);
-   return Number.isFinite(t) && t>from && t<=to;
- });
-}
-
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function norm(s){return String(s||"").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ")}
 function today(){
@@ -12552,17 +12511,10 @@ function allRows(){
 }
 function rowsFor(k){return allRows().filter(r=>keyOf(r)===k)}
 function availableDays(){return [...new Set(allRows().map(keyOf).filter(Boolean))].sort().reverse()}
-function selectedValue(){return $("haccpArchiveDay")?.value||""}
-function selectedSession(){return sessionForValue(selectedValue())}
-function selectedLegacyDay(){
- const v=selectedValue(),m=String(v).match(/^legacy__(\d{4}-\d{2}-\d{2})$/);
- return m?m[1]:"";
-}
 function selectedDay(){
- const s=selectedSession();if(s)return s.day;
- const legacy=selectedLegacyDay();if(legacy)return legacy;
- const v=selectedValue();if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;
- const days=availableDays();if(days.includes(today()))return today();
+ const sel=$("haccpArchiveDay"),days=availableDays();
+ if(sel?.value&&days.includes(sel.value))return sel.value;
+ if(days.includes(today()))return today();
  return days[0]||"";
 }
 function ensureNotice(){
@@ -12580,47 +12532,17 @@ function say(msg,kind=""){
 }
 function syncDaySelect(){
  const sel=$("haccpArchiveDay");if(!sel)return;
- const current=sel.value,sessions=sessionList(),days=availableDays(),docs=obj(DAYDOC);
- const opts=[],seen=new Set();
-
- /* Aktueller, noch nicht abgeschlossener Arbeitszeitraum */
- const liveDay=days.includes(today())?today():(days[0]||"");
- if(liveDay){
-   opts.push(`<option value="${esc(liveDay)}">${esc(pretty(liveDay))} · aktueller Zeitraum</option>`);
-   seen.add(liveDay);
- }
-
- /* Neue V8.06-Abschlüsse: jeder Zeitraum bleibt einzeln auswählbar. */
- sessions.forEach(s=>{
-   const t=new Date(s.closedAt);
-   const tm=isNaN(t)?"":t.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
-   opts.push(`<option value="${esc(s.id)}">${esc(pretty(s.day))} · Abschluss ${esc(tm)} · ${Number(s.sequence||1)}. Zeitraum</option>`);
-   seen.add(s.day);
- });
-
- /* Bestehendes Tagesarchiv niemals ausblenden. Alte Tagesabschlüsse bleiben
-    vollständig erreichbar, auch wenn sie vor Einführung der Session-Struktur
-    gespeichert wurden. */
- Object.keys(docs).sort().reverse().forEach(day=>{
-   if(!docs[day]||seen.has(day))return;
-   opts.push(`<option value="legacy__${esc(day)}">${esc(pretty(day))} · Tagesarchiv</option>`);
- });
-
- sel.innerHTML=opts.length?opts.join(""):'<option value="">Noch kein Archiv</option>';
- if([...sel.options].some(o=>o.value===current))sel.value=current;
- else if(liveDay)sel.value=liveDay;
- else if(sel.options.length)sel.selectedIndex=0;
+ const current=sel.value,days=availableDays();
+ sel.innerHTML=days.length?days.map(d=>`<option value="${esc(d)}">${esc(pretty(d))}</option>`).join(""):'<option value="">Noch kein Archiv</option>';
+ if(days.includes(current))sel.value=current;
+ else if(days.includes(today()))sel.value=today();
+ else if(days[0])sel.value=days[0];
  renderStatus();
 }
 function renderStatus(){
  const status=$("haccpDayDocStatus");if(!status)return;
- const s=selectedSession();
- if(s){status.textContent=`✅ Zeitraum abgeschlossen: ${pretty(s.day)} · ${s.savedAt||""} · ${(s.rows||[]).length} Kontrollen`;return}
- const legacy=selectedLegacyDay(),legacyDoc=legacy?obj(DAYDOC)[legacy]:null;
- if(legacyDoc){status.textContent=`✅ Tagesarchiv: ${pretty(legacy)} · ${legacyDoc.savedAt||""} · ${(legacyDoc.rows||[]).length} Kontrollen`;return}
- const k=selectedDay();
- const count=k?rowsFor(k).length:0;
- status.textContent=count?`Aktueller Zeitraum · ${count} Kontrolle${count===1?"":"n"} seit letztem Abschluss.`:"Aktueller Zeitraum noch ohne Kontrollen.";
+ const k=selectedDay(),docs=obj(DAYDOC),doc=k?docs[k]:null;
+ status.textContent=doc?`✅ Abgeschlossen: ${pretty(k)} · ${(doc.rows||[]).length} Kontrollen`:"Der Tag ist noch nicht abgeschlossen.";
 }
 function selectedSamplesFromUi(k){
   if(k!==today())return [];
@@ -12664,15 +12586,11 @@ function mergeSamplesForDay(k,persist=false){
   return samples;
 }
 
-function snapshot(k,closedAt=""){
- const rows=closedAt?sessionRowsForClose(k,closedAt):rowsFor(k);
- const sessions=sessionList().filter(s=>s.day===k).sort((a,b)=>String(b.closedAt).localeCompare(String(a.closedAt)));
- const prev=closedAt?sessions.find(s=>String(s.closedAt)<String(closedAt)):sessions[0];
- const from=prev?Date.parse(prev.closedAt):0,to=closedAt?Date.parse(closedAt):Infinity;
- const inWindow=r=>{const t=recordMoment(r);return Number.isFinite(t)?t>from&&t<=to:true};
- const fryer=arr(FRYER).filter(r=>String(r.day||r.isoDate||r.date||"").slice(0,10)===k&&inWindow(r));
- const samples=mergeSamplesForDay(k,false).filter(inWindow);
- const cleaningRows=arr(CLEANLOG).filter(r=>String(r.day||r.isoDate||r.date||r.time||"").slice(0,10)===k&&inWindow(r));
+function snapshot(k){
+ const rows=rowsFor(k);
+ const fryer=arr(FRYER).filter(r=>String(r.day||r.isoDate||r.date||"").slice(0,10)===k);
+ const samples=mergeSamplesForDay(k,false);
+ const cleaningRows=arr(CLEANLOG).filter(r=>String(r.day||r.isoDate||r.date||r.time||"").slice(0,10)===k);
  const cleaningTasks=arr(CLEANTASKS);
  return {rows, fryerRows:fryer, sampleRows:samples, cleaningRows, cleaningTasks};
 }
@@ -12691,56 +12609,53 @@ async function gpPersistCloseCloud(key,value){
 async function closeDay(){
  syncDaySelect();
  const k=selectedDay();if(!k){say("Für den Tagesabschluss ist noch kein Tag mit Kontrollen vorhanden.","warn");return}
- if(k!==today()){say("Abgeschlossen werden kann nur der aktuelle Arbeitstag.","warn");return}
 
+ /* Rückstellproben direkt aus der sichtbaren Auswahl sichern.
+    Diese Logik liegt absichtlich hier, damit sie nicht von Funktionen
+    eines anderen JavaScript-Moduls abhängt. */
  mergeSamplesForDay(k,true);
- const now=new Date(),closedAt=now.toISOString();
- const snap=snapshot(k,closedAt);
- if(!snap.rows.length){say("Seit dem letzten Abschluss sind keine neuen Temperaturkontrollen vorhanden.","warn");return}
 
- const sessions=sessionList();
- const sequence=sessions.filter(s=>s.day===k).length+1;
- const id=sessionId(k,closedAt);
- const session={
-   id,day:k,sequence,
-   startedAt:(sessions.filter(s=>s.day===k).sort((a,b)=>String(b.closedAt).localeCompare(String(a.closedAt)))[0]?.closedAt)||`${k}T00:00:00`,
+ const snap=snapshot(k);
+ if(!snap.rows.length){say("Für diesen Tag sind keine Temperaturkontrollen vorhanden.","warn");return}
+
+ const now=new Date(),closedAt=now.toISOString();
+ const docs=obj(DAYDOC);
+ docs[k]={
    savedAt:now.toLocaleString("de-DE"),
    closedAt,
    ...JSON.parse(JSON.stringify(snap)),
-   reportVersion:"3.0-session"
+   reportVersion:"2.4-cloud"
  };
- sessions.unshift(session);
 
- /* SESSIONS ist ab V8.06 die maßgebliche unveränderliche Abschluss-Historie.
-    DAYDOC bleibt vorerst nur als Kompatibilitätsansicht "letzter Abschluss pro Tag",
-    damit ältere stabile Berichtsteile nicht gebrochen werden. */
- const docs=obj(DAYDOC);docs[k]=JSON.parse(JSON.stringify(session));
- const closures=obj(CLOSURES);closures[k]=closedAt;
+ const closures=obj(CLOSURES);
+ closures[k]=closedAt;
 
- localStorage.setItem(SESSIONS,JSON.stringify(sessions));
- localStorage.setItem(DAYDOC,JSON.stringify(docs));
- localStorage.setItem(CLOSURES,JSON.stringify(closures));
+ const docsJson=JSON.stringify(docs);
+ const closuresJson=JSON.stringify(closures);
  const samplesJson=localStorage.getItem(SAMPLES)||"[]";
 
+ localStorage.setItem(DAYDOC,docsJson);
+ localStorage.setItem(CLOSURES,closuresJson);
+
+ /* Nicht nur auf den verzögerten localStorage-Cloud-Queue verlassen:
+    Tagesabschluss, Closure-Marker und Rückstellproben werden sofort
+    in business_data geschrieben. */
  try{
    await Promise.all([
-     gpPersistCloseCloud(SESSIONS,sessions),
      gpPersistCloseCloud(DAYDOC,docs),
      gpPersistCloseCloud(CLOSURES,closures),
      gpPersistCloseCloud(SAMPLES,JSON.parse(samplesJson))
    ]);
  }catch(e){
-   console.error("Zeitraum-Abschluss Cloud speichern:",e);
-   say("Abschluss lokal gespeichert, Cloud-Sicherung konnte aber nicht bestätigt werden.","warn");
-   renderStatus();return;
+   console.error("Tagesabschluss Cloud speichern:",e);
+   say("Tagesabschluss lokal gespeichert, Cloud-Sicherung konnte aber nicht bestätigt werden.","warn");
+   renderStatus();
+   return;
  }
 
  renderStatus();
  window.dispatchEvent(new Event("storage"));
- syncDaySelect();
- const sel=$("haccpArchiveDay");if(sel)sel.value=id;
- renderStatus();
- say(`✓ ${sequence}. Zeitraum am ${pretty(k)} abgeschlossen · ${snap.rows.length} Kontrolle${snap.rows.length===1?"":"n"} dauerhaft gesichert.`, "ok");
+ say(`✓ HACCP-Tag ${pretty(k)} abgeschlossen und dauerhaft gesichert · ${snap.sampleRows.length} Rückstellprobe${snap.sampleRows.length===1?"":"n"}.`, "ok");
 }
 function reportHtml(doc,k,title){
  const rows=Array.isArray(doc?.rows)?doc.rows:[];
@@ -12769,19 +12684,14 @@ function reportHtml(doc,k,title){
    <h2>7. Abweichungen & Maßnahmen (${deviations.length})</h2><div>${deviations.length?deviations.map(r=>`<div><strong>${esc(r.dish||r.location||"Kontrolle")}</strong>: ${esc(r.actual)} °C · ${esc(r.action||"Keine Maßnahme eingetragen")}</div>`).join(""):"Keine Abweichungen dokumentiert."}</div>
  </div>`;
 }
-function selectedClosedDoc(){
- const s=selectedSession();if(s)return s;
- const legacy=selectedLegacyDay();if(legacy)return obj(DAYDOC)[legacy]||null;
- return null;
-}
 function openReport(){
  syncDaySelect();
  const k=selectedDay();if(!k){say("Kein Tag mit Kontrollen vorhanden.","warn");return}
- const docs=obj(DAYDOC),doc=selectedClosedDoc()||(/^\d{4}-\d{2}-\d{2}$/.test(selectedValue())?docs[k]:null);
- if(!doc){say("Dieser Zeitraum ist noch nicht abgeschlossen. Bitte zuerst „HACCP-Tag abschließen“ wählen.","warn");return}
+ const docs=obj(DAYDOC),doc=docs[k];
+ if(!doc){say("Dieser Tag ist noch nicht abgeschlossen. Bitte zuerst „HACCP-Tag abschließen“ wählen.","warn");return}
  const viewer=$("haccpReportViewer"),body=$("haccpReportViewerBody");
  if(!viewer||!body){say("Berichtsansicht konnte nicht geöffnet werden.","warn");return}
- body.innerHTML=reportHtml(doc,k,doc.sequence?`Gesicherter HACCP-Abschluss · ${doc.sequence}. Zeitraum`:"Gesicherter HACCP-Tagesabschluss");
+ body.innerHTML=reportHtml(doc,k,"Gesicherter HACCP-Tagesabschluss");
  viewer.hidden=false;viewer.style.display="block";
  viewer.scrollIntoView({behavior:"smooth",block:"start"});
  say("✓ Bericht geöffnet.","ok");
@@ -12791,15 +12701,15 @@ function printReport(useClosed){
  const k=selectedDay();if(!k){say("Kein Tag mit Kontrollen vorhanden.","warn");return}
  let doc;
  if(useClosed){
-   doc=selectedClosedDoc()||(/^\d{4}-\d{2}-\d{2}$/.test(selectedValue())?obj(DAYDOC)[k]:null);
-   if(!doc){say("Dieser Zeitraum ist noch nicht abgeschlossen. Bitte zuerst den Tagesabschluss speichern.","warn");return}
+   doc=obj(DAYDOC)[k];
+   if(!doc){say("Dieser Tag ist noch nicht abgeschlossen. Bitte zuerst den Tagesabschluss speichern.","warn");return}
  }else{
    doc={savedAt:"aktueller Stand",...snapshot(k)};
    if(!doc.rows.length){say("Für diesen Tag sind keine Kontrollen vorhanden.","warn");return}
  }
  let sheet=$("gpV753PrintSheet");
  if(!sheet){sheet=document.createElement("div");sheet.id="gpV753PrintSheet";document.body.appendChild(sheet)}
- sheet.innerHTML=reportHtml(doc,k,useClosed?(doc.sequence?`Gesicherter HACCP-Abschluss · ${doc.sequence}. Zeitraum`:"Gesicherter HACCP-Tagesabschluss"):"HACCP-Tagesprotokoll");
+ sheet.innerHTML=reportHtml(doc,k,useClosed?"Gesicherter HACCP-Tagesabschluss":"HACCP-Tagesprotokoll");
  say("PDF-/Druckansicht wird geöffnet.","ok");
  setTimeout(()=>window.print(),40);
 }
@@ -12813,7 +12723,6 @@ document.addEventListener("click",function(e){
  if(b.id==="haccpPrintDay")printReport(false);
 },true);
 
-$("haccpArchiveDay")?.addEventListener("change",()=>{renderStatus()});
 document.querySelector('[data-haccp-mode="docs"]')?.addEventListener("click",()=>setTimeout(syncDaySelect,0));
 document.addEventListener("gpTenantDataLoaded",()=>setTimeout(syncDaySelect,120));
 window.addEventListener("storage",()=>setTimeout(syncDaySelect,0));
