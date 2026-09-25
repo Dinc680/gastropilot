@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.03 Speisen Weiterschalten</title>
+<title>GastroPilot – V8.04 stabiler Messablauf</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -9813,8 +9813,15 @@ if(rec.type==="Speisentemperatur"&&rec.dish){
     || currentPoint;
 }
 act.value="";evaluate();render();gpRenderComponents();
-if(gpNextMeasurePoint&&measureComp&&[...measureComp.options].some(o=>gpNormName(o.value)===gpNormName(gpNextMeasurePoint))){
-  measureComp.value=[...measureComp.options].find(o=>gpNormName(o.value)===gpNormName(gpNextMeasurePoint)).value;
+if(gpNextMeasurePoint&&measureComp){
+  const gpNextOption=[...measureComp.options].find(o=>gpNormName(o.value)===gpNormName(gpNextMeasurePoint));
+  if(gpNextOption){
+    measureComp.value=gpNextOption.value;
+    /* Eine einzige Quelle für das Weiterschalten:
+       Die native Speicherfunktion setzt die nächste Messstelle und meldet
+       den Wechsel an die bestehende UI (z. B. Warm/Kalt-Reset, Entwurf). */
+    measureComp.dispatchEvent(new Event("change",{bubbles:true}));
+  }
 }
 gpSetHaccpMode("measure");gpUpdateQuickSteps();gpSaveHaccpDraft();setTimeout(()=>{try{act.focus()}catch(e){}},80)});
 if(archiveDay)archiveDay.addEventListener("change",render);
@@ -13014,43 +13021,6 @@ function updateProgress(){
  const progress=$("haccpComponentProgress");
  if(progress)progress.textContent=`${done}/${ps.length} Messstellen heute gemessen`;
 }
-function selectNextAfterSave(dish,current){
- const sel=$("haccpMeasureComponent");
- if(!sel||!dish)return;
- const ps=points(dish);
- const start=Math.max(0,ps.findIndex(p=>norm(p)===norm(current)));
- const ordered=[...ps.slice(start+1),...ps.slice(0,start+1)];
- const next=ordered.find(p=>!pointMeasured(dish,p));
- if(next){
-   const opt=[...sel.options].find(o=>norm(o.value)===norm(next));
-   if(opt)sel.value=opt.value;
- }else{
-   /* Alles mindestens einmal gemessen: Auswahl bleibt auf der letzten Messstelle.
-      Jede Stelle kann trotzdem jederzeit erneut gewählt und gemessen werden. */
-   const opt=[...sel.options].find(o=>norm(o.value)===norm(current));
-   if(opt)sel.value=opt.value;
- }
- updateProgress();
-}
-
-/* Vor dem nativen Speichern merken wir Gericht und Messstelle.
-   Nach dem Speichern lassen wir die bestehende Save-/Cloud-Logik vollständig arbeiten
-   und korrigieren nur die nächste Auswahl. */
-let pending=null;
-document.addEventListener("click",e=>{
- const b=e.target.closest("#haccpSave");
- if(!b||!isFood())return;
- const dish=$("haccpMenuPick")?.value||$("haccpLocation")?.value||"";
- const point=$("haccpMeasureComponent")?.value||dish;
- if(!dish||dish==="__manual__")return;
- pending={dish,point};
- setTimeout(()=>{
-   if(!pending)return;
-   selectNextAfterSave(pending.dish,pending.point);
-   pending=null;
- },180);
-},true);
-
 /* Die alte feste Messhäufigkeit bleibt intern kompatibel, wird aber für
    Bedienung/Status nicht mehr verwendet. */
 document.addEventListener("change",e=>{
@@ -13260,60 +13230,6 @@ document.addEventListener("gpTenantDataLoaded",()=>setTimeout(boot,300));
 window.addEventListener("storage",()=>setTimeout(boot,120));
 })();
 </script>
-
-
-
-<script id="gp-v803-food-next-after-render">
-(function(){
-"use strict";
-const $=id=>document.getElementById(id);
-let snap=null;
-
-function food(){return $("haccpType")?.value==="Speisentemperatur"}
-
-document.addEventListener("pointerdown",function(e){
-  if(!e.target.closest?.("#haccpSave") || !food()) return;
-  const s=$("haccpMeasureComponent");
-  if(!s || !s.options.length) return;
-  snap={value:s.value,index:s.selectedIndex};
-},true);
-
-document.addEventListener("click",function(e){
-  if(!e.target.closest?.("#haccpSave") || !food() || !snap) return;
-  const saved=snap;
-  snap=null;
-
-  /* Die native Speicherfunktion rendert die Komponenten nach dem Speichern neu.
-     V8.02 schaltete zu früh um und wurde von diesem Render wieder überschrieben.
-     Deshalb warten wir bewusst bis NACH diesem Render. */
-  setTimeout(function(){
-    const notice=$("haccpNotice");
-    const s=$("haccpMeasureComponent");
-    if(!s || !s.options.length) return;
-    if(!String(notice?.textContent||"").trim().startsWith("✓")) return;
-
-    let old=[...s.options].findIndex(o=>o.value===saved.value);
-    if(old<0) old=Math.min(Math.max(saved.index,0),s.options.length-1);
-    s.selectedIndex=(old+1)%s.options.length;
-    s.dispatchEvent(new Event("change",{bubbles:true}));
-
-    /* Ein zweiter kurzer Nachlauf fängt den letzten nativen UI-Refresh ab,
-       ohne Messdaten, Cloud oder Tagesabschluss anzufassen. */
-    const wanted=s.value;
-    setTimeout(function(){
-      const again=$("haccpMeasureComponent");
-      if(!again) return;
-      const i=[...again.options].findIndex(o=>o.value===wanted);
-      if(i>=0 && again.value!==wanted){
-        again.selectedIndex=i;
-        again.dispatchEvent(new Event("change",{bubbles:true}));
-      }
-    },220);
-  },420);
-},true);
-})();
-</script>
-
 </body>
 </html>
   
