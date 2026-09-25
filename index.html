@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.05 Arbeitszentrale</title>
+<title>GastroPilot – V8.05.1 Archivwahl stabil</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -9826,7 +9826,11 @@ if(gpNextMeasurePoint&&measureComp){
   }
 }
 gpSetHaccpMode("measure");gpUpdateQuickSteps();gpSaveHaccpDraft();setTimeout(()=>{try{act.focus()}catch(e){}},80)});
-if(archiveDay)archiveDay.addEventListener("change",render);
+if(archiveDay)archiveDay.addEventListener("change",()=>{
+  /* Archivwahl darf NICHT den kompletten HACCP-Bereich neu rendern.
+     Sonst wird das Select selbst während seines change-Events neu aufgebaut. */
+  gpRenderDayDocStatus();
+});
 
 
 function gpFryerRowsForDay(key){
@@ -12510,7 +12514,11 @@ function allRows(){
  return [...map.values()];
 }
 function rowsFor(k){return allRows().filter(r=>keyOf(r)===k)}
-function availableDays(){return [...new Set(allRows().map(keyOf).filter(Boolean))].sort().reverse()}
+function availableDays(){
+ const measured=allRows().map(keyOf).filter(Boolean);
+ const closed=Object.keys(obj(DAYDOC)).filter(Boolean);
+ return [...new Set([...closed,...measured])].sort().reverse();
+}
 function selectedDay(){
  const sel=$("haccpArchiveDay"),days=availableDays();
  if(sel?.value&&days.includes(sel.value))return sel.value;
@@ -12685,7 +12693,6 @@ function reportHtml(doc,k,title){
  </div>`;
 }
 function openReport(){
- syncDaySelect();
  const k=selectedDay();if(!k){say("Kein Tag mit Kontrollen vorhanden.","warn");return}
  const docs=obj(DAYDOC),doc=docs[k];
  if(!doc){say("Dieser Tag ist noch nicht abgeschlossen. Bitte zuerst „HACCP-Tag abschließen“ wählen.","warn");return}
@@ -12697,7 +12704,6 @@ function openReport(){
  say("✓ Bericht geöffnet.","ok");
 }
 function printReport(useClosed){
- syncDaySelect();
  const k=selectedDay();if(!k){say("Kein Tag mit Kontrollen vorhanden.","warn");return}
  let doc;
  if(useClosed){
@@ -12723,6 +12729,7 @@ document.addEventListener("click",function(e){
  if(b.id==="haccpPrintDay")printReport(false);
 },true);
 
+$("haccpArchiveDay")?.addEventListener("change",()=>renderStatus());
 document.querySelector('[data-haccp-mode="docs"]')?.addEventListener("click",()=>setTimeout(syncDaySelect,0));
 document.addEventListener("gpTenantDataLoaded",()=>setTimeout(syncDaySelect,120));
 window.addEventListener("storage",()=>setTimeout(syncDaySelect,0));
