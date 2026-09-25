@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.06 Abschlusszeiträume</title>
+<title>GastroPilot – V8.06.1 Abschlussfilter</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12497,11 +12497,34 @@ function sessionForValue(v){
  const sessions=sessionList();
  return sessions.find(s=>s.id===v)||null;
 }
+function recordMoment(r){
+ const direct=Date.parse(r?.measuredAt||r?.created_at||r?.dateTime||r?.timestamp||"");
+ if(Number.isFinite(direct))return direct;
+ /* Bestehende GP-Datensätze können Uhrzeit und Datum getrennt tragen.
+    Für Abschlusszeiträume wird daraus derselbe lokale Messzeitpunkt erzeugt,
+    statt den Datensatz wegen fehlendem measuredAt zu verwerfen. */
+ const day=keyOf(r),tm=String(r?.time||r?.date||"").match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+ if(day&&tm){
+   const [y,m,d]=day.split("-").map(Number);
+   return new Date(y,m-1,d,Number(tm[1]),Number(tm[2]),Number(tm[3]||0)).getTime();
+ }
+ return NaN;
+}
 function sessionRowsForClose(day,closedAt){
  const prev=sessionList().filter(s=>s.day===day&&String(s.closedAt)<String(closedAt)).sort((a,b)=>String(b.closedAt).localeCompare(String(a.closedAt)))[0];
- const from=prev?Date.parse(prev.closedAt):0,to=Date.parse(closedAt);
+ /* Bei der ersten V8.06-Session übernehmen wir die bereits bewährte V8.05-
+    Abschlussgrenze. So beginnt die neue Session-Historie nicht wieder bei
+    Mitternacht und alte, schon abgeschlossene Kontrollen werden nicht vermischt. */
+ let from=prev?Date.parse(prev.closedAt):0;
+ if(!prev){
+   const legacy=obj(CLOSURES)[day];
+   const legacyISO=typeof legacy==="string"?legacy:(legacy?.closedAt||legacy?.at||"");
+   const legacyTime=Date.parse(legacyISO||"");
+   if(Number.isFinite(legacyTime))from=legacyTime;
+ }
+ const to=Date.parse(closedAt);
  return rowsFor(day).filter(r=>{
-   const t=Date.parse(r?.measuredAt||r?.created_at||r?.dateTime||r?.timestamp||"");
+   const t=recordMoment(r);
    return Number.isFinite(t) && t>from && t<=to;
  });
 }
@@ -12621,7 +12644,7 @@ function snapshot(k,closedAt=""){
  const sessions=sessionList().filter(s=>s.day===k).sort((a,b)=>String(b.closedAt).localeCompare(String(a.closedAt)));
  const prev=closedAt?sessions.find(s=>String(s.closedAt)<String(closedAt)):sessions[0];
  const from=prev?Date.parse(prev.closedAt):0,to=closedAt?Date.parse(closedAt):Infinity;
- const inWindow=r=>{const t=Date.parse(r?.measuredAt||r?.time||r?.created_at||r?.dateTime||r?.timestamp||r?.date||"");return Number.isFinite(t)?t>from&&t<=to:true};
+ const inWindow=r=>{const t=recordMoment(r);return Number.isFinite(t)?t>from&&t<=to:true};
  const fryer=arr(FRYER).filter(r=>String(r.day||r.isoDate||r.date||"").slice(0,10)===k&&inWindow(r));
  const samples=mergeSamplesForDay(k,false).filter(inWindow);
  const cleaningRows=arr(CLEANLOG).filter(r=>String(r.day||r.isoDate||r.date||r.time||"").slice(0,10)===k&&inWindow(r));
