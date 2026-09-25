@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.05.2 Berichtsansicht stabil</title>
+<title>GastroPilot – V8.07 Cloud-Sicherheitsarchiv</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12485,6 +12485,7 @@ const ARCHIVE="gastropilot_haccp_archive_v1";
 const CURRENT="gastropilot_haccp_temperature_v1";
 const DAYDOC="gastropilot_haccp_daydocs_v1";
 const REPORTSTATE="gastropilot_haccp_report_view_v1";
+const IMMUTABLE_DOC_PREFIX="gastropilot_haccp_closed_report_v1::";
 const CLOSURES="gastropilot_haccp_day_closures_v1";
 const FRYER="gastropilot_haccp_fryer_log_v1";
 const SAMPLES="gastropilot_haccp_samples_v1";
@@ -12615,6 +12616,47 @@ async function gpPersistCloseCloud(key,value){
   if(error)throw error;
 }
 
+function gpImmutableDocKey(day,closedAt){
+ return IMMUTABLE_DOC_PREFIX+day+"::"+String(closedAt||"").replace(/[:.]/g,"-");
+}
+async function gpPersistImmutableClosedReport(day,doc){
+ if(document.body.dataset.gpAuthState!=="authenticated"||!document.body.dataset.gpBusinessId||!window.gpSupabase)
+   throw new Error("Cloud-Verbindung nicht verfügbar");
+ const key=gpImmutableDocKey(day,doc.closedAt);
+ const payload={
+   id:key,day,businessId:document.body.dataset.gpBusinessId,
+   savedAt:doc.savedAt,closedAt:doc.closedAt,reportVersion:doc.reportVersion||"2.4-cloud",
+   rows:JSON.parse(JSON.stringify(doc.rows||[])),
+   fryerRows:JSON.parse(JSON.stringify(doc.fryerRows||[])),
+   sampleRows:JSON.parse(JSON.stringify(doc.sampleRows||[])),
+   cleaningRows:JSON.parse(JSON.stringify(doc.cleaningRows||[])),
+   cleaningTasks:JSON.parse(JSON.stringify(doc.cleaningTasks||[]))
+ };
+ const {error}=await window.gpSupabase.from("business_data").insert({
+   business_id:document.body.dataset.gpBusinessId,data_key:key,
+   data_value:payload,updated_at:new Date().toISOString()
+ });
+ if(error&&String(error.code||"")!=="23505")throw error;
+ return payload;
+}
+async function gpRestoreImmutableClosedReports(){
+ if(document.body.dataset.gpAuthState!=="authenticated"||!document.body.dataset.gpBusinessId||!window.gpSupabase)return 0;
+ const {data,error}=await window.gpSupabase.from("business_data")
+   .select("data_key,data_value")
+   .eq("business_id",document.body.dataset.gpBusinessId)
+   .like("data_key",IMMUTABLE_DOC_PREFIX+"%");
+ if(error)throw error;
+ const docs=obj(DAYDOC);let changed=0;
+ for(const row of (data||[])){
+   const d=row?.data_value;if(!d?.day||!Array.isArray(d.rows))continue;
+   const old=docs[d.day],ot=Date.parse(old?.closedAt||"")||0,nt=Date.parse(d.closedAt||"")||0;
+   if(!old||nt>ot){docs[d.day]=JSON.parse(JSON.stringify(d));changed++}
+ }
+ if(changed){localStorage.setItem(DAYDOC,JSON.stringify(docs));syncDaySelect()}
+ return changed;
+}
+
+
 async function closeDay(){
  syncDaySelect();
  const k=selectedDay();if(!k){say("Für den Tagesabschluss ist noch kein Tag mit Kontrollen vorhanden.","warn");return}
@@ -12650,6 +12692,9 @@ async function closeDay(){
     Tagesabschluss, Closure-Marker und Rückstellproben werden sofort
     in business_data geschrieben. */
  try{
+   /* Zuerst eine eigene unveränderliche Cloud-Kopie dieses Abschlusses.
+      Nur nach Bestätigung wird der Abschluss als dauerhaft gesichert gemeldet. */
+   await gpPersistImmutableClosedReport(k,docs[k]);
    await Promise.all([
      gpPersistCloseCloud(DAYDOC,docs),
      gpPersistCloseCloud(CLOSURES,closures),
@@ -12657,7 +12702,7 @@ async function closeDay(){
    ]);
  }catch(e){
    console.error("Tagesabschluss Cloud speichern:",e);
-   say("Tagesabschluss lokal gespeichert, Cloud-Sicherung konnte aber nicht bestätigt werden.","warn");
+   say("⚠️ Tagesabschluss lokal vorhanden, aber die dauerhafte Cloud-Sicherung wurde NICHT bestätigt.","warn");
    renderStatus();
    return;
  }
@@ -12765,8 +12810,13 @@ document.addEventListener("click",function(e){
 
 $("haccpArchiveDay")?.addEventListener("change",()=>renderStatus());
 document.querySelector('[data-haccp-mode="docs"]')?.addEventListener("click",()=>setTimeout(syncDaySelect,0));
-document.addEventListener("gpTenantDataLoaded",()=>setTimeout(()=>{syncDaySelect();restoreReportView()},140));
+document.addEventListener("gpTenantDataLoaded",()=>setTimeout(async()=>{
+ syncDaySelect();
+ try{await gpRestoreImmutableClosedReports()}catch(e){console.error("Unveränderliches HACCP-Archiv laden:",e)}
+ restoreReportView();
+},160));
 window.addEventListener("storage",()=>setTimeout(syncDaySelect,0));
+window.gpRestoreImmutableClosedReports=gpRestoreImmutableClosedReports;
 document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{syncDaySelect();restoreReportView()},280));
 setTimeout(()=>{syncDaySelect();restoreReportView()},520);
 })();
