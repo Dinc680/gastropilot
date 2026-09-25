@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.07.1 Cloud-Wiederherstellungstest</title>
+<title>GastroPilot – V8.08 Automatische Cloud-Wiederherstellung</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -3810,7 +3810,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
     <div id="haccpDayDocStatus" class="muted gpArchiveHint">Der Tag ist noch nicht abgeschlossen.</div>
   </div>
   <button id="haccpSaveDayDoc" class="secondary" type="button">HACCP-Tag abschließen</button>
-  <button id="haccpOpenDayDoc" class="secondary" type="button">Bericht ansehen</button> <button id="gpCloudSafetyTest" class="secondary" type="button" onclick="window.gpTestCloudSafetyArchive&&window.gpTestCloudSafetyArchive()">☁️ Cloud-Sicherung testen</button><button id="haccpExportDayDoc" class="secondary" type="button">PDF / Teilen</button>
+  <button id="haccpOpenDayDoc" class="secondary" type="button">Bericht ansehen</button><button id="haccpExportDayDoc" class="secondary" type="button">PDF / Teilen</button>
   <button id="gpManageDayDoc" class="secondary" type="button">Verwalten</button><button id="haccpDeleteDayDoc" class="secondary danger gpAdvancedDanger" type="button">Tagesabschluss verwalten</button>
 </div>
 
@@ -12817,37 +12817,7 @@ document.addEventListener("gpTenantDataLoaded",()=>setTimeout(async()=>{
 },160));
 window.addEventListener("storage",()=>setTimeout(syncDaySelect,0));
 window.gpRestoreImmutableClosedReports=gpRestoreImmutableClosedReports;
-window.gpTestCloudSafetyArchive=async function(){
- const sel=$("haccpArchiveDay"),day=sel?.value;
- if(!day){alert("Bitte zuerst einen abgeschlossenen Tag im Archiv auswählen.");return}
- if(document.body.dataset.gpAuthState!=="authenticated"||!document.body.dataset.gpBusinessId||!window.gpSupabase){
-   alert("Cloud-Test nicht möglich: keine aktive Cloud-Verbindung.");return
- }
- try{
-   const {data,error}=await window.gpSupabase.from("business_data")
-     .select("data_key,data_value")
-     .eq("business_id",document.body.dataset.gpBusinessId)
-     .like("data_key",IMMUTABLE_DOC_PREFIX+day+"::%")
-     .order("updated_at",{ascending:false})
-     .limit(1);
-   if(error)throw error;
-   const d=data?.[0]?.data_value;
-   if(!d||d.day!==day||!Array.isArray(d.rows)){
-     alert("❌ Cloud-Sicherheitstest NICHT bestanden.\nFür "+day+" wurde keine gültige unveränderliche Cloud-Kopie gefunden.");
-     return
-   }
-   const viewer=$("haccpReportViewer"),body=$("haccpReportViewerBody");
-   if(!viewer||!body)throw new Error("Berichtsansicht fehlt");
-   body.innerHTML=reportHtml(d,day,"☁️ Cloud-Sicherheitskopie – Wiederherstellungstest");
-   viewer.hidden=false;viewer.style.display="block";
-   saveReportState(false);
-   viewer.scrollIntoView({behavior:"smooth",block:"start"});
-   alert("✅ Cloud-Sicherheitstest bestanden.\nDer Bericht "+day+" wurde direkt aus der unveränderlichen Cloud-Kopie geladen.\nLokale und Cloud-Daten wurden dabei nicht gelöscht oder verändert.");
- }catch(e){
-   console.error("Cloud-Sicherheitstest:",e);
-   alert("❌ Cloud-Sicherheitstest fehlgeschlagen.\n"+(e?.message||e));
- }
-};
+
 document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{syncDaySelect();restoreReportView()},280));
 setTimeout(()=>{syncDaySelect();restoreReportView()},520);
 })();
