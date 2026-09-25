@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.0 Stabilitätskern</title>
+<title>GastroPilot – V8.02 Speisen Weiterschalten</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -13260,6 +13260,64 @@ document.addEventListener("gpTenantDataLoaded",()=>setTimeout(boot,300));
 window.addEventListener("storage",()=>setTimeout(boot,120));
 })();
 </script>
+
+
+<script id="gp-v802-food-next-point">
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+let before=null;
+
+/* Nur Bedienung:
+   Nach ERFOLGREICHER Speisenmessung wird im vorhandenen Dropdown
+   genau eine Position weitergeschaltet. Keine Cloud-, Archiv-, Heute-
+   oder Tagesabschlusslogik wird hier berührt. */
+document.addEventListener("pointerdown",function(e){
+  if(!e.target.closest?.("#haccpSave")) return;
+  if($("haccpType")?.value!=="Speisentemperatur") return;
+  const sel=$("haccpMeasureComponent");
+  if(!sel || !sel.options.length) return;
+  before={value:sel.value,index:sel.selectedIndex};
+},true);
+
+document.addEventListener("click",function(e){
+  if(!e.target.closest?.("#haccpSave")) return;
+  if($("haccpType")?.value!=="Speisentemperatur") return;
+  const snap=before;
+  before=null;
+  if(!snap) return;
+
+  setTimeout(function(){
+    const notice=$("haccpNotice");
+    const sel=$("haccpMeasureComponent");
+    if(!sel || sel.options.length<1) return;
+
+    /* Nur weiterschalten, wenn die native Speicherfunktion Erfolg meldet. */
+    if(!String(notice?.textContent||"").trim().startsWith("✓")) return;
+
+    /* Nach einem nativen Re-Render die ursprüngliche Messstelle wiederfinden.
+       Danach strikt die nächste Option wählen. */
+    let oldIndex=[...sel.options].findIndex(o=>o.value===snap.value);
+    if(oldIndex<0) oldIndex=Math.min(Math.max(snap.index,0),sel.options.length-1);
+    const nextIndex=(oldIndex+1)%sel.options.length;
+
+    sel.selectedIndex=nextIndex;
+    sel.dispatchEvent(new Event("change",{bubbles:true}));
+
+    /* Auf iPhone sichtbar machen, dass GP tatsächlich weitergeschaltet hat. */
+    sel.classList.add("gpAutoAdvanced");
+    setTimeout(()=>sel.classList.remove("gpAutoAdvanced"),650);
+  },120);
+},true);
+})();
+</script>
+
+<style id="gp-v802-food-next-point-css">
+body.gpFoodMeasureMode #haccpMeasureComponent.gpAutoAdvanced{
+  outline:3px solid rgba(23,99,79,.22);
+  outline-offset:3px;
+}
+</style>
 
 </body>
 </html>
