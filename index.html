@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.08 Automatische Cloud-Wiederherstellung</title>
+<title>GastroPilot – V8.09 Mehrere Tagesabschlüsse</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -3799,7 +3799,7 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
     <div id="haccpArchiveCount" class="gpArchiveCount"></div>
     <div class="muted gpArchiveHint">Alle abgeschlossenen und gespeicherten Kontrollen nach Tagen.</div>
   </div>
-  <select id="haccpArchiveDay" aria-label="Archivtag auswählen"></select>
+  <select id="haccpArchiveDay" aria-label="Archivtag auswählen"></select><div id="gpArchivePeriodWrap" hidden style="margin-top:10px"><label>Abschluss<select id="gpArchivePeriod"></select></label></div>
   <button id="haccpPrintDay" class="secondary" type="button">PDF erstellen</button>
   <button id="gpManageArchive" class="secondary" type="button">Verwalten</button><button id="haccpDeleteArchiveDay" class="secondary danger gpAdvancedDanger" type="button">Tag verwalten / löschen</button>
 </div>
@@ -12707,7 +12707,7 @@ async function closeDay(){
    return;
  }
 
- renderStatus();
+ renderStatus();await gpRefreshPeriodSelect();
  window.dispatchEvent(new Event("storage"));
  say(`✓ HACCP-Tag ${pretty(k)} abgeschlossen und dauerhaft gesichert · ${snap.sampleRows.length} Rückstellprobe${snap.sampleRows.length===1?"":"n"}.`, "ok");
 }
@@ -12738,6 +12738,31 @@ function reportHtml(doc,k,title){
    <h2>7. Abweichungen & Maßnahmen (${deviations.length})</h2><div>${deviations.length?deviations.map(r=>`<div><strong>${esc(r.dish||r.location||"Kontrolle")}</strong>: ${esc(r.actual)} °C · ${esc(r.action||"Keine Maßnahme eingetragen")}</div>`).join(""):"Keine Abweichungen dokumentiert."}</div>
  </div>`;
 }
+
+async function gpCloudClosedReportsForDay(day){
+ if(document.body.dataset.gpAuthState!=="authenticated"||!document.body.dataset.gpBusinessId||!window.gpSupabase)return [];
+ const {data,error}=await window.gpSupabase.from("business_data").select("data_key,data_value,updated_at").eq("business_id",document.body.dataset.gpBusinessId).like("data_key",IMMUTABLE_DOC_PREFIX+day+"::%").order("updated_at",{ascending:true});
+ if(error)throw error;
+ return (data||[]).map(r=>r.data_value).filter(d=>d?.day===day&&Array.isArray(d.rows)).sort((x,y)=>(Date.parse(x.closedAt||x.savedAt||"")||0)-(Date.parse(y.closedAt||y.savedAt||"")||0));
+}
+function gpPeriodLabel(doc,index){
+ const d=new Date(doc?.closedAt||doc?.savedAt||"");
+ const t=isNaN(d)?"":d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+ return (index+1)+". Abschluss"+(t?" – "+t+" Uhr":"");
+}
+async function gpRefreshPeriodSelect(preferredId=""){
+ const wrap=$("gpArchivePeriodWrap"),sel=$("gpArchivePeriod"),day=selectedDay();if(!wrap||!sel||!day)return [];
+ let reports=[];try{reports=await gpCloudClosedReportsForDay(day)}catch(e){console.error("Abschlüsse laden:",e)}
+ if(!reports.length){const local=obj(DAYDOC)[day];if(local)reports=[local]}
+ sel.innerHTML="";
+ reports.forEach((doc,i)=>{const o=document.createElement("option");o.value=doc.id||gpImmutableDocKey(day,doc.closedAt||doc.savedAt||String(i));o.textContent=gpPeriodLabel(doc,i);o._gpDoc=doc;sel.appendChild(o)});
+ if(preferredId&&[...sel.options].some(o=>o.value===preferredId))sel.value=preferredId;
+ wrap.hidden=reports.length<=1;return reports;
+}
+function gpSelectedPeriodDoc(){
+ const sel=$("gpArchivePeriod");if(sel&&sel.selectedOptions?.[0]?._gpDoc)return sel.selectedOptions[0]._gpDoc;
+ const day=selectedDay();return day?obj(DAYDOC)[day]:null;
+}
 function saveReportState(open,day=""){
  try{
    if(open&&day)localStorage.setItem(REPORTSTATE,JSON.stringify({open:true,day}));
@@ -12752,28 +12777,28 @@ function closeReportView(){
  /* Erfolgs-/Hinweistext gehört zur Berichtsaktion und wird beim Schließen entfernt. */
  const n=$("gpDocsNotice");if(n){n.textContent="";n.className=""}
 }
-function restoreReportView(){
+async function restoreReportView(){
  let state=null;try{state=JSON.parse(localStorage.getItem(REPORTSTATE)||"null")}catch(e){}
  if(!state?.open||!state.day)return;
- const docs=obj(DAYDOC),doc=docs[state.day];
- if(!doc){saveReportState(false);return}
  const sel=$("haccpArchiveDay");
  if(sel&&[...sel.options].some(o=>o.value===state.day))sel.value=state.day;
- renderStatus();
- const viewer=$("haccpReportViewer"),body=$("haccpReportViewerBody");
- if(!viewer||!body)return;
+ renderStatus();await gpRefreshPeriodSelect(state.periodId||"");
+ const doc=gpSelectedPeriodDoc();if(!doc){saveReportState(false);return}
+ const viewer=$("haccpReportViewer"),body=$("haccpReportViewerBody");if(!viewer||!body)return;
  body.innerHTML=reportHtml(doc,state.day,"Gesicherter HACCP-Tagesabschluss");
  viewer.hidden=false;viewer.style.display="block";
 }
-function openReport(){
+async function openReport(){
  const k=selectedDay();if(!k){say("Kein Tag mit Kontrollen vorhanden.","warn");return}
- const docs=obj(DAYDOC),doc=docs[k];
+ await gpRefreshPeriodSelect();
+ const doc=gpSelectedPeriodDoc();
  if(!doc){say("Dieser Tag ist noch nicht abgeschlossen. Bitte zuerst „HACCP-Tag abschließen“ wählen.","warn");return}
  const viewer=$("haccpReportViewer"),body=$("haccpReportViewerBody");
  if(!viewer||!body){say("Berichtsansicht konnte nicht geöffnet werden.","warn");return}
  body.innerHTML=reportHtml(doc,k,"Gesicherter HACCP-Tagesabschluss");
  viewer.hidden=false;viewer.style.display="block";
  saveReportState(true,k);
+ try{const ps=$("gpArchivePeriod"),s=JSON.parse(localStorage.getItem(REPORTSTATE)||"{}");if(ps?.value){s.periodId=ps.value;localStorage.setItem(REPORTSTATE,JSON.stringify(s))}}catch(e){}
  viewer.scrollIntoView({behavior:"smooth",block:"start"});
  say("✓ Bericht geöffnet.","ok");
 }
@@ -12813,13 +12838,21 @@ document.querySelector('[data-haccp-mode="docs"]')?.addEventListener("click",()=
 document.addEventListener("gpTenantDataLoaded",()=>setTimeout(async()=>{
  syncDaySelect();
  try{await gpRestoreImmutableClosedReports()}catch(e){console.error("Unveränderliches HACCP-Archiv laden:",e)}
- restoreReportView();
+ await gpRefreshPeriodSelect();await restoreReportView();
 },160));
 window.addEventListener("storage",()=>setTimeout(syncDaySelect,0));
 window.gpRestoreImmutableClosedReports=gpRestoreImmutableClosedReports;
+const gpPeriodDaySelect=$("haccpArchiveDay"),gpPeriodSelect=$("gpArchivePeriod");
+if(gpPeriodDaySelect)gpPeriodDaySelect.addEventListener("change",()=>{void gpRefreshPeriodSelect()});
+if(gpPeriodSelect)gpPeriodSelect.addEventListener("change",()=>{
+ const day=selectedDay(),doc=gpSelectedPeriodDoc(),viewer=$("haccpReportViewer"),body=$("haccpReportViewerBody");
+ if(viewer&&!viewer.hidden&&body&&day&&doc){body.innerHTML=reportHtml(doc,day,"Gesicherter HACCP-Tagesabschluss");
+  try{const s=JSON.parse(localStorage.getItem(REPORTSTATE)||"{}");if(s.open){s.day=day;s.periodId=gpPeriodSelect.value;localStorage.setItem(REPORTSTATE,JSON.stringify(s))}}catch(e){}}
+});
 
-document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{syncDaySelect();restoreReportView()},280));
-setTimeout(()=>{syncDaySelect();restoreReportView()},520);
+
+document.addEventListener("DOMContentLoaded",()=>setTimeout(async()=>{syncDaySelect();await gpRefreshPeriodSelect();await restoreReportView()},280));
+setTimeout(async()=>{syncDaySelect();await gpRefreshPeriodSelect();await restoreReportView()},520);
 })();
 </script>
 
