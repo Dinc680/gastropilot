@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.09.1 Abschlussauswahl stabil</title>
+<title>GastroPilot – V8.09.2 Getrennte Abschlusszeiträume</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12596,11 +12596,41 @@ function mergeSamplesForDay(k,persist=false){
   return samples;
 }
 
+
+function gpRecordMoment(r){
+ const candidates=[r?.measuredAt,r?.created_at,r?.createdAt,r?.time,r?.timestamp,r?.dateTime];
+ for(const v of candidates){
+   if(!v)continue;
+   const t=Date.parse(v);if(Number.isFinite(t))return t;
+ }
+ const raw=String(r?.date||"").trim();
+ if(raw){
+   const t=Date.parse(raw);if(Number.isFinite(t))return t;
+   const m=raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:,\s*|\s+)(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+   if(m)return new Date(+m[3],+m[2]-1,+m[1],+m[4],+m[5],+(m[6]||0)).getTime();
+ }
+ return 0;
+}
+function gpPreviousCloseMoment(k){
+ const c=obj(CLOSURES)[k];
+ const raw=(typeof c==="string")?c:(c?.closedAt||c?.savedAt||"");
+ const t=Date.parse(raw);return Number.isFinite(t)?t:0;
+}
+function gpAfterPreviousClose(rows,k){
+ const boundary=gpPreviousCloseMoment(k);
+ if(!boundary)return rows;
+ return rows.filter(r=>{
+   const t=gpRecordMoment(r);
+   /* Nur eindeutig nach dem vorherigen Abschluss gemessene Datensätze.
+      Undatierbare Alt-Datensätze werden nicht in einen neuen Zeitraum gezogen. */
+   return t>boundary;
+ });
+}
 function snapshot(k){
- const rows=rowsFor(k);
- const fryer=arr(FRYER).filter(r=>String(r.day||r.isoDate||r.date||"").slice(0,10)===k);
- const samples=mergeSamplesForDay(k,false);
- const cleaningRows=arr(CLEANLOG).filter(r=>String(r.day||r.isoDate||r.date||r.time||"").slice(0,10)===k);
+ const rows=gpAfterPreviousClose(rowsFor(k),k);
+ const fryer=gpAfterPreviousClose(arr(FRYER).filter(r=>String(r.day||r.isoDate||r.date||"").slice(0,10)===k),k);
+ const samples=gpAfterPreviousClose(mergeSamplesForDay(k,false),k);
+ const cleaningRows=gpAfterPreviousClose(arr(CLEANLOG).filter(r=>String(r.day||r.isoDate||r.date||r.time||"").slice(0,10)===k),k);
  const cleaningTasks=arr(CLEANTASKS);
  return {rows, fryerRows:fryer, sampleRows:samples, cleaningRows, cleaningTasks};
 }
@@ -12667,7 +12697,11 @@ async function closeDay(){
  mergeSamplesForDay(k,true);
 
  const snap=snapshot(k);
- if(!snap.rows.length){say("Für diesen Tag sind keine Temperaturkontrollen vorhanden.","warn");return}
+ if(!snap.rows.length){
+ const prev=gpPreviousCloseMoment(k);
+ say(prev?"Seit dem letzten Abschluss sind keine neuen Temperaturkontrollen vorhanden.":"Für diesen Tag sind keine Temperaturkontrollen vorhanden.","warn");
+ return
+}
 
  const now=new Date(),closedAt=now.toISOString();
  const docs=obj(DAYDOC);
