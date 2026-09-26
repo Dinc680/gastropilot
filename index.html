@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.09.2 Getrennte Abschlusszeiträume</title>
+<title>GastroPilot – V8.09.3 Reinigung Turnus UX</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -3654,8 +3654,10 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
       <label>Verfahren<input id="gpCleaningMethod" type="text" placeholder="z. B. reinigen und desinfizieren"></label>
       <label>Reinigungsmittel<input id="gpCleaningProduct" type="text" placeholder="z. B. Flächendesinfektion"></label>
       <label>Intervall<select id="gpCleaningInterval"><option value="daily">Täglich</option><option value="afteruse">Nach Gebrauch</option><option value="weekly">Wöchentlich</option><option value="monthly">Monatlich</option><option value="custom">Individuell / bei Bedarf</option></select></label>
-      <label id="gpCleaningWeekdayWrap" hidden>Wochentag<select id="gpCleaningWeekday"><option value="1">Montag</option><option value="2">Dienstag</option><option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option><option value="6">Samstag</option><option value="0">Sonntag</option></select></label>
-      <label id="gpCleaningMonthdayWrap" hidden>Monatlich fällig<select id="gpCleaningMonthday"><option value="1">am 1.</option><option value="5">am 5.</option><option value="10">am 10.</option><option value="15">am 15.</option><option value="20">am 20.</option><option value="25">am 25.</option><option value="lastworkday">letzter Arbeitstag</option></select></label>
+      <div id="gpCleaningScheduleDetail" hidden>
+        <label id="gpCleaningWeekdayWrap" hidden>Wochentag<select id="gpCleaningWeekday"><option value="1">Montag</option><option value="2">Dienstag</option><option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option><option value="6">Samstag</option><option value="0">Sonntag</option></select></label>
+        <label id="gpCleaningMonthdayWrap" hidden>Monatlich fällig<select id="gpCleaningMonthday"><option value="1">am 1.</option><option value="5">am 5.</option><option value="10">am 10.</option><option value="15">am 15.</option><option value="20">am 20.</option><option value="25">am 25.</option><option value="lastworkday">letzter Arbeitstag</option></select></label>
+      </div>
       <label>Zuständig<input id="gpCleaningResponsible" type="text" placeholder="z. B. Küche / Spätdienst"></label>
       <button id="gpCleaningAdd" class="secondary" type="button">+ Aufgabe speichern</button>
     </div>
@@ -10463,7 +10465,13 @@ function renderAdmin(){const box=$c("gpCleaningTaskList");if(!box)return;const a
 function taskCard(t,l,onDemand){const row=l.filter(x=>x.taskId===t.id).slice().sort((a,b)=>(b.savedAt||"").localeCompare(a.savedAt||""))[0],state=row?(row.status||"done"):"open",done=state==="done",nr=state==="not_required";return `<div class="gpCleaningTask ${done?"gpDone":nr?"gpNotRequired":""}"><div><div class="gpCleaningTaskTitle">${escC(t.object)}</div><div class="gpCleaningTaskMeta">${escC(t.method||"—")} · ${escC(t.product||"—")} · ${escC(scheduleLabel(t))} · ${escC(t.responsible||"—")}</div><div class="gpCleaningTaskStatus">${done?`✓ Erledigt · ${escC(row.time||"")} · ${escC(row.employee||"—")}`:nr?`— Heute nicht erforderlich · ${escC(row.time||"")} · ${escC(row.employee||"—")}`:"⬜ Offen"}</div>${row&&row.note?`<div class="gpCleaningTaskMeta">Bemerkung: ${escC(row.note)}</div>`:""}</div><button class="${done||nr?"secondary":"primary"}" data-clean-open="${escC(t.id)}" type="button">${done||nr?"Status ändern":onDemand?"Dokumentieren":"Erledigen"}</button></div>`}
 function renderToday(){const box=$c("gpCleaningTodayList"),onBox=$c("gpCleaningOnDemandList"),onWrap=$c("gpCleaningOnDemandWrap"),empty=$c("gpCleaningEmpty"),progress=$c("gpCleaningProgress");if(!box)return;const key=todayKey(),all=tasks(),scheduled=all.filter(t=>dueTask(t,key)),onDemand=all.filter(t=>t.interval==="afteruse"||t.interval==="custom"),l=logs().filter(x=>x.day===key),latest=new Map();l.slice().sort((a,b)=>(a.savedAt||"").localeCompare(b.savedAt||"")).forEach(r=>latest.set(r.taskId,r));const done=scheduled.filter(t=>(latest.get(t.id)?.status||"")==="done").length,nr=scheduled.filter(t=>(latest.get(t.id)?.status||"")==="not_required").length;progress.textContent=`${done} erledigt · ${nr} nicht erforderlich · ${scheduled.length-done-nr} offen`;empty.style.display=scheduled.length?"none":"block";box.innerHTML=scheduled.map(t=>taskCard(t,l,false)).join("");if(onWrap){onWrap.hidden=!onDemand.length;onBox.innerHTML=onDemand.map(t=>taskCard(t,l,true)).join("")}}
 function renderAll(){renderAdmin();renderToday()}
-function updateScheduleFields(){const v=$c("gpCleaningInterval")?.value;if($c("gpCleaningWeekdayWrap"))$c("gpCleaningWeekdayWrap").hidden=v!=="weekly";if($c("gpCleaningMonthdayWrap"))$c("gpCleaningMonthdayWrap").hidden=v!=="monthly"}
+function updateScheduleFields(){
+ const v=$c("gpCleaningInterval")?.value;
+ const needsDetail=v==="weekly"||v==="monthly";
+ if($c("gpCleaningScheduleDetail"))$c("gpCleaningScheduleDetail").hidden=!needsDetail;
+ if($c("gpCleaningWeekdayWrap"))$c("gpCleaningWeekdayWrap").hidden=v!=="weekly";
+ if($c("gpCleaningMonthdayWrap"))$c("gpCleaningMonthdayWrap").hidden=v!=="monthly";
+}
 $c("gpCleaningInterval")?.addEventListener("change",updateScheduleFields);updateScheduleFields();
 $c("gpCleaningManageToggle")?.addEventListener("click",()=>{const b=$c("gpCleaningManage");b.hidden=!b.hidden;$c("gpCleaningManageToggle").textContent=b.hidden?"⚙️ Reinigungsplan":"✕ Schließen";renderAdmin()});
 $c("gpCleaningAdd")?.addEventListener("click",()=>{const object=$c("gpCleaningObject").value.trim();if(!object){$c("gpCleaningManageNotice").textContent="Bitte Bereich / Objekt eintragen.";return}const a=tasks();a.push({id:"clean-"+Date.now(),object,method:$c("gpCleaningMethod").value.trim(),product:$c("gpCleaningProduct").value.trim(),interval:$c("gpCleaningInterval").value,weekday:$c("gpCleaningWeekday")?.value||"1",monthday:$c("gpCleaningMonthday")?.value||"1",responsible:$c("gpCleaningResponsible").value.trim()});save(TASK_KEY,a);["gpCleaningObject","gpCleaningMethod","gpCleaningProduct","gpCleaningResponsible"].forEach(id=>$c(id).value="");$c("gpCleaningManageNotice").textContent="✓ Reinigungsaufgabe gespeichert.";renderAll()});
