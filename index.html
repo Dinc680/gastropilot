@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.09.3 Reinigung Turnus UX</title>
+<title>GastroPilot – V8.09.4 Rezept-Cloud</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -11210,12 +11210,34 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
 </script>
 
 
+
+<!-- GastroPilot V8.09.4 – Rezept/Kalkulation Cloud-Migration -->
+<script id="gp-v8094-recipe-cloud-capture-js">
+(function(){
+ const keys=[
+  "gastropilot_custom_recipes",
+  "gastropilot_recipe_extras",
+  "gastropilot_recipe_amount_overrides",
+  "gastropilot_ingredient_prices"
+ ];
+ const values={};
+ keys.forEach(k=>{const v=localStorage.getItem(k);if(v!==null)values[k]=v});
+ let business={};
+ try{business=JSON.parse(localStorage.getItem("gastropilot_business_v1")||"{}")||{}}catch(e){}
+ window.__gpRecipeCloudMigration={values,businessName:String(business.name||"").trim()};
+})();
+</script>
+
 <!-- GastroPilot V7.28 – zentrale Mandantenschicht -->
 <script id="gp-v728-tenant-layer-js">
 (function(){
   const CLOUD_KEYS=[
     "gastropilot_week_plan",
     "gastropilot_shopping_list",
+    "gastropilot_custom_recipes",
+    "gastropilot_recipe_extras",
+    "gastropilot_recipe_amount_overrides",
+    "gastropilot_ingredient_prices",
     "gastropilot_haccp_temperature_v1",
     "gastropilot_haccp_components_v1",
     "gastropilot_haccp_daydocs_v1",
@@ -11233,6 +11255,10 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
   const EMPTY={
     "gastropilot_week_plan":"{}",
     "gastropilot_shopping_list":"[]",
+    "gastropilot_custom_recipes":"[]",
+    "gastropilot_recipe_extras":"{}",
+    "gastropilot_recipe_amount_overrides":"{}",
+    "gastropilot_ingredient_prices":"{}",
     "gastropilot_haccp_temperature_v1":"[]",
     "gastropilot_haccp_components_v1":"{}",
     "gastropilot_haccp_daydocs_v1":"{}",
@@ -11312,6 +11338,26 @@ body[data-gp-cloud-devices="ready"] #haccpDeviceStatus::after{content:" · ☁�
       ]);
       if(error)throw error;
       const rows=new Map((data||[]).map(r=>[r.data_key,r.data_value]));
+      const recipeCloudKeys=[
+        "gastropilot_custom_recipes","gastropilot_recipe_extras",
+        "gastropilot_recipe_amount_overrides","gastropilot_ingredient_prices"
+      ];
+      const migration=window.__gpRecipeCloudMigration||{values:{},businessName:""};
+      const sameBusiness=!!migration.businessName && migration.businessName===String(business?.name||"").trim();
+      if(sameBusiness){
+        for(const key of recipeCloudKeys){
+          if(rows.has(key) || !(key in migration.values))continue;
+          let parsed;try{parsed=JSON.parse(migration.values[key])}catch(e){continue}
+          const meaningful=Array.isArray(parsed)?parsed.length>0:(parsed&&typeof parsed==="object"?Object.keys(parsed).length>0:false);
+          if(!meaningful)continue;
+          const {error:migrationError}=await window.gpSupabase.from("business_data").upsert({
+            business_id:bid,data_key:key,data_value:parsed,updated_at:new Date().toISOString()
+          },{onConflict:"business_id,data_key"});
+          if(migrationError)throw migrationError;
+          rows.set(key,parsed);
+        }
+      }
+      window.__gpRecipeCloudMigration=null;
       CLOUD_KEYS.forEach(key=>{
         const v=rows.has(key)?JSON.stringify(rows.get(key)):emptyFor(key);
         rawSet.call(localStorage,key,v);
@@ -11559,6 +11605,34 @@ body[data-gp-auth-state="authenticated"][data-gp-cloud-role="employee"] #gpStaff
   document.addEventListener("gpTenantDataLoaded",()=>{setTimeout(()=>{syncActiveForTenant();enforceCloudPermissions()},80)});
   new MutationObserver(watch).observe(document.body,{attributes:true,attributeFilter:["data-gp-business-id","data-gp-cloud-role","data-gp-auth-state"]});
   setInterval(watch,1400);watch();
+})();
+</script>
+
+<!-- GastroPilot V8.09.4 – Rezept/Kalkulation pro Betrieb neu laden -->
+<script id="gp-v8094-recipe-cloud-reload-js">
+(function(){
+ function reloadRecipeCloudData(){
+  if(document.body.dataset.gpTenantData!=="ready")return;
+  try{
+   const read=(k,fallback)=>{try{const v=JSON.parse(localStorage.getItem(k)||JSON.stringify(fallback));return v}catch(e){return fallback}};
+   const cr=read("gastropilot_custom_recipes",[]);
+   const ex=read("gastropilot_recipe_extras",{});
+   const ov=read("gastropilot_recipe_amount_overrides",{});
+   const pr=read("gastropilot_ingredient_prices",{});
+   customRecipes=Array.isArray(cr)?cr:[];
+   recipeExtras=ex&&typeof ex==="object"&&!Array.isArray(ex)?ex:{};
+   recipeAmountOverrides=ov&&typeof ov==="object"&&!Array.isArray(ov)?ov:{};
+   ingredientPrices=pr&&typeof pr==="object"&&!Array.isArray(pr)?pr:{};
+   if(typeof showSuggestions==="function"){
+    const input=document.getElementById("searchInput");
+    if(input&&input.value.trim())showSuggestions();
+   }
+  }catch(err){console.error("GastroPilot Rezept/Kalkulation Mandant laden:",err)}
+ }
+ document.addEventListener("gpTenantDataLoaded",()=>setTimeout(reloadRecipeCloudData,0));
+ new MutationObserver(()=>{if(document.body.dataset.gpTenantData==="ready")setTimeout(reloadRecipeCloudData,0)})
+  .observe(document.body,{attributes:true,attributeFilter:["data-gp-tenant-data"]});
+ setTimeout(reloadRecipeCloudData,350);
 })();
 </script>
 
