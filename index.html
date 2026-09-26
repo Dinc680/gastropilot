@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.09 Mehrere Tagesabschlüsse</title>
+<title>GastroPilot – V8.09.1 Abschlussauswahl stabil</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -12707,7 +12707,9 @@ async function closeDay(){
    return;
  }
 
- renderStatus();await gpRefreshPeriodSelect();
+ renderStatus();
+ const gpNewReports=await gpRefreshPeriodSelect();
+ if(gpPeriodSelect&&gpNewReports.length)gpPeriodSelect.selectedIndex=gpNewReports.length-1;
  window.dispatchEvent(new Event("storage"));
  say(`✓ HACCP-Tag ${pretty(k)} abgeschlossen und dauerhaft gesichert · ${snap.sampleRows.length} Rückstellprobe${snap.sampleRows.length===1?"":"n"}.`, "ok");
 }
@@ -12790,7 +12792,7 @@ async function restoreReportView(){
 }
 async function openReport(){
  const k=selectedDay();if(!k){say("Kein Tag mit Kontrollen vorhanden.","warn");return}
- await gpRefreshPeriodSelect();
+ /* Abschlussauswahl nicht neu aufbauen: Benutzerwahl bleibt erhalten. */
  const doc=gpSelectedPeriodDoc();
  if(!doc){say("Dieser Tag ist noch nicht abgeschlossen. Bitte zuerst „HACCP-Tag abschließen“ wählen.","warn");return}
  const viewer=$("haccpReportViewer"),body=$("haccpReportViewerBody");
@@ -12843,7 +12845,9 @@ document.addEventListener("gpTenantDataLoaded",()=>setTimeout(async()=>{
 window.addEventListener("storage",()=>setTimeout(syncDaySelect,0));
 window.gpRestoreImmutableClosedReports=gpRestoreImmutableClosedReports;
 const gpPeriodDaySelect=$("haccpArchiveDay"),gpPeriodSelect=$("gpArchivePeriod");
-if(gpPeriodDaySelect)gpPeriodDaySelect.addEventListener("change",()=>{void gpRefreshPeriodSelect()});
+if(gpPeriodDaySelect)gpPeriodDaySelect.addEventListener("change",()=>{
+ const keep=gpPeriodSelect?.value||"";void gpRefreshPeriodSelect(keep);
+});
 if(gpPeriodSelect)gpPeriodSelect.addEventListener("change",()=>{
  const day=selectedDay(),doc=gpSelectedPeriodDoc(),viewer=$("haccpReportViewer"),body=$("haccpReportViewerBody");
  if(viewer&&!viewer.hidden&&body&&day&&doc){body.innerHTML=reportHtml(doc,day,"Gesicherter HACCP-Tagesabschluss");
