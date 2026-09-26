@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GastroPilot – V8.09.4 Rezept-Cloud</title>
+<title>GastroPilot – V8.09.5 Reinigungslisten-Import</title>
 <!-- Wochenplaner V2 – robuster Start -->
 
 <style>
@@ -2880,6 +2880,13 @@ button.secondary{min-height:42px;font-weight:800!important;border-width:1.5px!im
 .gpCleaningTask.gpDone{background:#f1f8f5;border-color:#c9e2d7}.gpCleaningTaskTitle{font-weight:850;color:#27483f}.gpCleaningTaskMeta{font-size:10px;color:#74807b;margin-top:3px}.gpCleaningTaskStatus{font-size:10px;font-weight:850;margin-top:5px;color:#8a641b}.gpCleaningTask.gpDone .gpCleaningTaskStatus{color:#176544}
 .gpCleaningCompleteBox{margin-top:14px;padding:14px;border:2px solid #d7a34a;border-radius:13px;background:#fffaf1}.gpCleaningSelectedTask{font-weight:800;margin-bottom:9px}.gpCleaningCompleteActions{display:flex;gap:8px;flex-wrap:wrap}
 .gpCleaningSummaryReport{margin-top:14px}
+.gpCleaningImportBox{margin:0 0 14px;padding:12px;border:1px dashed #b8cbc4;border-radius:12px;background:#fff}
+#gpCleaningImportPanel{margin-top:12px}
+#gpCleaningImportImageWrap{margin-bottom:10px}#gpCleaningImportImage{display:block;width:100%;max-height:260px;object-fit:contain;border-radius:10px;border:1px solid #dce5e1;background:#f6f8f7}
+.gpCleaningImportRow{display:grid;grid-template-columns:1.35fr 1fr 1fr .85fr 1fr auto;gap:7px;align-items:end;padding:9px 0;border-bottom:1px solid #e4ebe8}
+.gpCleaningImportRow label{font-size:10px}.gpCleaningImportRow input,.gpCleaningImportRow select{width:100%}
+.gpCleaningImportActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:720px){.gpCleaningImportRow{grid-template-columns:1fr 1fr}.gpCleaningImportRow .gpImportRemove{grid-column:1/-1;width:100%}}
 @media(max-width:720px){#gpHaccpModeNav{grid-template-columns:repeat(2,minmax(0,1fr))}.gpCleaningForm{grid-template-columns:1fr}.gpCleaningTask{grid-template-columns:1fr}.gpCleaningTask button{width:100%}}
 </style>
 
@@ -3648,6 +3655,21 @@ Plane Montag bis Freitag jeweils Suppe, drei Hauptgerichte und Dessert. Für jed
 
   <div id="gpCleaningManage" class="gpCleaningManage" hidden>
     <div class="gpCleaningManageTitle">Betriebseigene Reinigungsaufgaben</div>
+    <div class="gpCleaningImportBox">
+      <button id="gpCleaningImportOpen" class="secondary" type="button">📷 Alte Reinigungsliste übernehmen</button>
+      <div class="muted" style="margin-top:6px">Foto auswählen, erkannte Aufgaben prüfen und erst danach übernehmen.</div>
+      <input id="gpCleaningImportFile" type="file" accept="image/*" capture="environment" hidden>
+      <div id="gpCleaningImportPanel" hidden>
+        <div id="gpCleaningImportImageWrap" hidden><img id="gpCleaningImportImage" alt="Ausgewählte Reinigungsliste"></div>
+        <div id="gpCleaningImportState" class="saveSuccess"></div>
+        <div id="gpCleaningImportPreview"></div>
+        <div class="gpCleaningImportActions">
+          <button id="gpCleaningImportAddRow" class="secondary" type="button">+ Aufgabe ergänzen</button>
+          <button id="gpCleaningImportApply" class="primary" type="button">✓ Geprüfte Aufgaben übernehmen</button>
+          <button id="gpCleaningImportCancel" class="secondary" type="button">Abbrechen</button>
+        </div>
+      </div>
+    </div>
     <div id="gpCleaningTaskList"></div>
     <div class="gpCleaningForm">
       <label>Bereich / Objekt<input id="gpCleaningObject" type="text" placeholder="z. B. Arbeitstische Küche"></label>
@@ -10482,6 +10504,56 @@ $c("gpCleaningCancel")?.addEventListener("click",()=>{$c("gpCleaningCompleteBox"
 function saveStatus(status){const t=tasks().find(x=>x.id===selectedId);if(!t)return;const emp=$c("gpCleaningEmployee").value.trim();if(!emp){$c("gpCleaningNotice").textContent="Bitte Mitarbeiter / Kürzel eintragen.";return}const d=new Date(),l=logs();l.push({id:"cleanlog-"+Date.now(),taskId:t.id,object:t.object,method:t.method,product:t.product,interval:t.interval,weekday:t.weekday,monthday:t.monthday,responsible:t.responsible,day:todayKey(),time:d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),savedAt:d.toLocaleString("de-DE"),employee:emp,note:$c("gpCleaningNote").value.trim(),status});save(LOG_KEY,l);$c("gpCleaningNote").value="";$c("gpCleaningCompleteBox").hidden=true;selectedId="";renderToday()}
 $c("gpCleaningDone")?.addEventListener("click",()=>saveStatus("done"));$c("gpCleaningNotRequired")?.addEventListener("click",()=>saveStatus("not_required"));
 document.querySelectorAll('[data-haccp-mode="cleaning"]').forEach(b=>b.addEventListener("click",renderAll));renderAll();
+
+/* V8.09.5 – sicherer Import-Arbeitsablauf.
+   Noch KEINE automatische Bilderkennung und KEIN API-Schlüssel im Browser.
+   Das Foto dient als Vorlage; Übernahme erfolgt erst nach Nutzerprüfung. */
+const gpImportFile=$c("gpCleaningImportFile"),gpImportPanel=$c("gpCleaningImportPanel"),
+ gpImportPreview=$c("gpCleaningImportPreview"),gpImportState=$c("gpCleaningImportState"),
+ gpImportImage=$c("gpCleaningImportImage"),gpImportImageWrap=$c("gpCleaningImportImageWrap");
+let gpImportUrl="";
+function gpImportRow(v={}){
+ const row=document.createElement("div");row.className="gpCleaningImportRow";
+ row.innerHTML=`<label>Bereich / Objekt<input data-i="object" value="${escC(v.object||"")}"></label>
+ <label>Verfahren<input data-i="method" value="${escC(v.method||"")}"></label>
+ <label>Mittel<input data-i="product" value="${escC(v.product||"")}"></label>
+ <label>Turnus<select data-i="interval"><option value="daily">Täglich</option><option value="afteruse">Nach Gebrauch</option><option value="weekly">Wöchentlich</option><option value="monthly">Monatlich</option><option value="custom">Bei Bedarf</option></select></label>
+ <label>Zuständig<input data-i="responsible" value="${escC(v.responsible||"")}"></label>
+ <button class="secondary danger gpImportRemove" type="button">×</button>`;
+ row.querySelector('[data-i="interval"]').value=v.interval||"daily";
+ row.querySelector(".gpImportRemove").addEventListener("click",()=>row.remove());
+ gpImportPreview.appendChild(row);
+}
+function gpResetImport(){
+ if(gpImportUrl){URL.revokeObjectURL(gpImportUrl);gpImportUrl=""}
+ if(gpImportFile)gpImportFile.value="";
+ if(gpImportPreview)gpImportPreview.innerHTML="";
+ if(gpImportImageWrap)gpImportImageWrap.hidden=true;
+ if(gpImportPanel)gpImportPanel.hidden=true;
+ if(gpImportState)gpImportState.textContent="";
+}
+$c("gpCleaningImportOpen")?.addEventListener("click",()=>gpImportFile?.click());
+gpImportFile?.addEventListener("change",()=>{
+ const f=gpImportFile.files?.[0];if(!f)return;
+ if(gpImportUrl)URL.revokeObjectURL(gpImportUrl);
+ gpImportUrl=URL.createObjectURL(f);gpImportImage.src=gpImportUrl;gpImportImageWrap.hidden=false;gpImportPanel.hidden=false;
+ gpImportPreview.innerHTML="";gpImportRow();
+ gpImportState.textContent="Foto geladen. Die automatische Erkennung wird als nächster Schritt sicher serverseitig angeschlossen. Trage oder korrigiere die erkannten Aufgaben hier und prüfe sie vor der Übernahme.";
+ gpImportPanel.scrollIntoView({behavior:"smooth",block:"start"});
+});
+$c("gpCleaningImportAddRow")?.addEventListener("click",()=>gpImportRow());
+$c("gpCleaningImportCancel")?.addEventListener("click",gpResetImport);
+$c("gpCleaningImportApply")?.addEventListener("click",()=>{
+ const rows=[...gpImportPreview.querySelectorAll(".gpCleaningImportRow")].map(r=>{
+  const get=n=>r.querySelector(`[data-i="${n}"]`)?.value.trim()||"";
+  return {object:get("object"),method:get("method"),product:get("product"),interval:get("interval")||"daily",responsible:get("responsible")}
+ }).filter(x=>x.object);
+ if(!rows.length){gpImportState.textContent="Bitte mindestens eine Aufgabe mit Bereich / Objekt eintragen.";return}
+ const a=tasks(),stamp=Date.now();
+ rows.forEach((x,i)=>a.push({id:`clean-import-${stamp}-${i}`,object:x.object,method:x.method,product:x.product,interval:x.interval,weekday:"1",monthday:"1",responsible:x.responsible}));
+ save(TASK_KEY,a);renderAll();gpResetImport();
+ const n=$c("gpCleaningManageNotice");if(n)n.textContent=`✓ ${rows.length} geprüfte Reinigungsaufgabe${rows.length===1?"":"n"} übernommen.`;
+});
 })();
 </script>
 
